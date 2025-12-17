@@ -73,7 +73,7 @@ const ServersSection = () => {
 
   const playHoverSound = () => {
     const now = Date.now();
-    if (now - lastSoundTime.current < 150) return;
+    if (now - lastSoundTime.current < 300) return;
     
     lastSoundTime.current = now;
     
@@ -121,22 +121,27 @@ const ServersSection = () => {
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
+        const newCards: string[] = [];
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             const cardId = entry.target.getAttribute('data-card-id');
             if (cardId) {
-              setVisibleCards((prev) => {
-                const newSet = new Set(prev);
-                newSet.add(cardId);
-                return newSet;
-              });
+              newCards.push(cardId);
             }
           }
         });
+        
+        if (newCards.length > 0) {
+          setVisibleCards((prev) => {
+            const newSet = new Set(prev);
+            newCards.forEach(id => newSet.add(id));
+            return newSet;
+          });
+        }
       },
       {
-        threshold: 0.05,
-        rootMargin: '50px'
+        threshold: 0.1,
+        rootMargin: '100px'
       }
     );
 
@@ -144,7 +149,7 @@ const ServersSection = () => {
       cardRefs.current.forEach((card) => {
         if (card) observer.observe(card);
       });
-    }, 100);
+    }, 150);
 
     return () => {
       clearTimeout(timer);

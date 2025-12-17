@@ -79,7 +79,16 @@ const ChristmasGarland = () => {
       ctx.globalAlpha = 1;
     };
 
-    const animate = () => {
+    let lastFrame = 0;
+    const frameDelay = 1000 / 30;
+    
+    const animate = (timestamp: number) => {
+      if (timestamp - lastFrame < frameDelay) {
+        requestAnimationFrame(animate);
+        return;
+      }
+      
+      lastFrame = timestamp;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
       drawWire();
@@ -93,7 +102,7 @@ const ChristmasGarland = () => {
       requestAnimationFrame(animate);
     };
 
-    animate();
+    requestAnimationFrame(animate);
 
     return () => {
       window.removeEventListener('resize', resizeCanvas);

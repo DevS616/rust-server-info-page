@@ -17,7 +17,7 @@ const HeroSection = () => {
 
   const playVendingSound = () => {
     const now = Date.now();
-    if (now - lastVendingSound.current < 500) return;
+    if (now - lastVendingSound.current < 1000) return;
     
     lastVendingSound.current = now;
     
@@ -56,8 +56,8 @@ const HeroSection = () => {
   useEffect(() => {
     if (totalPlayers === null) return;
     
-    const duration = 800;
-    const steps = 40;
+    const duration = 1000;
+    const steps = 25;
     const increment = (totalPlayers - displayPlayers) / steps;
     let currentStep = 0;
     

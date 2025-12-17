@@ -102,7 +102,7 @@ const PromotionModal = () => {
       if (!updateTimer()) {
         clearInterval(timer);
       }
-    }, 1000);
+    }, 5000);
 
     return () => clearInterval(timer);
   }, []);

@@ -100,7 +100,7 @@ class MonitoringService {
     this.fetchData();
     this.fetchInterval = window.setInterval(() => {
       this.fetchData();
-    }, 60000);
+    }, 120000);
   }
 
   destroy(): void {
