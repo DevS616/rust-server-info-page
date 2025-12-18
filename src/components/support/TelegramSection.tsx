@@ -34,13 +34,17 @@ const TelegramSection = ({ token }: TelegramSectionProps) => {
 
   const handleTelegramLink = async () => {
     try {
+      console.log('Requesting telegram link...');
       const res = await fetch(`${API_BASE}/92e13203-5190-4bb5-b08b-d287ef896899/?action=link`, {
         method: 'POST',
         headers: { 'X-Auth-Token': token }
       });
       
+      console.log('Response status:', res.status);
+      
       if (res.ok) {
         const data = await res.json();
+        console.log('Received link_url:', data.link_url);
         window.open(data.link_url, '_blank');
         setShowTelegramInfo(true);
         
