@@ -119,7 +119,7 @@ const Header = () => {
           <a href="https://devrus.gamestores.app/" target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-foreground hover:text-primary transition-colors uppercase tracking-wider">
             Магазин
           </a>
-          <a href="https://devilrust.ru/support/" target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-foreground hover:text-primary transition-colors uppercase tracking-wider">
+          <a href="/support" className="text-sm font-medium text-foreground hover:text-primary transition-colors uppercase tracking-wider">
             Поддержка
           </a>
         </nav>
