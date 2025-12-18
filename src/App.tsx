@@ -26,8 +26,8 @@ const App = () => (
       <TelegramWidget />
       <PromotionModal />
       <NewYearMode />
-      <SupportNotifications />
       <BrowserRouter>
+        <SupportNotifications />
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/banlist" element={<BanList />} />
