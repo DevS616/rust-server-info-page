@@ -33,6 +33,7 @@ const TelegramSection = ({ token }: TelegramSectionProps) => {
   };
 
   const handleTelegramLink = async () => {
+    console.log('handleTelegramLink called, token:', token ? 'present' : 'missing');
     try {
       console.log('Requesting telegram link...');
       const res = await fetch(`${API_BASE}/92e13203-5190-4bb5-b08b-d287ef896899/?action=link`, {
@@ -45,6 +46,7 @@ const TelegramSection = ({ token }: TelegramSectionProps) => {
       if (res.ok) {
         const data = await res.json();
         console.log('Received link_url:', data.link_url);
+        console.log('Opening link in new tab...');
         window.open(data.link_url, '_blank');
         setShowTelegramInfo(true);
         
@@ -99,6 +101,7 @@ const TelegramSection = ({ token }: TelegramSectionProps) => {
   };
 
   useEffect(() => {
+    console.log('TelegramSection mounted, token:', token ? 'present' : 'missing');
     checkTelegramLink();
   }, []);
 
