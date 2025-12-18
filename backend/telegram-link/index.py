@@ -196,6 +196,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             bot_username = 'DevilRustBot'
             link_url = f'https://t.me/{bot_username}?start={link_token}'
             
+            print(f'Generated link for user_id={user["id"]}: {link_url[:50]}...')
+            print(f'Token preview: {link_token[:30]}...')
+            
             return {
                 'statusCode': 200,
                 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
