@@ -56,9 +56,31 @@ const TicketDetails = () => {
       navigate('/support');
     }
     
-    audioRef.current = new Audio('data:audio/wav;base64,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');
+    audioRef.current = {
+      play: () => {
+        try {
+          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+          const oscillator = audioContext.createOscillator();
+          const gainNode = audioContext.createGain();
+          
+          oscillator.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+          
+          oscillator.frequency.value = 800;
+          oscillator.type = 'sine';
+          
+          gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+          
+          oscillator.start(audioContext.currentTime);
+          oscillator.stop(audioContext.currentTime + 0.3);
+          
+          return Promise.resolve();
+        } catch (e) {
+          return Promise.reject(e);
+        }
+      }
+    } as any;
   }, [navigate]);
 
   useEffect(() => {
