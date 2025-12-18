@@ -33,7 +33,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     params = event.get('queryStringParameters') or {}
     path = event.get('path', '')
     
-    base_url = os.environ.get('BASE_URL', 'https://play.devilrust.ru')
+    base_url = params.get('base_url', os.environ.get('BASE_URL', 'https://play.devilrust.ru'))
     api_url = params.get('api_url', '')
     
     if 'openid.mode' in params:
@@ -43,10 +43,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
 
 def handle_login(api_url: str, base_url: str) -> Dict[str, Any]:
-    if not api_url:
-        api_url = 'https://functions.poehali.dev/560196bb-a6d4-41dc-9b1c-0008c13bece3'
+    if not base_url:
+        base_url = 'https://play.devilrust.ru'
     
-    return_url = f"{api_url}?callback=true"
+    return_url = f"{base_url}/steam-callback"
     
     steam_params = {
         'openid.ns': 'http://specs.openid.net/auth/2.0',
@@ -72,6 +72,9 @@ def handle_login(api_url: str, base_url: str) -> Dict[str, Any]:
 
 
 def handle_callback(params: Dict[str, Any], api_url: str, base_url: str) -> Dict[str, Any]:
+    if not base_url:
+        base_url = 'https://play.devilrust.ru'
+    
     if params.get('openid.mode') != 'id_res':
         return error_response('Invalid OpenID mode')
     

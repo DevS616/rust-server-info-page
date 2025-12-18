@@ -79,7 +79,8 @@ const Support = () => {
   };
 
   const handleSteamLogin = () => {
-    window.location.href = `${API_BASE}/560196bb-a6d4-41dc-9b1c-0008c13bece3/?api_url=${API_BASE}/560196bb-a6d4-41dc-9b1c-0008c13bece3`;
+    const baseUrl = window.location.origin;
+    window.location.href = `${API_BASE}/560196bb-a6d4-41dc-9b1c-0008c13bece3/?base_url=${encodeURIComponent(baseUrl)}`;
   };
 
   const handleLogout = () => {
