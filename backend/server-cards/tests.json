@@ -1,0 +1,26 @@
+{
+  "tests": [
+    {
+      "name": "Get all active servers",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "servers": []
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Create server without auth",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "name": "Test Server"
+      },
+      "expectedStatus": 401,
+      "expectedBody": {
+        "error": "Unauthorized"
+      }
+    }
+  ]
+}

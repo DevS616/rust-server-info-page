@@ -42,6 +42,9 @@ const Support = () => {
     file: null as File | null
   });
   const [uploading, setUploading] = useState(false);
+  const [telegramLinked, setTelegramLinked] = useState(false);
+  const [telegramUsername, setTelegramUsername] = useState<string | null>(null);
+  const [showTelegramInfo, setShowTelegramInfo] = useState(false);
 
   useEffect(() => {
     const urlToken = searchParams.get('token');
@@ -61,6 +64,7 @@ const Support = () => {
       loadTickets();
       loadServers();
       checkUserStatus();
+      checkTelegramLink();
     } else {
       setLoading(false);
       loadServers();
@@ -123,6 +127,61 @@ const Support = () => {
   const handleSteamLogin = () => {
     const baseUrl = window.location.origin;
     window.location.href = `${API_BASE}/560196bb-a6d4-41dc-9b1c-0008c13bece3/?base_url=${encodeURIComponent(baseUrl)}`;
+  };
+
+  const checkTelegramLink = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/92e13203-5190-4bb5-b08b-d287ef896899/`, {
+        headers: { 'X-Auth-Token': token! }
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        setTelegramLinked(data.linked);
+        setTelegramUsername(data.telegram_username);
+      }
+    } catch (error) {
+      console.error('Failed to check telegram link:', error);
+    }
+  };
+
+  const handleTelegramLink = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/92e13203-5190-4bb5-b08b-d287ef896899/?action=link`, {
+        method: 'POST',
+        headers: { 'X-Auth-Token': token! }
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        window.open(data.link_url, '_blank');
+        setShowTelegramInfo(true);
+        setTimeout(() => checkTelegramLink(), 5000);
+      } else {
+        toast({ title: 'Ошибка', description: 'Не удалось создать ссылку', variant: 'destructive' });
+      }
+    } catch (error) {
+      toast({ title: 'Ошибка', description: 'Не удалось создать ссылку', variant: 'destructive' });
+    }
+  };
+
+  const handleTelegramUnlink = async () => {
+    if (!confirm('Вы уверены, что хотите отвязать Telegram?')) return;
+    
+    try {
+      const res = await fetch(`${API_BASE}/92e13203-5190-4bb5-b08b-d287ef896899/`, {
+        method: 'DELETE',
+        headers: { 'X-Auth-Token': token! }
+      });
+      
+      if (res.ok) {
+        setTelegramLinked(false);
+        setTelegramUsername(null);
+        toast({ title: 'Успешно', description: 'Telegram отвязан' });
+      }
+    } catch (error) {
+      toast({ title: 'Ошибка', description: 'Не удалось отвязать Telegram', variant: 'destructive' });
+    }
   };
 
   const handleLogout = () => {
@@ -335,6 +394,45 @@ const Support = () => {
                   </div>
                 </Card>
               )}
+
+              <Card className="p-6 mb-8">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-4">
+                    <div className={`p-3 rounded-lg ${telegramLinked ? 'bg-green-500/10' : 'bg-blue-500/10'}`}>
+                      <Icon name="Send" className={telegramLinked ? 'text-green-500' : 'text-blue-500'} size={24} />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold mb-1">
+                        {telegramLinked ? 'Telegram подключён' : 'Подключить Telegram'}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {telegramLinked 
+                          ? `@${telegramUsername} — вы получаете уведомления о новых ответах`
+                          : 'Получайте уведомления о новых ответах на ваши обращения'}
+                      </p>
+                      {showTelegramInfo && !telegramLinked && (
+                        <p className="text-sm text-blue-500 mt-2">
+                          ℹ️ Отправьте боту команду /start для завершения привязки
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    {telegramLinked ? (
+                      <Button onClick={handleTelegramUnlink} variant="outline" size="sm">
+                        <Icon name="Unlink" className="mr-2" size={16} />
+                        Отвязать
+                      </Button>
+                    ) : (
+                      <Button onClick={handleTelegramLink} size="sm">
+                        <Icon name="Link" className="mr-2" size={16} />
+                        Подключить
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </Card>
 
               {showForm ? (
                 <Card className="p-6 mb-8">

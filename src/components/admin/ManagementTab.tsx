@@ -20,6 +20,7 @@ const ManagementTab = ({ token }: ManagementTabProps) => {
   const [maintenanceSubtitle, setMaintenanceSubtitle] = useState('Подпишитесь на наш Telegram, чтобы узнать больше о завершении работ');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState<'maintenance' | 'servers'>('maintenance');
 
   useEffect(() => {
     loadMaintenanceStatus();
@@ -125,15 +126,33 @@ const ManagementTab = ({ token }: ManagementTabProps) => {
 
   return (
     <div className="space-y-6">
-      <Card className="p-6">
-        <div className="flex items-start justify-between mb-6">
-          <div>
-            <h2 className="text-2xl font-semibold mb-2">Режим технических работ</h2>
-            <p className="text-muted-foreground">
-              При включении все пользователи увидят страницу с информацией о проведении технических работ
-            </p>
+      <div className="flex gap-2 mb-6">
+        <Button
+          onClick={() => setActiveTab('maintenance')}
+          variant={activeTab === 'maintenance' ? 'default' : 'outline'}
+        >
+          <Icon name="Settings" className="mr-2" />
+          Тех. работы
+        </Button>
+        <Button
+          onClick={() => setActiveTab('servers')}
+          variant={activeTab === 'servers' ? 'default' : 'outline'}
+        >
+          <Icon name="Server" className="mr-2" />
+          Карточки серверов
+        </Button>
+      </div>
+
+      {activeTab === 'maintenance' && (
+        <Card className="p-6">
+          <div className="flex items-start justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-semibold mb-2">Режим технических работ</h2>
+              <p className="text-muted-foreground">
+                При включении все пользователи увидят страницу с информацией о проведении технических работ
+              </p>
+            </div>
           </div>
-        </div>
 
         <div className="space-y-6">
           <div className="flex items-center justify-between p-6 bg-muted rounded-lg">
@@ -229,6 +248,26 @@ const ManagementTab = ({ token }: ManagementTabProps) => {
           </div>
         </div>
       </Card>
+      )}
+
+      {activeTab === 'servers' && (
+        <Card className="p-6">
+          <div className="flex items-start justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-semibold mb-2">Управление карточками серверов</h2>
+              <p className="text-muted-foreground">
+                Редактирование информации о серверах на главной странице
+              </p>
+            </div>
+          </div>
+
+          <div className="text-center py-12 text-muted-foreground">
+            <Icon name="Construction" className="mx-auto mb-4" size={48} />
+            <p>Раздел в разработке</p>
+            <p className="text-sm mt-2">Скоро здесь будет интерфейс редактирования серверов</p>
+          </div>
+        </Card>
+      )}
     </div>
   );
 };

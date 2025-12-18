@@ -1,0 +1,22 @@
+{
+  "tests": [
+    {
+      "name": "Get link status without auth",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 401,
+      "expectedBody": {
+        "error": "Unauthorized"
+      }
+    },
+    {
+      "name": "Generate link without auth",
+      "method": "POST",
+      "path": "/?action=link",
+      "expectedStatus": 401,
+      "expectedBody": {
+        "error": "Unauthorized"
+      }
+    }
+  ]
+}

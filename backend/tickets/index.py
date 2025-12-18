@@ -5,6 +5,7 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 from typing import Dict, Any, Optional
 from datetime import datetime
+import requests
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     '''
@@ -242,6 +243,22 @@ def add_reply(ticket_id: str, event: Dict[str, Any], user_data: Dict[str, Any]) 
             "INSERT INTO ticket_messages (ticket_id, admin_id, message, file_url, is_admin_reply) VALUES (%s, %s, %s, %s, TRUE) RETURNING *",
             (ticket_id, user_data['admin_id'], message, file_url if file_url else None)
         )
+        
+        cur.execute("""
+            SELECT u.telegram_chat_id, t.subject, t.id
+            FROM tickets t
+            JOIN users u ON t.user_id = u.id
+            WHERE t.id = %s AND u.telegram_chat_id IS NOT NULL
+        """, (ticket_id,))
+        
+        ticket_info = cur.fetchone()
+        if ticket_info:
+            send_telegram_notification(
+                chat_id=ticket_info['telegram_chat_id'],
+                ticket_id=ticket_info['id'],
+                subject=ticket_info['subject'],
+                message_type='reply'
+            )
     else:
         cur.execute("SELECT user_id FROM tickets WHERE id = %s", (ticket_id,))
         ticket = cur.fetchone()
@@ -299,6 +316,23 @@ def update_status(ticket_id: str, event: Dict[str, Any], user_data: Dict[str, An
         cur.close()
         conn.close()
         return error_response('Ticket not found', 404)
+    
+    cur.execute("""
+        SELECT u.telegram_chat_id, t.subject, t.id
+        FROM tickets t
+        JOIN users u ON t.user_id = u.id
+        WHERE t.id = %s AND u.telegram_chat_id IS NOT NULL
+    """, (ticket_id,))
+    
+    ticket_info = cur.fetchone()
+    if ticket_info:
+        send_telegram_notification(
+            chat_id=ticket_info['telegram_chat_id'],
+            ticket_id=ticket_info['id'],
+            subject=ticket_info['subject'],
+            message_type='status_change',
+            status=status
+        )
     
     conn.commit()
     cur.close()
@@ -387,6 +421,40 @@ def delete_ticket(ticket_id: str, user_data: Dict[str, Any]) -> Dict[str, Any]:
         'body': json.dumps({'success': True}),
         'isBase64Encoded': False
     }
+
+
+def send_telegram_notification(chat_id: int, ticket_id: int, subject: str, message_type: str, status: str = None):
+    bot_token = os.environ.get('TELEGRAM_BOT_TOKEN', '8403286148:AAG4gV5SSdtSsZGvLDMb-LPEbQpP5uvKtqo')
+    
+    if message_type == 'reply':
+        text = f'📩 Новый ответ на ваше обращение\n\n🎫 Тикет: {subject}'
+    elif message_type == 'status_change':
+        status_text = {'open': 'Открыт', 'in_progress': 'В работе', 'closed': 'Закрыт'}
+        text = f'🔔 Статус вашего обращения изменён\n\n🎫 Тикет: {subject}\n📊 Новый статус: {status_text.get(status, status)}'
+    else:
+        return
+    
+    keyboard = {
+        'inline_keyboard': [[
+            {
+                'text': '👁️ Перейти к обращению',
+                'url': f'https://play.devilrust.ru/support/ticket/{ticket_id}'
+            }
+        ]]
+    }
+    
+    try:
+        requests.post(
+            f'https://api.telegram.org/bot{bot_token}/sendMessage',
+            json={
+                'chat_id': chat_id,
+                'text': text,
+                'reply_markup': keyboard
+            },
+            timeout=5
+        )
+    except Exception as e:
+        print(f'Telegram notification error: {e}')
 
 
 def error_response(message: str, status_code: int = 400) -> Dict[str, Any]:
