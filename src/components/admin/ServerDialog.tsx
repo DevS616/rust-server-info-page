@@ -32,6 +32,9 @@ export interface ServerFormData {
   battlemetrics_id: string;
   description: string;
   features: string;
+  detailed_title: string;
+  detailed_description: string;
+  detailed_highlights: string;
   display_order: number;
   is_active: boolean;
 }
@@ -56,12 +59,19 @@ const ServerDialog = ({ open, server, serversLength, token, onClose, onSave }: S
     battlemetrics_id: '',
     description: '',
     features: '',
+    detailed_title: '',
+    detailed_description: '',
+    detailed_highlights: '',
     display_order: 0,
     is_active: true
   });
 
   useEffect(() => {
     if (server) {
+      const detailedDesc = server.detailed_description || {};
+      const highlights = detailedDesc.highlights || [];
+      const highlightsText = highlights.map((h: any) => `${h.icon}|${h.text}`).join('\n');
+      
       setServerForm({
         name: server.name,
         mode: server.mode || '',
@@ -70,6 +80,9 @@ const ServerDialog = ({ open, server, serversLength, token, onClose, onSave }: S
         battlemetrics_id: server.battlemetrics_id || '',
         description: server.description || '',
         features: server.features?.join('\n') || '',
+        detailed_title: detailedDesc.title || '',
+        detailed_description: detailedDesc.description || '',
+        detailed_highlights: highlightsText,
         display_order: server.display_order,
         is_active: server.is_active
       });
@@ -82,6 +95,9 @@ const ServerDialog = ({ open, server, serversLength, token, onClose, onSave }: S
         battlemetrics_id: '',
         description: '',
         features: '',
+        detailed_title: '',
+        detailed_description: '',
+        detailed_highlights: '',
         display_order: serversLength,
         is_active: true
       });
@@ -101,6 +117,24 @@ const ServerDialog = ({ open, server, serversLength, token, onClose, onSave }: S
         .map(f => f.trim())
         .filter(f => f.length > 0);
 
+      const highlightsArray = serverForm.detailed_highlights
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0)
+        .map(line => {
+          const [icon, ...textParts] = line.split('|');
+          return {
+            icon: icon?.trim() || 'Star',
+            text: textParts.join('|').trim() || line
+          };
+        });
+
+      const detailedDescription = (serverForm.detailed_title || serverForm.detailed_description || highlightsArray.length > 0) ? {
+        title: serverForm.detailed_title.trim(),
+        description: serverForm.detailed_description.trim(),
+        highlights: highlightsArray
+      } : null;
+
       const body = {
         name: serverForm.name.trim(),
         mode: serverForm.mode.trim(),
@@ -109,6 +143,7 @@ const ServerDialog = ({ open, server, serversLength, token, onClose, onSave }: S
         battlemetrics_id: serverForm.battlemetrics_id.trim(),
         description: serverForm.description.trim(),
         features: featuresArray,
+        detailed_description: detailedDescription,
         display_order: serverForm.display_order,
         is_active: serverForm.is_active
       };
@@ -233,6 +268,52 @@ const ServerDialog = ({ open, server, serversLength, token, onClose, onSave }: S
               placeholder="Рейты x3&#10;Вайп 1 раз в месяц&#10;Кастомные руды"
               rows={6}
             />
+          </div>
+
+          <div className="border-t pt-4 mt-4">
+            <h3 className="font-semibold mb-4 flex items-center gap-2">
+              <Icon name="FileText" size={18} />
+              Полное описание (для модального окна)
+            </h3>
+            
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="detailed-title">Заголовок</Label>
+                <Input
+                  id="detailed-title"
+                  value={serverForm.detailed_title}
+                  onChange={(e) => setServerForm({ ...serverForm, detailed_title: e.target.value })}
+                  placeholder="Добро пожаловать на сервер!"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="detailed-desc">Подробное описание</Label>
+                <Textarea
+                  id="detailed-desc"
+                  value={serverForm.detailed_description}
+                  onChange={(e) => setServerForm({ ...serverForm, detailed_description: e.target.value })}
+                  placeholder="Полное описание сервера для модального окна..."
+                  rows={4}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="detailed-highlights">
+                  Основные моменты (формат: Иконка|Текст)
+                  <span className="text-xs text-muted-foreground block mt-1">
+                    Например: Users|1000+ игроков онлайн
+                  </span>
+                </Label>
+                <Textarea
+                  id="detailed-highlights"
+                  value={serverForm.detailed_highlights}
+                  onChange={(e) => setServerForm({ ...serverForm, detailed_highlights: e.target.value })}
+                  placeholder="Users|1000+ игроков&#10;Zap|Быстрый старт&#10;Shield|Защита базы"
+                  rows={4}
+                />
+              </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

@@ -40,17 +40,38 @@ const ServersManagement = ({ token, onEditServer, onAddServer }: ServersManageme
 
   const handleToggleActive = async (server: Server, checked: boolean) => {
     try {
-      await fetch(`${API_BASE}/173145fd-cc6a-4e5a-baee-7e1194624730/?server_id=${server.id}`, {
+      const res = await fetch(`${API_BASE}/173145fd-cc6a-4e5a-baee-7e1194624730/?server_id=${server.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'X-Auth-Token': token
         },
-        body: JSON.stringify({ ...server, is_active: checked })
+        body: JSON.stringify({
+          name: server.name,
+          mode: server.mode || '',
+          ip: server.ip || '',
+          server_ip: server.server_ip || '',
+          battlemetrics_id: server.battlemetrics_id || '',
+          description: server.description || '',
+          features: server.features || [],
+          detailed_description: server.detailed_description,
+          display_order: server.display_order,
+          is_active: checked
+        })
       });
-      loadServers();
+      
+      if (res.ok) {
+        toast({ 
+          title: 'Успешно', 
+          description: checked ? 'Сервер активирован' : 'Сервер скрыт'
+        });
+        loadServers();
+      } else {
+        toast({ title: 'Ошибка', description: 'Не удалось изменить статус', variant: 'destructive' });
+      }
     } catch (error) {
       console.error('Failed to toggle server:', error);
+      toast({ title: 'Ошибка', description: 'Не удалось изменить статус', variant: 'destructive' });
     }
   };
 
