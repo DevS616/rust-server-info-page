@@ -29,15 +29,24 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     
     try:
         if method == 'GET':
-            cur.execute("SELECT is_maintenance FROM site_settings WHERE id = 1")
+            cur.execute("""
+                SELECT is_maintenance, maintenance_title, maintenance_subtitle 
+                FROM site_settings WHERE id = 1
+            """)
             result = cur.fetchone()
             
             if not result:
-                cur.execute("INSERT INTO site_settings (id, is_maintenance) VALUES (1, FALSE)")
+                cur.execute("""
+                    INSERT INTO site_settings (id, is_maintenance, maintenance_title, maintenance_subtitle) 
+                    VALUES (1, FALSE, 'Сайт временно закрыт на технические работы', 
+                            'Подпишитесь на наш Telegram, чтобы узнать больше о завершении работ')
+                """)
                 conn.commit()
-                is_maintenance = False
-            else:
-                is_maintenance = result['is_maintenance']
+                result = {
+                    'is_maintenance': False,
+                    'maintenance_title': 'Сайт временно закрыт на технические работы',
+                    'maintenance_subtitle': 'Подпишитесь на наш Telegram, чтобы узнать больше о завершении работ'
+                }
             
             return {
                 'statusCode': 200,
@@ -46,7 +55,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'Access-Control-Allow-Origin': '*'
                 },
                 'isBase64Encoded': False,
-                'body': json.dumps({'is_maintenance': is_maintenance})
+                'body': json.dumps({
+                    'is_maintenance': result['is_maintenance'],
+                    'maintenance_title': result['maintenance_title'],
+                    'maintenance_subtitle': result['maintenance_subtitle']
+                })
             }
         
         if method == 'PUT':
@@ -71,13 +84,20 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             
             body_data = json.loads(event.get('body', '{}'))
             is_maintenance = body_data.get('is_maintenance', False)
+            maintenance_title = body_data.get('maintenance_title', 'Сайт временно закрыт на технические работы')
+            maintenance_subtitle = body_data.get('maintenance_subtitle', 'Подпишитесь на наш Telegram, чтобы узнать больше о завершении работ')
             
             cur.execute("""
-                INSERT INTO site_settings (id, is_maintenance) 
-                VALUES (1, %s) 
+                INSERT INTO site_settings (id, is_maintenance, maintenance_title, maintenance_subtitle) 
+                VALUES (1, %s, %s, %s) 
                 ON CONFLICT (id) 
-                DO UPDATE SET is_maintenance = %s, updated_at = NOW()
-            """, (is_maintenance, is_maintenance))
+                DO UPDATE SET 
+                    is_maintenance = %s, 
+                    maintenance_title = %s, 
+                    maintenance_subtitle = %s, 
+                    updated_at = NOW()
+            """, (is_maintenance, maintenance_title, maintenance_subtitle,
+                  is_maintenance, maintenance_title, maintenance_subtitle))
             conn.commit()
             
             return {
@@ -89,7 +109,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'isBase64Encoded': False,
                 'body': json.dumps({
                     'success': True,
-                    'is_maintenance': is_maintenance
+                    'is_maintenance': is_maintenance,
+                    'maintenance_title': maintenance_title,
+                    'maintenance_subtitle': maintenance_subtitle
                 })
             }
         

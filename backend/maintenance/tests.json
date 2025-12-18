@@ -6,7 +6,9 @@
       "path": "/",
       "expectedStatus": 200,
       "expectedBody": {
-        "is_maintenance": "boolean"
+        "is_maintenance": "boolean",
+        "maintenance_title": "string",
+        "maintenance_subtitle": "string"
       },
       "bodyMatcher": "partial"
     }

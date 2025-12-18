@@ -22,6 +22,8 @@ const queryClient = new QueryClient();
 const AppContent = () => {
   const location = useLocation();
   const [isMaintenance, setIsMaintenance] = useState(false);
+  const [maintenanceTitle, setMaintenanceTitle] = useState('');
+  const [maintenanceSubtitle, setMaintenanceSubtitle] = useState('');
   const [loading, setLoading] = useState(true);
   const isAdminPath = location.pathname.startsWith('/admin');
 
@@ -32,6 +34,8 @@ const AppContent = () => {
         if (res.ok) {
           const data = await res.json();
           setIsMaintenance(data.is_maintenance);
+          setMaintenanceTitle(data.maintenance_title);
+          setMaintenanceSubtitle(data.maintenance_subtitle);
         }
       } catch (error) {
         console.error('Failed to check maintenance:', error);
@@ -57,7 +61,7 @@ const AppContent = () => {
   }
 
   if (isMaintenance && !isAdminPath) {
-    return <MaintenancePage />;
+    return <MaintenancePage title={maintenanceTitle} subtitle={maintenanceSubtitle} />;
   }
 
   return (

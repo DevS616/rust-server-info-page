@@ -1,7 +1,15 @@
 import Icon from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 
-const MaintenancePage = () => {
+interface MaintenancePageProps {
+  title?: string;
+  subtitle?: string;
+}
+
+const MaintenancePage = ({ title, subtitle }: MaintenancePageProps) => {
+  const mainTitle = title || 'Сайт временно закрыт на технические работы';
+  const mainSubtitle = subtitle || 'Подпишитесь на наш Telegram, чтобы узнать больше о завершении работ';
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted flex items-center justify-center px-4">
       <div className="max-w-2xl w-full text-center space-y-8">
@@ -18,23 +26,18 @@ const MaintenancePage = () => {
 
         <div className="space-y-4">
           <h1 className="text-5xl font-bold tracking-tight">
-            Сайт временно закрыт на технические работы
+            {mainTitle}
           </h1>
           
           <p className="text-xl text-muted-foreground">
-            Мы проводим плановое обслуживание для улучшения сервиса
+            {mainSubtitle}
           </p>
         </div>
 
         <div className="bg-card border border-primary/20 rounded-lg p-8 space-y-6">
-          <div className="flex items-center justify-center gap-3">
-            <Icon name="Clock" className="h-6 w-6 text-primary" />
-            <p className="text-lg">Ожидаемое время завершения: скоро</p>
-          </div>
-
           <div className="border-t pt-6">
             <p className="text-muted-foreground mb-4">
-              Подпишитесь на наш Telegram, чтобы узнать больше о завершении работ
+              Следите за обновлениями в нашем Telegram канале
             </p>
             
             <Button 
