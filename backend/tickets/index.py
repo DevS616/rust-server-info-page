@@ -88,7 +88,7 @@ def create_ticket(event: Dict[str, Any], user_data: Dict[str, Any]) -> Dict[str,
     if user and user['is_blocked']:
         cur.close()
         conn.close()
-        return error_response('User is blocked from creating tickets', 403)
+        return error_response('Вам запрещено создавать тикеты в техподдержке, ваш аккаунт заблокирован.', 403)
     
     cur.execute(
         "INSERT INTO tickets (user_id, server, subject) VALUES (%s, %s, %s) RETURNING *",
