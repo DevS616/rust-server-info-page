@@ -45,6 +45,7 @@ interface TicketsTabProps {
   token: string;
   getStatusColor: (status: string) => string;
   getStatusText: (status: string) => string;
+  loading: boolean;
 }
 
 const TicketsTab = ({
@@ -61,7 +62,8 @@ const TicketsTab = ({
   loadTicketDetails,
   token,
   getStatusColor,
-  getStatusText
+  getStatusText,
+  loading
 }: TicketsTabProps) => {
   const copySteamId = (steamId: string) => {
     navigator.clipboard.writeText(steamId);
@@ -179,9 +181,18 @@ const TicketsTab = ({
               rows={4}
               className="mb-2"
             />
-            <Button onClick={handleSendReply} disabled={!reply.trim()}>
-              <Icon name="Send" className="mr-2" />
-              Отправить ответ
+            <Button onClick={handleSendReply} disabled={!reply.trim() || loading}>
+              {loading ? (
+                <>
+                  <Icon name="Loader2" className="mr-2 animate-spin" />
+                  Отправка...
+                </>
+              ) : (
+                <>
+                  <Icon name="Send" className="mr-2" />
+                  Отправить ответ
+                </>
+              )}
             </Button>
           </div>
         </Card>

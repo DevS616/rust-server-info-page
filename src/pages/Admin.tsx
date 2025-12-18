@@ -258,6 +258,7 @@ const Admin = () => {
   const handleSendReply = async () => {
     if (!reply.trim() || !selectedTicket) return;
     
+    setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/887805c0-0d3a-4f32-8436-1ba1adda4a4f/?action=reply&ticket_id=${selectedTicket.id}`, {
         method: 'POST',
@@ -272,9 +273,15 @@ const Admin = () => {
         toast({ title: 'Успешно', description: 'Ответ отправлен' });
         setReply('');
         loadTicketDetails(selectedTicket.id.toString(), token!);
+      } else {
+        const error = await res.json();
+        toast({ title: 'Ошибка', description: error.error || 'Не удалось отправить ответ', variant: 'destructive' });
       }
     } catch (error) {
+      console.error('Reply error:', error);
       toast({ title: 'Ошибка', description: 'Не удалось отправить ответ', variant: 'destructive' });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -405,6 +412,7 @@ const Admin = () => {
               token={token}
               getStatusColor={getStatusColor}
               getStatusText={getStatusText}
+              loading={loading}
             />
           </TabsContent>
 
