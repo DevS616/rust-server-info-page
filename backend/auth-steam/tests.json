@@ -1,0 +1,14 @@
+{
+  "tests": [
+    {
+      "name": "Steam login redirect",
+      "method": "GET",
+      "path": "/",
+      "queryStringParameters": {
+        "api_url": "https://test-api.example.com"
+      },
+      "expectedStatus": 302,
+      "bodyMatcher": "skip"
+    }
+  ]
+}

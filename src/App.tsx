@@ -9,6 +9,8 @@ import PromotionModal from "./components/PromotionModal";
 import NewYearMode from "./components/NewYearMode";
 import Index from "./pages/Index";
 import BanList from "./pages/BanList";
+import Support from "./pages/Support";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,6 +27,9 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/banlist" element={<BanList />} />
+          <Route path="/support" element={<Support />} />
+          <Route path="/support/:ticketId" element={<Support />} />
+          <Route path="/admin" element={<Admin />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

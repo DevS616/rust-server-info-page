@@ -1,3 +1,8 @@
 {
+  "auth-steam": "https://functions.poehali.dev/560196bb-a6d4-41dc-9b1c-0008c13bece3",
+  "tickets": "https://functions.poehali.dev/887805c0-0d3a-4f32-8436-1ba1adda4a4f",
+  "telegram-notify": "https://functions.poehali.dev/d9aaa9bf-3c0a-459b-ae1a-3c8bb981fdc6",
+  "upload-file": "https://functions.poehali.dev/b36ed6dc-c690-4e62-b1e9-e3dd1b1d15c5",
+  "admin": "https://functions.poehali.dev/bf06608b-5623-4eae-8f89-c08bea6a0073",
   "api": "https://functions.poehali.dev/00e6cb95-28f5-49b7-b342-db4f9ae8ffd1"
 }

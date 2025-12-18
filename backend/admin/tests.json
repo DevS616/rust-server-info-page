@@ -1,0 +1,15 @@
+{
+  "tests": [
+    {
+      "name": "Login requires credentials",
+      "method": "POST",
+      "path": "/login",
+      "body": {},
+      "expectedStatus": 400,
+      "expectedBody": {
+        "error": "string"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}
