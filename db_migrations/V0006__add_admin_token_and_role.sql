@@ -1,0 +1,5 @@
+ALTER TABLE admins 
+ADD COLUMN IF NOT EXISTS token TEXT,
+ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'admin';
+
+CREATE INDEX IF NOT EXISTS idx_admins_token ON admins(token);

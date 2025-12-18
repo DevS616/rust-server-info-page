@@ -97,9 +97,6 @@ def admin_login(event: Dict[str, Any]) -> Dict[str, Any]:
         conn.close()
         return error_response('Invalid credentials', 401)
     
-    cur.close()
-    conn.close()
-    
     secret = os.environ['JWT_SECRET']
     payload = {
         'admin_id': admin['id'],
@@ -109,6 +106,12 @@ def admin_login(event: Dict[str, Any]) -> Dict[str, Any]:
         'exp': datetime.utcnow() + timedelta(days=7)
     }
     token = jwt.encode(payload, secret, algorithm='HS256')
+    
+    cur.execute("UPDATE admins SET token = %s WHERE id = %s", (token, admin['id']))
+    conn.commit()
+    
+    cur.close()
+    conn.close()
     
     return {
         'statusCode': 200,

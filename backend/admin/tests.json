@@ -3,7 +3,7 @@
     {
       "name": "Login requires credentials",
       "method": "POST",
-      "path": "/login",
+      "path": "/?action=login",
       "body": {},
       "expectedStatus": 400,
       "expectedBody": {
