@@ -13,6 +13,8 @@ interface Ticket {
   created_at: string;
   steam_username: string;
   steam_avatar: string;
+  steam_id: string;
+  is_blocked: boolean;
   message_count: number;
   user_id: number;
 }
@@ -38,6 +40,7 @@ interface TicketsTabProps {
   handleSendReply: () => void;
   handleChangeStatus: (status: string) => void;
   handleBlockUser: (userId: number, block: boolean) => void;
+  handleDeleteTicket: (ticketId: number) => void;
   loadTicketDetails: (ticketId: string, token: string) => void;
   token: string;
   getStatusColor: (status: string) => string;
@@ -54,11 +57,15 @@ const TicketsTab = ({
   handleSendReply,
   handleChangeStatus,
   handleBlockUser,
+  handleDeleteTicket,
   loadTicketDetails,
   token,
   getStatusColor,
   getStatusText
 }: TicketsTabProps) => {
+  const copySteamId = (steamId: string) => {
+    navigator.clipboard.writeText(steamId);
+  };
   if (selectedTicket) {
     return (
       <div>
@@ -74,6 +81,17 @@ const TicketsTab = ({
               <div>
                 <h2 className="text-2xl font-semibold">{selectedTicket.subject}</h2>
                 <p className="text-muted-foreground">от {selectedTicket.steam_username}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <p className="text-sm text-muted-foreground">Steam64ID: {selectedTicket.steam_id}</p>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    className="h-6 px-2"
+                    onClick={() => copySteamId(selectedTicket.steam_id)}
+                  >
+                    <Icon name="Copy" size={14} />
+                  </Button>
+                </div>
                 <p className="text-sm text-muted-foreground mt-1">Сервер: {selectedTicket.server}</p>
               </div>
             </div>
@@ -90,12 +108,37 @@ const TicketsTab = ({
                 </SelectContent>
               </Select>
               
+              {selectedTicket.is_blocked ? (
+                <Button 
+                  variant="outline" 
+                  size="icon"
+                  onClick={() => handleBlockUser(selectedTicket.user_id, false)}
+                  title="Разблокировать пользователя"
+                >
+                  <Icon name="ShieldCheck" />
+                </Button>
+              ) : (
+                <Button 
+                  variant="destructive" 
+                  size="icon"
+                  onClick={() => handleBlockUser(selectedTicket.user_id, true)}
+                  title="Заблокировать пользователя"
+                >
+                  <Icon name="Ban" />
+                </Button>
+              )}
+              
               <Button 
                 variant="destructive" 
                 size="icon"
-                onClick={() => handleBlockUser(selectedTicket.user_id, true)}
+                onClick={() => {
+                  if (confirm('Вы уверены, что хотите удалить это обращение? Действие нельзя отменить.')) {
+                    handleDeleteTicket(selectedTicket.id);
+                  }
+                }}
+                title="Удалить обращение"
               >
-                <Icon name="Ban" />
+                <Icon name="Trash2" />
               </Button>
             </div>
           </div>

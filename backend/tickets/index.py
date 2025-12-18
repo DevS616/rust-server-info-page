@@ -22,7 +22,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             'statusCode': 200,
             'headers': {
                 'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
+                'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
                 'Access-Control-Allow-Headers': 'Content-Type, X-Auth-Token',
                 'Access-Control-Max-Age': '86400'
             },
@@ -51,6 +51,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         return add_reply(ticket_id, event, user_data)
     elif method == 'PUT' and action == 'status' and ticket_id:
         return update_status(ticket_id, event, user_data)
+    elif method == 'DELETE' and ticket_id:
+        return delete_ticket(ticket_id, user_data)
     
     return error_response('Not found', 404)
 
@@ -161,7 +163,7 @@ def get_ticket_details(ticket_id: str, user_data: Dict[str, Any]) -> Dict[str, A
     cur = conn.cursor(cursor_factory=RealDictCursor)
     
     cur.execute("""
-        SELECT t.*, u.steam_username, u.steam_avatar
+        SELECT t.*, u.steam_username, u.steam_avatar, u.steam_id, u.is_blocked
         FROM tickets t
         JOIN users u ON t.user_id = u.id
         WHERE t.id = %s
@@ -296,6 +298,39 @@ def update_status(ticket_id: str, event: Dict[str, Any], user_data: Dict[str, An
             'Access-Control-Allow-Origin': '*'
         },
         'body': json.dumps({'ticket': dict(ticket)}, default=str),
+        'isBase64Encoded': False
+    }
+
+
+def delete_ticket(ticket_id: str, user_data: Dict[str, Any]) -> Dict[str, Any]:
+    if not user_data.get('is_admin', False):
+        return error_response('Access denied', 403)
+    
+    conn = psycopg2.connect(os.environ['DATABASE_URL'])
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    
+    cur.execute("SELECT id FROM tickets WHERE id = %s", (ticket_id,))
+    ticket = cur.fetchone()
+    
+    if not ticket:
+        cur.close()
+        conn.close()
+        return error_response('Ticket not found', 404)
+    
+    cur.execute("DELETE FROM ticket_messages WHERE ticket_id = %s", (ticket_id,))
+    cur.execute("DELETE FROM tickets WHERE id = %s", (ticket_id,))
+    
+    conn.commit()
+    cur.close()
+    conn.close()
+    
+    return {
+        'statusCode': 200,
+        'headers': {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+        },
+        'body': json.dumps({'success': True}),
         'isBase64Encoded': False
     }
 

@@ -3,7 +3,7 @@
     {
       "name": "List tickets requires auth",
       "method": "GET",
-      "path": "/list",
+      "path": "/?action=list",
       "expectedStatus": 401,
       "expectedBody": {
         "error": "string"

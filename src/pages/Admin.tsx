@@ -19,6 +19,8 @@ interface Ticket {
   created_at: string;
   steam_username: string;
   steam_avatar: string;
+  steam_id: string;
+  is_blocked: boolean;
   message_count: number;
   user_id: number;
 }
@@ -308,9 +310,31 @@ const Admin = () => {
       
       if (res.ok) {
         toast({ title: 'Успешно', description: block ? 'Пользователь заблокирован' : 'Пользователь разблокирован' });
+        if (selectedTicket) {
+          loadTicketDetails(selectedTicket.id.toString(), token!);
+        }
       }
     } catch (error) {
       toast({ title: 'Ошибка', description: 'Не удалось выполнить действие', variant: 'destructive' });
+    }
+  };
+
+  const handleDeleteTicket = async (ticketId: number) => {
+    try {
+      const res = await fetch(`${API_BASE}/887805c0-0d3a-4f32-8436-1ba1adda4a4f/?ticket_id=${ticketId}`, {
+        method: 'DELETE',
+        headers: { 'X-Auth-Token': token! }
+      });
+      
+      if (res.ok) {
+        toast({ title: 'Успешно', description: 'Обращение удалено' });
+        setSelectedTicket(null);
+        loadTickets(token!);
+      } else {
+        toast({ title: 'Ошибка', description: 'Не удалось удалить обращение', variant: 'destructive' });
+      }
+    } catch (error) {
+      toast({ title: 'Ошибка', description: 'Не удалось удалить обращение', variant: 'destructive' });
     }
   };
 
@@ -374,6 +398,7 @@ const Admin = () => {
               handleSendReply={handleSendReply}
               handleChangeStatus={handleChangeStatus}
               handleBlockUser={handleBlockUser}
+              handleDeleteTicket={handleDeleteTicket}
               loadTicketDetails={loadTicketDetails}
               token={token}
               getStatusColor={getStatusColor}
