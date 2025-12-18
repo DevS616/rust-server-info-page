@@ -79,7 +79,7 @@ const SupportNotifications = () => {
                     action: (
                       <ToastAction 
                         altText="Перейти к обращению"
-                        onClick={() => navigate(`/support/${newTicket.id}`)}
+                        onClick={() => navigate(`/support/ticket/${newTicket.id}`)}
                       >
                         Перейти
                       </ToastAction>
@@ -95,7 +95,7 @@ const SupportNotifications = () => {
                     action: (
                       <ToastAction 
                         altText="Перейти к обращению"
-                        onClick={() => navigate(`/support/${newTicket.id}`)}
+                        onClick={() => navigate(`/support/ticket/${newTicket.id}`)}
                       >
                         Перейти
                       </ToastAction>
