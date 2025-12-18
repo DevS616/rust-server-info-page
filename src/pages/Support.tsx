@@ -29,6 +29,7 @@ const Support = () => {
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
   const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [servers, setServers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   
@@ -56,10 +57,24 @@ const Support = () => {
   useEffect(() => {
     if (token) {
       loadTickets();
+      loadServers();
     } else {
       setLoading(false);
+      loadServers();
     }
   }, [token]);
+
+  const loadServers = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/cd63f370-b8ea-4adc-ace4-a274aa6f6e34/active`);
+      if (res.ok) {
+        const data = await res.json();
+        setServers(data.servers || []);
+      }
+    } catch (error) {
+      console.error('Failed to load servers:', error);
+    }
+  };
 
   const loadTickets = async () => {
     try {
@@ -269,9 +284,11 @@ const Support = () => {
                             <SelectValue placeholder="Выберите сервер" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="Devil x5 (Vanilla)">Devil x5 (Vanilla)</SelectItem>
-                            <SelectItem value="Devil x2 (Vanilla)">Devil x2 (Vanilla)</SelectItem>
-                            <SelectItem value="Devil x3 (Vanilla)">Devil x3 (Vanilla)</SelectItem>
+                            {servers.map((server) => (
+                              <SelectItem key={server.id} value={server.name}>
+                                {server.name}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>

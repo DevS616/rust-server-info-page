@@ -35,6 +35,14 @@ interface Message {
   admin_name?: string;
 }
 
+interface Server {
+  id: number;
+  name: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 const Admin = () => {
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
@@ -46,6 +54,11 @@ const Admin = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [reply, setReply] = useState('');
   
+  const [servers, setServers] = useState<Server[]>([]);
+  const [editingServer, setEditingServer] = useState<Server | null>(null);
+  const [serverForm, setServerForm] = useState({ name: '', is_active: true });
+  const [showServerForm, setShowServerForm] = useState(false);
+  
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
 
   useEffect(() => {
@@ -53,6 +66,7 @@ const Admin = () => {
     if (storedToken) {
       setToken(storedToken);
       loadTickets(storedToken);
+      loadServers(storedToken);
     }
     
     const ticketId = searchParams.get('ticket');
@@ -73,6 +87,21 @@ const Admin = () => {
       }
     } catch (error) {
       console.error('Failed to load tickets:', error);
+    }
+  };
+
+  const loadServers = async (authToken: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/cd63f370-b8ea-4adc-ace4-a274aa6f6e34/`, {
+        headers: { 'X-Auth-Token': authToken }
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        setServers(data.servers || []);
+      }
+    } catch (error) {
+      console.error('Failed to load servers:', error);
     }
   };
 
@@ -127,6 +156,101 @@ const Admin = () => {
     setAdmin(null);
     setTickets([]);
     setSelectedTicket(null);
+    setServers([]);
+  };
+
+  const handleCreateServer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!serverForm.name.trim()) return;
+
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/cd63f370-b8ea-4adc-ace4-a274aa6f6e34/create`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Auth-Token': token!
+        },
+        body: JSON.stringify(serverForm)
+      });
+
+      if (res.ok) {
+        toast({ title: 'Сервер создан', description: 'Новый сервер успешно добавлен' });
+        setServerForm({ name: '', is_active: true });
+        setShowServerForm(false);
+        loadServers(token!);
+      } else {
+        const error = await res.json();
+        toast({ title: 'Ошибка', description: error.error || 'Не удалось создать сервер', variant: 'destructive' });
+      }
+    } catch (error) {
+      toast({ title: 'Ошибка', description: 'Не удалось создать сервер', variant: 'destructive' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateServer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingServer || !serverForm.name.trim()) return;
+
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/cd63f370-b8ea-4adc-ace4-a274aa6f6e34/${editingServer.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Auth-Token': token!
+        },
+        body: JSON.stringify(serverForm)
+      });
+
+      if (res.ok) {
+        toast({ title: 'Сервер обновлен', description: 'Изменения сохранены' });
+        setEditingServer(null);
+        setServerForm({ name: '', is_active: true });
+        loadServers(token!);
+      } else {
+        const error = await res.json();
+        toast({ title: 'Ошибка', description: error.error || 'Не удалось обновить сервер', variant: 'destructive' });
+      }
+    } catch (error) {
+      toast({ title: 'Ошибка', description: 'Не удалось обновить сервер', variant: 'destructive' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteServer = async (serverId: number) => {
+    if (!confirm('Вы уверены, что хотите удалить этот сервер?')) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/cd63f370-b8ea-4adc-ace4-a274aa6f6e34/${serverId}`, {
+        method: 'DELETE',
+        headers: { 'X-Auth-Token': token! }
+      });
+
+      if (res.ok) {
+        toast({ title: 'Сервер удален', description: 'Сервер успешно удален' });
+        loadServers(token!);
+      } else {
+        toast({ title: 'Ошибка', description: 'Не удалось удалить сервер', variant: 'destructive' });
+      }
+    } catch (error) {
+      toast({ title: 'Ошибка', description: 'Не удалось удалить сервер', variant: 'destructive' });
+    }
+  };
+
+  const startEditServer = (server: Server) => {
+    setEditingServer(server);
+    setServerForm({ name: server.name, is_active: server.is_active });
+    setShowServerForm(true);
+  };
+
+  const cancelServerForm = () => {
+    setEditingServer(null);
+    setServerForm({ name: '', is_active: true });
+    setShowServerForm(false);
   };
 
   const handleSendReply = async () => {
@@ -267,6 +391,7 @@ const Admin = () => {
         <Tabs defaultValue="tickets" className="w-full">
           <TabsList className="mb-6">
             <TabsTrigger value="tickets">Обращения</TabsTrigger>
+            <TabsTrigger value="servers">Серверы</TabsTrigger>
             <TabsTrigger value="admins">Администраторы</TabsTrigger>
           </TabsList>
 
@@ -392,6 +517,94 @@ const Admin = () => {
                 )}
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="servers">
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-semibold">Управление серверами</h2>
+                {!showServerForm && (
+                  <Button onClick={() => setShowServerForm(true)}>
+                    <Icon name="Plus" className="mr-2" />
+                    Добавить сервер
+                  </Button>
+                )}
+              </div>
+
+              {showServerForm && (
+                <Card className="p-6">
+                  <h3 className="text-lg font-semibold mb-4">
+                    {editingServer ? 'Редактировать сервер' : 'Новый сервер'}
+                  </h3>
+                  <form onSubmit={editingServer ? handleUpdateServer : handleCreateServer} className="space-y-4">
+                    <div>
+                      <Label htmlFor="serverName">Название сервера</Label>
+                      <Input
+                        id="serverName"
+                        value={serverForm.name}
+                        onChange={(e) => setServerForm({ ...serverForm, name: e.target.value })}
+                        placeholder="x2 DevilRust"
+                        required
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="serverActive"
+                        checked={serverForm.is_active}
+                        onChange={(e) => setServerForm({ ...serverForm, is_active: e.target.checked })}
+                        className="w-4 h-4"
+                      />
+                      <Label htmlFor="serverActive">Активен</Label>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button type="submit" disabled={loading}>
+                        {loading ? 'Сохранение...' : editingServer ? 'Сохранить' : 'Создать'}
+                      </Button>
+                      <Button type="button" variant="outline" onClick={cancelServerForm}>
+                        Отмена
+                      </Button>
+                    </div>
+                  </form>
+                </Card>
+              )}
+
+              <div className="space-y-2">
+                {servers.length === 0 ? (
+                  <Card className="p-8 text-center">
+                    <Icon name="Server" className="mx-auto mb-4 text-muted-foreground" size={48} />
+                    <p className="text-muted-foreground">Нет серверов</p>
+                  </Card>
+                ) : (
+                  servers.map((server) => (
+                    <Card key={server.id} className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <Icon name="Server" className={server.is_active ? 'text-green-500' : 'text-muted-foreground'} />
+                          <div>
+                            <h3 className="font-semibold">{server.name}</h3>
+                            <p className="text-sm text-muted-foreground">
+                              {server.is_active ? 'Активен' : 'Неактивен'}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm" onClick={() => startEditServer(server)}>
+                            <Icon name="Edit" className="mr-1" size={16} />
+                            Изменить
+                          </Button>
+                          <Button variant="destructive" size="sm" onClick={() => handleDeleteServer(server.id)}>
+                            <Icon name="Trash2" size={16} />
+                          </Button>
+                        </div>
+                      </div>
+                    </Card>
+                  ))
+                )}
+              </div>
+            </div>
           </TabsContent>
 
           <TabsContent value="admins">

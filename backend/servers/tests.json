@@ -1,0 +1,14 @@
+{
+  "tests": [
+    {
+      "name": "Get active servers list",
+      "method": "GET",
+      "path": "/active",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "servers": "array"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}
