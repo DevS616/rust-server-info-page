@@ -155,12 +155,24 @@ const Support = () => {
       return;
     }
 
+    if (!token) {
+      toast({ title: 'Ошибка', description: 'Необходимо авторизоваться через Steam', variant: 'destructive' });
+      return;
+    }
+
     setUploading(true);
     
     try {
       let fileUrl = '';
       if (formData.file) {
-        fileUrl = await uploadFile(formData.file);
+        try {
+          fileUrl = await uploadFile(formData.file);
+        } catch (uploadError) {
+          console.error('File upload error:', uploadError);
+          toast({ title: 'Ошибка', description: 'Не удалось загрузить файл', variant: 'destructive' });
+          setUploading(false);
+          return;
+        }
       }
 
       const res = await fetch(`${API_BASE}/887805c0-0d3a-4f32-8436-1ba1adda4a4f/?action=create`, {
@@ -180,26 +192,37 @@ const Support = () => {
       if (res.ok) {
         const data = await res.json();
         
-        await fetch(`${API_BASE}/d9aaa9bf-3c0a-459b-ae1a-3c8bb981fdc6/`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ticket_id: data.ticket.id,
-            server: formData.server,
-            subject: formData.subject,
-            url: `https://play.devilrust.ru/admin?ticket=${data.ticket.id}`
-          })
-        });
+        try {
+          await fetch(`${API_BASE}/d9aaa9bf-3c0a-459b-ae1a-3c8bb981fdc6/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              ticket_id: data.ticket.id,
+              server: formData.server,
+              subject: formData.subject,
+              url: `https://play.devilrust.ru/admin?ticket=${data.ticket.id}`
+            })
+          });
+        } catch (telegramError) {
+          console.error('Telegram notification error:', telegramError);
+        }
 
         toast({ title: 'Успешно', description: 'Обращение создано' });
         setFormData({ server: '', subject: '', message: '', file: null });
         setShowForm(false);
         loadTickets();
       } else {
-        const error = await res.json();
-        toast({ title: 'Ошибка', description: error.error || 'Не удалось создать обращение', variant: 'destructive' });
+        const errorText = await res.text();
+        console.error('Server error:', res.status, errorText);
+        try {
+          const error = JSON.parse(errorText);
+          toast({ title: 'Ошибка', description: error.error || 'Не удалось создать обращение', variant: 'destructive' });
+        } catch {
+          toast({ title: 'Ошибка', description: `Ошибка сервера (${res.status})`, variant: 'destructive' });
+        }
       }
     } catch (error) {
+      console.error('Ticket creation error:', error);
       toast({ title: 'Ошибка', description: 'Произошла ошибка при создании обращения', variant: 'destructive' });
     } finally {
       setUploading(false);
