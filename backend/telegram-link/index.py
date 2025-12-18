@@ -190,6 +190,14 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'user_id': user['id'],
                     'steam_id': user['steam_id']
                 }, secret, algorithm='HS256')
+                
+                # Сохраняем токен в базу для последующей верификации
+                cur.execute(
+                    "UPDATE users SET telegram_link_token = %s WHERE id = %s",
+                    (link_token, user['id'])
+                )
+                conn.commit()
+                
             except jwt.InvalidTokenError:
                 return error_response('Invalid token', 401)
             
