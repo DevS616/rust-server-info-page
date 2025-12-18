@@ -424,7 +424,9 @@ def delete_ticket(ticket_id: str, user_data: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def send_telegram_notification(chat_id: int, ticket_id: int, subject: str, message_type: str, status: str = None):
-    bot_token = os.environ.get('TELEGRAM_BOT_TOKEN', '8403286148:AAG4gV5SSdtSsZGvLDMb-LPEbQpP5uvKtqo')
+    bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+    if not bot_token:
+        return
     
     if message_type == 'reply':
         text = f'📩 Новый ответ на ваше обращение\n\n🎫 Тикет: {subject}'
@@ -455,6 +457,37 @@ def send_telegram_notification(chat_id: int, ticket_id: int, subject: str, messa
         )
     except Exception as e:
         print(f'Telegram notification error: {e}')
+
+
+def send_user_notification(chat_id: str, ticket_id: int, subject: str, server: str, message: str):
+    bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+    if not bot_token:
+        return
+    
+    try:
+        notification_text = f"✉️ Новый ответ от администратора\n\n" \
+                          f"📋 Тикет: {subject}\n" \
+                          f"📍 Сервер: {server}\n\n" \
+                          f"💬 Сообщение:\n{message[:200]}{'...' if len(message) > 200 else ''}"
+        
+        ticket_url = f"https://play.devilrust.ru/support/ticket/{ticket_id}"
+        
+        keyboard = {
+            "inline_keyboard": [[
+                {"text": "Открыть обращение", "url": ticket_url}
+            ]]
+        }
+        
+        requests.post(
+            f'https://api.telegram.org/bot{bot_token}/sendMessage',
+            json={
+                'chat_id': chat_id,
+                'text': notification_text,
+                'reply_markup': keyboard
+            }
+        )
+    except Exception as e:
+        print(f'Failed to send user notification: {e}')
 
 
 def error_response(message: str, status_code: int = 400) -> Dict[str, Any]:

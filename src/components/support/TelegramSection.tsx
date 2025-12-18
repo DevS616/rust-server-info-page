@@ -43,7 +43,30 @@ const TelegramSection = ({ token }: TelegramSectionProps) => {
         const data = await res.json();
         window.open(data.link_url, '_blank');
         setShowTelegramInfo(true);
-        setTimeout(() => checkTelegramLink(), 5000);
+        
+        const checkInterval = setInterval(async () => {
+          const checkRes = await fetch(`${API_BASE}/92e13203-5190-4bb5-b08b-d287ef896899/`, {
+            headers: { 'X-Auth-Token': token }
+          });
+          if (checkRes.ok) {
+            const checkData = await checkRes.json();
+            if (checkData.linked) {
+              setTelegramLinked(true);
+              setTelegramUsername(checkData.telegram_username);
+              setShowTelegramInfo(false);
+              clearInterval(checkInterval);
+              toast({ 
+                title: 'Успешно!', 
+                description: 'Telegram успешно привязан. Вы будете получать уведомления от поддержки.' 
+              });
+            }
+          }
+        }, 3000);
+        
+        setTimeout(() => {
+          clearInterval(checkInterval);
+          setShowTelegramInfo(false);
+        }, 60000);
       } else {
         toast({ title: 'Ошибка', description: 'Не удалось создать ссылку', variant: 'destructive' });
       }
@@ -85,10 +108,15 @@ const TelegramSection = ({ token }: TelegramSectionProps) => {
           <div>
             <h3 className="text-lg font-semibold text-white">Уведомления в Telegram</h3>
             {telegramLinked ? (
-              <p className="text-sm text-green-400 flex items-center gap-2">
-                <Icon name="CheckCircle2" size={16} />
-                Подключено {telegramUsername && `(@${telegramUsername})`}
-              </p>
+              <div>
+                <p className="text-sm text-green-400 flex items-center gap-2">
+                  <Icon name="CheckCircle2" size={16} />
+                  Подключено {telegramUsername && `(@${telegramUsername})`}
+                </p>
+                <p className="text-xs text-slate-500 mt-1">
+                  Вы будете получать уведомления от поддержки
+                </p>
+              </div>
             ) : (
               <p className="text-sm text-slate-400">Получайте уведомления об ответах</p>
             )}
