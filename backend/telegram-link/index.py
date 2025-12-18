@@ -142,40 +142,56 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 return error_response('Invalid token', 400)
         
         if method == 'GET' and not action:
-            cur.execute("SELECT steam_id FROM users WHERE token = %s", (token,))
-            user = cur.fetchone()
-            
-            if not user:
-                return error_response('User not found', 404)
-            
-            cur.execute(
-                "SELECT telegram_chat_id, telegram_username FROM users WHERE token = %s",
-                (token,)
-            )
-            result = cur.fetchone()
-            
-            return {
-                'statusCode': 200,
-                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                'body': json.dumps({
-                    'linked': result['telegram_chat_id'] is not None,
-                    'telegram_username': result.get('telegram_username')
-                }),
-                'isBase64Encoded': False
-            }
+            try:
+                secret = os.environ['JWT_SECRET']
+                payload = jwt.decode(token, secret, algorithms=['HS256'])
+                user_id = payload.get('user_id')
+                
+                if not user_id:
+                    return error_response('Invalid token', 401)
+                
+                cur.execute(
+                    "SELECT telegram_chat_id, telegram_username FROM users WHERE id = %s",
+                    (user_id,)
+                )
+                result = cur.fetchone()
+                
+                if not result:
+                    return error_response('User not found', 404)
+                
+                return {
+                    'statusCode': 200,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({
+                        'linked': result['telegram_chat_id'] is not None,
+                        'telegram_username': result.get('telegram_username')
+                    }),
+                    'isBase64Encoded': False
+                }
+            except jwt.InvalidTokenError:
+                return error_response('Invalid token', 401)
         
         if method == 'POST' and action == 'link':
-            cur.execute("SELECT id, steam_id FROM users WHERE token = %s", (token,))
-            user = cur.fetchone()
-            
-            if not user:
-                return error_response('User not found', 404)
-            
-            secret = os.environ['JWT_SECRET']
-            link_token = jwt.encode({
-                'user_id': user['id'],
-                'steam_id': user['steam_id']
-            }, secret, algorithm='HS256')
+            try:
+                secret = os.environ['JWT_SECRET']
+                payload = jwt.decode(token, secret, algorithms=['HS256'])
+                user_id = payload.get('user_id')
+                
+                if not user_id:
+                    return error_response('Invalid token', 401)
+                
+                cur.execute("SELECT id, steam_id FROM users WHERE id = %s", (user_id,))
+                user = cur.fetchone()
+                
+                if not user:
+                    return error_response('User not found', 404)
+                
+                link_token = jwt.encode({
+                    'user_id': user['id'],
+                    'steam_id': user['steam_id']
+                }, secret, algorithm='HS256')
+            except jwt.InvalidTokenError:
+                return error_response('Invalid token', 401)
             
             bot_username = 'DevilRustBot'
             link_url = f'https://t.me/{bot_username}?start={link_token}'
@@ -188,24 +204,28 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             }
         
         if method == 'DELETE':
-            cur.execute("SELECT steam_id FROM users WHERE token = %s", (token,))
-            user = cur.fetchone()
-            
-            if not user:
-                return error_response('User not found', 404)
-            
-            cur.execute(
-                "UPDATE users SET telegram_chat_id = NULL, telegram_username = NULL WHERE token = %s",
-                (token,)
-            )
-            conn.commit()
-            
-            return {
-                'statusCode': 200,
-                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                'body': json.dumps({'success': True}),
-                'isBase64Encoded': False
-            }
+            try:
+                secret = os.environ['JWT_SECRET']
+                payload = jwt.decode(token, secret, algorithms=['HS256'])
+                user_id = payload.get('user_id')
+                
+                if not user_id:
+                    return error_response('Invalid token', 401)
+                
+                cur.execute(
+                    "UPDATE users SET telegram_chat_id = NULL, telegram_username = NULL WHERE id = %s",
+                    (user_id,)
+                )
+                conn.commit()
+                
+                return {
+                    'statusCode': 200,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'success': True}),
+                    'isBase64Encoded': False
+                }
+            except jwt.InvalidTokenError:
+                return error_response('Invalid token', 401)
         
         return error_response('Invalid request', 400)
         

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
@@ -71,9 +71,9 @@ const TelegramSection = ({ token }: TelegramSectionProps) => {
     }
   };
 
-  useState(() => {
+  useEffect(() => {
     checkTelegramLink();
-  });
+  }, []);
 
   return (
     <Card className="p-6 bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700 mb-8">
