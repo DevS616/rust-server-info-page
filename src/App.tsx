@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import TelegramWidget from "./components/TelegramWidget";
 import PromotionModal from "./components/PromotionModal";
 import NewYearMode from "./components/NewYearMode";
+import SupportNotifications from "./components/SupportNotifications";
 import Index from "./pages/Index";
 import BanList from "./pages/BanList";
 import Support from "./pages/Support";
@@ -24,6 +25,7 @@ const App = () => (
       <TelegramWidget />
       <PromotionModal />
       <NewYearMode />
+      <SupportNotifications />
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />

@@ -20,6 +20,7 @@ interface Ticket {
   status: string;
   created_at: string;
   message_count: number;
+  unread_count?: number;
 }
 
 const Support = () => {
@@ -32,6 +33,7 @@ const Support = () => {
   const [servers, setServers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
   
   const [formData, setFormData] = useState({
     server: '',
@@ -58,6 +60,7 @@ const Support = () => {
     if (token) {
       loadTickets();
       loadServers();
+      checkUserStatus();
     } else {
       setLoading(false);
       loadServers();
@@ -73,6 +76,30 @@ const Support = () => {
       }
     } catch (error) {
       console.error('Failed to load servers:', error);
+    }
+  };
+
+  const checkUserStatus = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/887805c0-0d3a-4f32-8436-1ba1adda4a4f/?action=status`, {
+        headers: { 'X-Auth-Token': token! }
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        setIsBlocked(data.is_blocked);
+        
+        if (data.is_blocked) {
+          toast({ 
+            title: 'Аккаунт заблокирован', 
+            description: 'Вам запрещено создавать тикеты в техподдержке', 
+            variant: 'destructive',
+            duration: 10000
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Failed to check user status:', error);
     }
   };
 
@@ -294,6 +321,21 @@ const Support = () => {
             </Card>
           ) : (
             <>
+              {isBlocked && (
+                <Card className="p-6 mb-8 border-destructive bg-destructive/10">
+                  <div className="flex items-start gap-4">
+                    <Icon name="Ban" className="text-destructive" size={32} />
+                    <div>
+                      <h3 className="text-xl font-semibold text-destructive mb-2">Аккаунт заблокирован</h3>
+                      <p className="text-muted-foreground">
+                        Вам запрещено создавать новые обращения в техподдержку. Ваш аккаунт был заблокирован администрацией.
+                        Если вы считаете, что это ошибка, свяжитесь с администрацией другим способом.
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              )}
+
               {showForm ? (
                 <Card className="p-6 mb-8">
                   <form onSubmit={handleSubmit}>
@@ -365,7 +407,11 @@ const Support = () => {
                 </Card>
               ) : (
                 <div className="mb-8">
-                  <Button onClick={() => setShowForm(true)} size="lg">
+                  <Button 
+                    onClick={() => setShowForm(true)} 
+                    size="lg"
+                    disabled={isBlocked}
+                  >
                     <Icon name="Plus" className="mr-2" />
                     Создать обращение
                   </Button>
@@ -383,8 +429,14 @@ const Support = () => {
                 ) : (
                   <div className="space-y-4">
                     {tickets.map((ticket) => (
-                      <Card key={ticket.id} className="p-4 hover:shadow-lg transition-shadow cursor-pointer"
+                      <Card key={ticket.id} className={`p-4 hover:shadow-lg transition-shadow cursor-pointer relative ${ticket.unread_count && ticket.unread_count > 0 ? 'border-primary/50' : ''}`}
                         onClick={() => navigate(`/support/${ticket.id}`)}>
+                        {ticket.unread_count && ticket.unread_count > 0 && (
+                          <div className="absolute top-2 right-2 flex items-center gap-1 bg-destructive text-white text-xs px-2 py-1 rounded-full">
+                            <Icon name="Bell" size={12} />
+                            <span>{ticket.unread_count}</span>
+                          </div>
+                        )}
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">

@@ -11,6 +11,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     API для работы с тикетами техподдержки.
     POST /create - создание нового тикета
     GET /list - получение списка тикетов пользователя или всех (для админов)
+    GET /status - проверка статуса пользователя и непрочитанных уведомлений
     GET /{ticket_id} - получение деталей тикета с сообщениями
     POST /{ticket_id}/reply - добавление ответа в тикет
     PUT /{ticket_id}/status - изменение статуса тикета (только админ)
@@ -45,6 +46,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         return create_ticket(event, user_data)
     elif method == 'GET' and action == 'list':
         return list_tickets(user_data)
+    elif method == 'GET' and action == 'status':
+        return get_user_status(user_data)
     elif method == 'GET' and ticket_id:
         return get_ticket_details(ticket_id, user_data)
     elif method == 'POST' and action == 'reply' and ticket_id:
@@ -137,7 +140,8 @@ def list_tickets(user_data: Dict[str, Any]) -> Dict[str, Any]:
     else:
         cur.execute("""
             SELECT t.*,
-                   (SELECT COUNT(*) FROM ticket_messages WHERE ticket_id = t.id) as message_count
+                   (SELECT COUNT(*) FROM ticket_messages WHERE ticket_id = t.id) as message_count,
+                   (SELECT COUNT(*) FROM ticket_messages WHERE ticket_id = t.id AND is_admin_reply = TRUE AND is_read_by_user = FALSE) as unread_count
             FROM tickets t
             WHERE t.user_id = %s
             ORDER BY t.created_at DESC
@@ -194,6 +198,15 @@ def get_ticket_details(ticket_id: str, user_data: Dict[str, Any]) -> Dict[str, A
     """, (ticket_id,))
     
     messages = cur.fetchall()
+    
+    if not is_admin:
+        cur.execute("""
+            UPDATE ticket_messages 
+            SET is_read_by_user = TRUE 
+            WHERE ticket_id = %s AND is_admin_reply = TRUE AND is_read_by_user = FALSE
+        """, (ticket_id,))
+        conn.commit()
+    
     cur.close()
     conn.close()
     
@@ -298,6 +311,47 @@ def update_status(ticket_id: str, event: Dict[str, Any], user_data: Dict[str, An
             'Access-Control-Allow-Origin': '*'
         },
         'body': json.dumps({'ticket': dict(ticket)}, default=str),
+        'isBase64Encoded': False
+    }
+
+
+def get_user_status(user_data: Dict[str, Any]) -> Dict[str, Any]:
+    conn = psycopg2.connect(os.environ['DATABASE_URL'])
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    
+    cur.execute("SELECT is_blocked FROM users WHERE id = %s", (user_data['user_id'],))
+    user = cur.fetchone()
+    
+    if not user:
+        cur.close()
+        conn.close()
+        return error_response('User not found', 404)
+    
+    cur.execute("""
+        SELECT COUNT(*) as total_unread
+        FROM ticket_messages tm
+        JOIN tickets t ON tm.ticket_id = t.id
+        WHERE t.user_id = %s 
+        AND tm.is_admin_reply = TRUE 
+        AND tm.is_read_by_user = FALSE
+    """, (user_data['user_id'],))
+    
+    unread_result = cur.fetchone()
+    total_unread = unread_result['total_unread'] if unread_result else 0
+    
+    cur.close()
+    conn.close()
+    
+    return {
+        'statusCode': 200,
+        'headers': {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+        },
+        'body': json.dumps({
+            'is_blocked': user['is_blocked'],
+            'unread_count': total_unread
+        }),
         'isBase64Encoded': False
     }
 

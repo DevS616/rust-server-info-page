@@ -17,6 +17,31 @@ const Header = () => {
   const [user, setUser] = useState<{ nickname: string } | null>(null);
   const [isRulesOpen, setIsRulesOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const checkUnread = async () => {
+      const token = localStorage.getItem('support_token');
+      if (!token) return;
+      
+      try {
+        const res = await fetch('https://functions.poehali.dev/887805c0-0d3a-4f32-8436-1ba1adda4a4f/?action=status', {
+          headers: { 'X-Auth-Token': token }
+        });
+        
+        if (res.ok) {
+          const data = await res.json();
+          setUnreadCount(data.unread_count || 0);
+        }
+      } catch (error) {
+        console.error('Failed to check unread:', error);
+      }
+    };
+
+    checkUnread();
+    const interval = setInterval(checkUnread, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -119,8 +144,14 @@ const Header = () => {
           <a href="https://devrus.gamestores.app/" target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-foreground hover:text-primary transition-colors uppercase tracking-wider">
             Магазин
           </a>
-          <a href="/support" className="text-sm font-medium text-foreground hover:text-primary transition-colors uppercase tracking-wider">
+          <a href="/support" className="text-sm font-medium text-foreground hover:text-primary transition-colors uppercase tracking-wider relative">
             Поддержка
+            {unreadCount > 0 && (
+              <span className="absolute -top-2 -right-2">
+                <Icon name="Bell" className="h-4 w-4 text-destructive animate-[wiggle_1s_ease-in-out_infinite]" />
+                <span className="absolute top-0 right-0 h-2 w-2 bg-destructive rounded-full"></span>
+              </span>
+            )}
           </a>
         </nav>
 
