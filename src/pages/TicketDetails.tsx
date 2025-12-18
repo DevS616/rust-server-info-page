@@ -53,6 +53,9 @@ const TicketDetails = () => {
     if (storedToken) {
       setToken(storedToken);
     } else {
+      if (ticketId) {
+        localStorage.setItem('redirect_to_ticket', ticketId);
+      }
       navigate('/support');
     }
     

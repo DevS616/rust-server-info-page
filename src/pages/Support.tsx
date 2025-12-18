@@ -37,13 +37,25 @@ const Support = () => {
   useEffect(() => {
     const urlToken = searchParams.get('token');
     const storedToken = localStorage.getItem('support_token');
+    const redirectTicket = localStorage.getItem('redirect_to_ticket');
     
     if (urlToken) {
       localStorage.setItem('support_token', urlToken);
       setToken(urlToken);
-      navigate('/support', { replace: true });
+      
+      if (redirectTicket) {
+        localStorage.removeItem('redirect_to_ticket');
+        navigate(`/support/ticket/${redirectTicket}`, { replace: true });
+      } else {
+        navigate('/support', { replace: true });
+      }
     } else if (storedToken) {
       setToken(storedToken);
+      
+      if (redirectTicket) {
+        localStorage.removeItem('redirect_to_ticket');
+        navigate(`/support/ticket/${redirectTicket}`, { replace: true });
+      }
     }
   }, [searchParams, navigate]);
 
