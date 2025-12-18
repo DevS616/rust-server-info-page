@@ -1,0 +1,14 @@
+{
+  "tests": [
+    {
+      "name": "Get maintenance status",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "is_maintenance": "boolean"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

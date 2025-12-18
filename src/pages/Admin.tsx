@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import AdminLogin from '@/components/admin/AdminLogin';
 import TicketsTab from '@/components/admin/TicketsTab';
 import ServersTab from '@/components/admin/ServersTab';
+import ManagementTab from '@/components/admin/ManagementTab';
 
 const API_BASE = 'https://functions.poehali.dev';
 
@@ -384,6 +385,7 @@ const Admin = () => {
           <TabsList className="mb-6">
             <TabsTrigger value="tickets">Обращения</TabsTrigger>
             <TabsTrigger value="servers">Серверы</TabsTrigger>
+            <TabsTrigger value="management">Управление</TabsTrigger>
             <TabsTrigger value="admins">Администраторы</TabsTrigger>
           </TabsList>
 
@@ -421,6 +423,10 @@ const Admin = () => {
               cancelServerForm={cancelServerForm}
               loading={loading}
             />
+          </TabsContent>
+
+          <TabsContent value="management">
+            <ManagementTab token={token!} />
           </TabsContent>
 
           <TabsContent value="admins">
