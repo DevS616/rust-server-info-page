@@ -71,7 +71,7 @@ const AppContent = () => {
         <Route path="/" element={<Index />} />
         <Route path="/banlist" element={<BanList />} />
         <Route path="/support" element={<Support />} />
-        <Route path="/support/:ticketId" element={<TicketDetails />} />
+        <Route path="/support/ticket/:ticketId" element={<TicketDetails />} />
         <Route path="/steam-callback" element={<SteamCallback />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="*" element={<NotFound />} />
