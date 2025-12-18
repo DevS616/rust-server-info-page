@@ -1,0 +1,40 @@
+{
+  "tests": [
+    {
+      "name": "Handle /start without token",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "message": {
+          "text": "/start",
+          "chat": {
+            "id": 123456789,
+            "username": "testuser"
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "ok": true
+      }
+    },
+    {
+      "name": "Handle non-start message",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "message": {
+          "text": "Hello",
+          "chat": {
+            "id": 123456789,
+            "username": "testuser"
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "ok": true
+      }
+    }
+  ]
+}
