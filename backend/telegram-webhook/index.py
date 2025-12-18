@@ -34,8 +34,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     
     try:
         body = json.loads(event.get('body', '{}'))
+        print(f'Received telegram update: {json.dumps(body)}')
         
         if 'message' not in body:
+            print('No message in update')
             return success_response()
         
         message = body['message']
@@ -43,10 +45,14 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         chat_id = message['chat']['id']
         username = message['chat'].get('username', '')
         
+        print(f'Message from chat_id={chat_id}, username={username}, text={text}')
+        
         if not text.startswith('/start'):
+            print('Not a /start command')
             return success_response()
         
         parts = text.split(' ')
+        print(f'Command parts: {parts}')
         if len(parts) < 2:
             send_telegram_message(
                 chat_id,
@@ -58,10 +64,13 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         try:
             secret = os.environ['JWT_SECRET']
+            print(f'Decoding link token: {link_token[:20]}...')
             payload = jwt.decode(link_token, secret, algorithms=['HS256'])
             user_id = payload.get('user_id')
+            print(f'Decoded user_id: {user_id}')
             
             if not user_id:
+                print('No user_id in token')
                 send_telegram_message(chat_id, '❌ Неверная ссылка привязки.')
                 return success_response()
             
@@ -72,8 +81,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             }, secret, algorithm='HS256')
             
             verify_url = f"https://functions.poehali.dev/92e13203-5190-4bb5-b08b-d287ef896899/?action=verify&token={verify_token}"
+            print(f'Calling verify endpoint...')
             
             verify_response = requests.get(verify_url)
+            print(f'Verify response status: {verify_response.status_code}')
             
             if verify_response.status_code == 200:
                 send_telegram_message(
@@ -114,13 +125,19 @@ def send_telegram_message(chat_id: int, text: str):
     '''Отправка сообщения в Telegram'''
     bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
     if not bot_token:
+        print('No TELEGRAM_BOT_TOKEN found!')
         return
     
     try:
-        requests.post(
+        print(f'Sending message to chat_id={chat_id}: {text[:50]}...')
+        response = requests.post(
             f'https://api.telegram.org/bot{bot_token}/sendMessage',
-            json={'chat_id': chat_id, 'text': text}
+            json={'chat_id': chat_id, 'text': text},
+            timeout=10
         )
+        print(f'Send message response: {response.status_code}')
+        if response.status_code != 200:
+            print(f'Error response: {response.text}')
     except Exception as e:
         print(f'Failed to send telegram message: {e}')
 
