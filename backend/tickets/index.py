@@ -238,10 +238,18 @@ def add_reply(ticket_id: str, event: Dict[str, Any], user_data: Dict[str, Any]) 
     
     is_admin = user_data.get('is_admin', False)
     
+    print(f'add_reply called: is_admin={is_admin}, user_data={user_data}')
+    
     if is_admin:
+        admin_id = user_data.get('admin_id')
+        if not admin_id:
+            cur.close()
+            conn.close()
+            return error_response('Admin ID not found in token', 400)
+        
         cur.execute(
             "INSERT INTO ticket_messages (ticket_id, admin_id, message, file_url, is_admin_reply) VALUES (%s, %s, %s, %s, TRUE) RETURNING *",
-            (ticket_id, user_data['admin_id'], message, file_url if file_url else None)
+            (ticket_id, admin_id, message, file_url if file_url else None)
         )
         
         cur.execute("""
