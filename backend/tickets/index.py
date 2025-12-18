@@ -37,19 +37,20 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     if not user_data:
         return error_response('Unauthorized', 401)
     
-    path = event.get('path', '')
-    path_params = event.get('pathParams') or {}
+    params = event.get('queryStringParameters') or {}
+    action = params.get('action', '')
+    ticket_id = params.get('ticket_id', '')
     
-    if method == 'POST' and 'create' in path:
+    if method == 'POST' and action == 'create':
         return create_ticket(event, user_data)
-    elif method == 'GET' and 'list' in path:
+    elif method == 'GET' and action == 'list':
         return list_tickets(user_data)
-    elif method == 'GET' and path_params.get('ticket_id'):
-        return get_ticket_details(path_params['ticket_id'], user_data)
-    elif method == 'POST' and 'reply' in path and path_params.get('ticket_id'):
-        return add_reply(path_params['ticket_id'], event, user_data)
-    elif method == 'PUT' and 'status' in path and path_params.get('ticket_id'):
-        return update_status(path_params['ticket_id'], event, user_data)
+    elif method == 'GET' and ticket_id:
+        return get_ticket_details(ticket_id, user_data)
+    elif method == 'POST' and action == 'reply' and ticket_id:
+        return add_reply(ticket_id, event, user_data)
+    elif method == 'PUT' and action == 'status' and ticket_id:
+        return update_status(ticket_id, event, user_data)
     
     return error_response('Not found', 404)
 

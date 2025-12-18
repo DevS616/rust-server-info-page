@@ -66,7 +66,7 @@ const Support = () => {
 
   const loadServers = async () => {
     try {
-      const res = await fetch(`${API_BASE}/cd63f370-b8ea-4adc-ace4-a274aa6f6e34/active`);
+      const res = await fetch(`${API_BASE}/cd63f370-b8ea-4adc-ace4-a274aa6f6e34/?active=true`);
       if (res.ok) {
         const data = await res.json();
         setServers(data.servers || []);
@@ -78,7 +78,7 @@ const Support = () => {
 
   const loadTickets = async () => {
     try {
-      const res = await fetch(`${API_BASE}/887805c0-0d3a-4f32-8436-1ba1adda4a4f/list`, {
+      const res = await fetch(`${API_BASE}/887805c0-0d3a-4f32-8436-1ba1adda4a4f/?action=list`, {
         headers: { 'X-Auth-Token': token! }
       });
       
@@ -163,7 +163,7 @@ const Support = () => {
         fileUrl = await uploadFile(formData.file);
       }
 
-      const res = await fetch(`${API_BASE}/887805c0-0d3a-4f32-8436-1ba1adda4a4f/create`, {
+      const res = await fetch(`${API_BASE}/887805c0-0d3a-4f32-8436-1ba1adda4a4f/?action=create`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

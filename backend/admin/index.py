@@ -32,10 +32,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             'isBase64Encoded': False
         }
     
-    path = event.get('path', '')
-    path_params = event.get('pathParams') or {}
+    params = event.get('queryStringParameters') or {}
+    action = params.get('action', '')
     
-    if method == 'POST' and 'login' in path:
+    if method == 'POST' and action == 'login':
         return admin_login(event)
     
     headers = event.get('headers') or {}
@@ -45,16 +45,19 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     if not admin_data:
         return error_response('Unauthorized', 401)
     
-    if method == 'POST' and 'admins' in path and not path_params:
+    user_id = params.get('user_id', '')
+    admin_id = params.get('admin_id', '')
+    
+    if method == 'POST' and action == 'add_admin':
         return add_admin(event)
-    elif method == 'GET' and 'admins' in path:
+    elif method == 'GET' and action == 'list_admins':
         return list_admins()
-    elif method == 'DELETE' and path_params.get('admin_id'):
-        return delete_admin(path_params['admin_id'])
-    elif method == 'PUT' and 'block' in path and path_params.get('user_id'):
-        return block_user(path_params['user_id'])
-    elif method == 'PUT' and 'unblock' in path and path_params.get('user_id'):
-        return unblock_user(path_params['user_id'])
+    elif method == 'DELETE' and admin_id:
+        return delete_admin(admin_id)
+    elif method == 'PUT' and action == 'block' and user_id:
+        return block_user(user_id)
+    elif method == 'PUT' and action == 'unblock' and user_id:
+        return unblock_user(user_id)
     
     return error_response('Not found', 404)
 

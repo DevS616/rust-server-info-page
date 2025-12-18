@@ -29,10 +29,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             'isBase64Encoded': False
         }
     
-    path = event.get('path', '')
-    path_params = event.get('pathParams') or {}
+    params = event.get('queryStringParameters') or {}
+    active_only = params.get('active', '') == 'true'
+    action = params.get('action', '')
+    server_id = params.get('server_id', '')
     
-    if method == 'GET' and 'active' in path:
+    if method == 'GET' and active_only:
         return get_active_servers()
     elif method == 'GET':
         return get_all_servers()
@@ -44,12 +46,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     if not admin_data:
         return error_response('Admin access required', 401)
     
-    if method == 'POST' and 'create' in path:
+    if method == 'POST' and action == 'create':
         return create_server(event)
-    elif method == 'PUT' and path_params.get('server_id'):
-        return update_server(path_params['server_id'], event)
-    elif method == 'DELETE' and path_params.get('server_id'):
-        return delete_server(path_params['server_id'])
+    elif method == 'PUT' and server_id:
+        return update_server(server_id, event)
+    elif method == 'DELETE' and server_id:
+        return delete_server(server_id)
     
     return error_response('Not found', 404)
 

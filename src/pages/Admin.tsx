@@ -77,7 +77,7 @@ const Admin = () => {
 
   const loadTickets = async (authToken: string) => {
     try {
-      const res = await fetch(`${API_BASE}/887805c0-0d3a-4f32-8436-1ba1adda4a4f/list`, {
+      const res = await fetch(`${API_BASE}/887805c0-0d3a-4f32-8436-1ba1adda4a4f/?action=list`, {
         headers: { 'X-Auth-Token': authToken }
       });
       
@@ -107,7 +107,7 @@ const Admin = () => {
 
   const loadTicketDetails = async (ticketId: string, authToken: string) => {
     try {
-      const res = await fetch(`${API_BASE}/887805c0-0d3a-4f32-8436-1ba1adda4a4f/${ticketId}`, {
+      const res = await fetch(`${API_BASE}/887805c0-0d3a-4f32-8436-1ba1adda4a4f/?ticket_id=${ticketId}`, {
         headers: { 'X-Auth-Token': authToken }
       });
       
@@ -126,7 +126,7 @@ const Admin = () => {
     setLoading(true);
     
     try {
-      const res = await fetch(`${API_BASE}/bf06608b-5623-4eae-8f89-c08bea6a0073/login`, {
+      const res = await fetch(`${API_BASE}/bf06608b-5623-4eae-8f89-c08bea6a0073/?action=login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(loginForm)
@@ -165,7 +165,7 @@ const Admin = () => {
 
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/cd63f370-b8ea-4adc-ace4-a274aa6f6e34/create`, {
+      const res = await fetch(`${API_BASE}/cd63f370-b8ea-4adc-ace4-a274aa6f6e34/?action=create`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -196,7 +196,7 @@ const Admin = () => {
 
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/cd63f370-b8ea-4adc-ace4-a274aa6f6e34/${editingServer.id}`, {
+      const res = await fetch(`${API_BASE}/cd63f370-b8ea-4adc-ace4-a274aa6f6e34/?server_id=${editingServer.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -225,7 +225,7 @@ const Admin = () => {
     if (!confirm('Вы уверены, что хотите удалить этот сервер?')) return;
 
     try {
-      const res = await fetch(`${API_BASE}/cd63f370-b8ea-4adc-ace4-a274aa6f6e34/${serverId}`, {
+      const res = await fetch(`${API_BASE}/cd63f370-b8ea-4adc-ace4-a274aa6f6e34/?server_id=${serverId}`, {
         method: 'DELETE',
         headers: { 'X-Auth-Token': token! }
       });
@@ -257,7 +257,7 @@ const Admin = () => {
     if (!reply.trim() || !selectedTicket) return;
     
     try {
-      const res = await fetch(`${API_BASE}/887805c0-0d3a-4f32-8436-1ba1adda4a4f/${selectedTicket.id}/reply`, {
+      const res = await fetch(`${API_BASE}/887805c0-0d3a-4f32-8436-1ba1adda4a4f/?action=reply&ticket_id=${selectedTicket.id}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -280,7 +280,7 @@ const Admin = () => {
     if (!selectedTicket) return;
     
     try {
-      const res = await fetch(`${API_BASE}/887805c0-0d3a-4f32-8436-1ba1adda4a4f/${selectedTicket.id}/status`, {
+      const res = await fetch(`${API_BASE}/887805c0-0d3a-4f32-8436-1ba1adda4a4f/?action=status&ticket_id=${selectedTicket.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -302,7 +302,7 @@ const Admin = () => {
   const handleBlockUser = async (userId: number, block: boolean) => {
     try {
       const action = block ? 'block' : 'unblock';
-      const res = await fetch(`${API_BASE}/bf06608b-5623-4eae-8f89-c08bea6a0073/users/${userId}/${action}`, {
+      const res = await fetch(`${API_BASE}/bf06608b-5623-4eae-8f89-c08bea6a0073/?action=${action}&user_id=${userId}`, {
         method: 'PUT',
         headers: { 'X-Auth-Token': token! }
       });
