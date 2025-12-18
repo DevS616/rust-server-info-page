@@ -43,7 +43,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
 
 def handle_login(api_url: str, base_url: str) -> Dict[str, Any]:
-    return_url = f"{api_url}/callback?api_url={urllib.parse.quote(api_url)}"
+    if not api_url:
+        api_url = 'https://functions.poehali.dev/560196bb-a6d4-41dc-9b1c-0008c13bece3'
+    
+    return_url = f"{api_url}?callback=true"
     
     steam_params = {
         'openid.ns': 'http://specs.openid.net/auth/2.0',
