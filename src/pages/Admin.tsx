@@ -2,13 +2,12 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
+import AdminLogin from '@/components/admin/AdminLogin';
+import TicketsTab from '@/components/admin/TicketsTab';
+import ServersTab from '@/components/admin/ServersTab';
 
 const API_BASE = 'https://functions.poehali.dev';
 
@@ -335,43 +334,12 @@ const Admin = () => {
 
   if (!token) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md p-8">
-          <div className="text-center mb-6">
-            <Icon name="Shield" className="mx-auto mb-4 text-primary" size={48} />
-            <h1 className="text-2xl font-bold">Админ-панель</h1>
-            <p className="text-muted-foreground mt-2">Войдите для доступа к системе</p>
-          </div>
-          
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={loginForm.email}
-                onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
-                placeholder="admin@example.com"
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="password">Пароль</Label>
-              <Input
-                id="password"
-                type="password"
-                value={loginForm.password}
-                onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
-                placeholder="••••••••"
-              />
-            </div>
-            
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Вход...' : 'Войти'}
-            </Button>
-          </form>
-        </Card>
-      </div>
+      <AdminLogin
+        loginForm={loginForm}
+        setLoginForm={setLoginForm}
+        handleLogin={handleLogin}
+        loading={loading}
+      />
     );
   }
 
@@ -396,215 +364,38 @@ const Admin = () => {
           </TabsList>
 
           <TabsContent value="tickets" className="space-y-6">
-            {selectedTicket ? (
-              <div>
-                <Button onClick={() => setSelectedTicket(null)} variant="outline" className="mb-4">
-                  <Icon name="ArrowLeft" className="mr-2" />
-                  Назад к списку
-                </Button>
-
-                <Card className="p-6">
-                  <div className="flex items-start justify-between mb-6">
-                    <div className="flex items-start gap-4">
-                      <img src={selectedTicket.steam_avatar} alt="" className="w-12 h-12 rounded-full" />
-                      <div>
-                        <h2 className="text-2xl font-semibold">{selectedTicket.subject}</h2>
-                        <p className="text-muted-foreground">от {selectedTicket.steam_username}</p>
-                        <p className="text-sm text-muted-foreground mt-1">Сервер: {selectedTicket.server}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex gap-2">
-                      <Select value={selectedTicket.status} onValueChange={handleChangeStatus}>
-                        <SelectTrigger className="w-40">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="open">Открыт</SelectItem>
-                          <SelectItem value="in_progress">В работе</SelectItem>
-                          <SelectItem value="closed">Закрыт</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      
-                      <Button 
-                        variant="destructive" 
-                        size="icon"
-                        onClick={() => handleBlockUser(selectedTicket.user_id, true)}
-                      >
-                        <Icon name="Ban" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4 mb-6">
-                    {messages.map((msg) => (
-                      <div key={msg.id} className={`flex gap-3 ${msg.is_admin_reply ? 'flex-row-reverse' : ''}`}>
-                        <div className={`flex-1 ${msg.is_admin_reply ? 'text-right' : ''}`}>
-                          <div className={`inline-block max-w-[80%] p-4 rounded-lg ${
-                            msg.is_admin_reply ? 'bg-primary text-primary-foreground' : 'bg-muted'
-                          }`}>
-                            <p className="text-sm font-medium mb-1">
-                              {msg.is_admin_reply ? msg.admin_name : msg.user_name}
-                            </p>
-                            <p className="whitespace-pre-wrap">{msg.message}</p>
-                            {msg.file_url && (
-                              <a href={msg.file_url} target="_blank" rel="noopener noreferrer" 
-                                className="text-sm underline mt-2 block">
-                                📎 Прикреплённый файл
-                              </a>
-                            )}
-                            <p className="text-xs opacity-70 mt-2">
-                              {new Date(msg.created_at).toLocaleString('ru-RU')}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="border-t pt-4">
-                    <Label htmlFor="reply">Ответ</Label>
-                    <Textarea
-                      id="reply"
-                      value={reply}
-                      onChange={(e) => setReply(e.target.value)}
-                      placeholder="Введите ответ..."
-                      rows={4}
-                      className="mb-2"
-                    />
-                    <Button onClick={handleSendReply} disabled={!reply.trim()}>
-                      <Icon name="Send" className="mr-2" />
-                      Отправить ответ
-                    </Button>
-                  </div>
-                </Card>
-              </div>
-            ) : (
-              <div className="grid gap-4">
-                {tickets.length === 0 ? (
-                  <Card className="p-8 text-center">
-                    <Icon name="Inbox" className="mx-auto mb-4 text-muted-foreground" size={48} />
-                    <p className="text-muted-foreground">Нет обращений</p>
-                  </Card>
-                ) : (
-                  tickets.map((ticket) => (
-                    <Card key={ticket.id} className="p-4 hover:shadow-lg transition-shadow cursor-pointer"
-                      onClick={() => {
-                        setSelectedTicket(ticket);
-                        loadTicketDetails(ticket.id.toString(), token!);
-                      }}>
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start gap-3 flex-1">
-                          <img src={ticket.steam_avatar} alt="" className="w-10 h-10 rounded-full" />
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className={`w-2 h-2 rounded-full ${getStatusColor(ticket.status)}`}></span>
-                              <span className="text-sm font-medium">{getStatusText(ticket.status)}</span>
-                            </div>
-                            <h3 className="text-lg font-semibold">{ticket.subject}</h3>
-                            <p className="text-sm text-muted-foreground">от {ticket.steam_username}</p>
-                            <p className="text-sm text-muted-foreground">Сервер: {ticket.server}</p>
-                            <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                              <span>Сообщений: {ticket.message_count}</span>
-                              <span>{new Date(ticket.created_at).toLocaleDateString('ru-RU')}</span>
-                            </div>
-                          </div>
-                        </div>
-                        <Icon name="ChevronRight" className="text-muted-foreground" />
-                      </div>
-                    </Card>
-                  ))
-                )}
-              </div>
-            )}
+            <TicketsTab
+              tickets={tickets}
+              selectedTicket={selectedTicket}
+              setSelectedTicket={setSelectedTicket}
+              messages={messages}
+              reply={reply}
+              setReply={setReply}
+              handleSendReply={handleSendReply}
+              handleChangeStatus={handleChangeStatus}
+              handleBlockUser={handleBlockUser}
+              loadTicketDetails={loadTicketDetails}
+              token={token}
+              getStatusColor={getStatusColor}
+              getStatusText={getStatusText}
+            />
           </TabsContent>
 
           <TabsContent value="servers">
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl font-semibold">Управление серверами</h2>
-                {!showServerForm && (
-                  <Button onClick={() => setShowServerForm(true)}>
-                    <Icon name="Plus" className="mr-2" />
-                    Добавить сервер
-                  </Button>
-                )}
-              </div>
-
-              {showServerForm && (
-                <Card className="p-6">
-                  <h3 className="text-lg font-semibold mb-4">
-                    {editingServer ? 'Редактировать сервер' : 'Новый сервер'}
-                  </h3>
-                  <form onSubmit={editingServer ? handleUpdateServer : handleCreateServer} className="space-y-4">
-                    <div>
-                      <Label htmlFor="serverName">Название сервера</Label>
-                      <Input
-                        id="serverName"
-                        value={serverForm.name}
-                        onChange={(e) => setServerForm({ ...serverForm, name: e.target.value })}
-                        placeholder="x2 DevilRust"
-                        required
-                      />
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id="serverActive"
-                        checked={serverForm.is_active}
-                        onChange={(e) => setServerForm({ ...serverForm, is_active: e.target.checked })}
-                        className="w-4 h-4"
-                      />
-                      <Label htmlFor="serverActive">Активен</Label>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <Button type="submit" disabled={loading}>
-                        {loading ? 'Сохранение...' : editingServer ? 'Сохранить' : 'Создать'}
-                      </Button>
-                      <Button type="button" variant="outline" onClick={cancelServerForm}>
-                        Отмена
-                      </Button>
-                    </div>
-                  </form>
-                </Card>
-              )}
-
-              <div className="space-y-2">
-                {servers.length === 0 ? (
-                  <Card className="p-8 text-center">
-                    <Icon name="Server" className="mx-auto mb-4 text-muted-foreground" size={48} />
-                    <p className="text-muted-foreground">Нет серверов</p>
-                  </Card>
-                ) : (
-                  servers.map((server) => (
-                    <Card key={server.id} className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Icon name="Server" className={server.is_active ? 'text-green-500' : 'text-muted-foreground'} />
-                          <div>
-                            <h3 className="font-semibold">{server.name}</h3>
-                            <p className="text-sm text-muted-foreground">
-                              {server.is_active ? 'Активен' : 'Неактивен'}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button variant="outline" size="sm" onClick={() => startEditServer(server)}>
-                            <Icon name="Edit" className="mr-1" size={16} />
-                            Изменить
-                          </Button>
-                          <Button variant="destructive" size="sm" onClick={() => handleDeleteServer(server.id)}>
-                            <Icon name="Trash2" size={16} />
-                          </Button>
-                        </div>
-                      </div>
-                    </Card>
-                  ))
-                )}
-              </div>
-            </div>
+            <ServersTab
+              servers={servers}
+              showServerForm={showServerForm}
+              setShowServerForm={setShowServerForm}
+              editingServer={editingServer}
+              serverForm={serverForm}
+              setServerForm={setServerForm}
+              handleCreateServer={handleCreateServer}
+              handleUpdateServer={handleUpdateServer}
+              handleDeleteServer={handleDeleteServer}
+              startEditServer={startEditServer}
+              cancelServerForm={cancelServerForm}
+              loading={loading}
+            />
           </TabsContent>
 
           <TabsContent value="admins">
