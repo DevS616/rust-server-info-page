@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -44,6 +44,8 @@ const TicketDetails = () => {
   const [reply, setReply] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [sending, setSending] = useState(false);
+  const [prevMessageCount, setPrevMessageCount] = useState(0);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const storedToken = localStorage.getItem('support_token');
@@ -57,6 +59,12 @@ const TicketDetails = () => {
   useEffect(() => {
     if (token && ticketId) {
       loadTicketDetails();
+      
+      const interval = setInterval(() => {
+        loadTicketDetails();
+      }, 10000);
+      
+      return () => clearInterval(interval);
     }
   }, [token, ticketId]);
 
@@ -69,7 +77,23 @@ const TicketDetails = () => {
       if (res.ok) {
         const data = await res.json();
         setTicket(data.ticket);
-        setMessages(data.messages || []);
+        const newMessages = data.messages || [];
+        
+        if (newMessages.length > prevMessageCount && prevMessageCount > 0) {
+          const newCount = newMessages.length - prevMessageCount;
+          toast({
+            title: '💬 Новое сообщение',
+            description: `Получено ${newCount} ${newCount === 1 ? 'новое сообщение' : 'новых сообщения'}`,
+            duration: 5000
+          });
+          
+          setTimeout(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+          }, 100);
+        }
+        
+        setMessages(newMessages);
+        setPrevMessageCount(newMessages.length);
       } else {
         toast({ title: 'Ошибка', description: 'Не удалось загрузить обращение', variant: 'destructive' });
         navigate('/support');
@@ -224,7 +248,7 @@ const TicketDetails = () => {
               </div>
             </div>
 
-            <div className="space-y-4 mb-6">
+            <div className="space-y-4 mb-6 max-h-[600px] overflow-y-auto">
               {messages.map((msg) => (
                 <div key={msg.id} className={`flex gap-3 ${msg.is_admin_reply ? 'flex-row-reverse' : ''}`}>
                   <div className={`flex-1 ${msg.is_admin_reply ? 'text-right' : ''}`}>
@@ -248,6 +272,7 @@ const TicketDetails = () => {
                   </div>
                 </div>
               ))}
+              <div ref={messagesEndRef} />
             </div>
 
             {ticket.status !== 'closed' && (
