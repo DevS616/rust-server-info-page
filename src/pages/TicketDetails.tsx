@@ -380,17 +380,36 @@ const TicketDetails = () => {
                 />
                 
                 <div className="mb-4">
-                  <Label htmlFor="replyFile">Прикрепить файл (необязательно)</Label>
-                  <Input
+                  <Label htmlFor="replyFile" className="mb-3 block">Прикрепить файл (необязательно)</Label>
+                  <input
                     id="replyFile"
                     type="file"
                     onChange={handleFileChange}
                     accept="image/*,.txt,.log,.pdf"
+                    className="hidden"
                   />
+                  <label 
+                    htmlFor="replyFile"
+                    className="inline-flex items-center justify-center gap-2 px-4 py-3 bg-secondary hover:bg-secondary/80 border border-border hover:border-primary/50 rounded-md cursor-pointer transition-all"
+                  >
+                    <Icon name="Paperclip" size={18} />
+                    <span>{file ? 'Изменить файл' : 'Выбрать файл'}</span>
+                  </label>
                   {file && (
-                    <p className="text-sm text-muted-foreground mt-2">
-                      Выбран: {file.name} ({(file.size / 1024 / 1024).toFixed(2)} МБ)
-                    </p>
+                    <div className="mt-3 p-3 bg-muted border border-border rounded-md flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Icon name="File" size={16} className="text-muted-foreground" />
+                        <span className="text-sm">{file.name}</span>
+                        <span className="text-xs text-muted-foreground">({(file.size / 1024 / 1024).toFixed(2)} МБ)</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setFile(null)}
+                        className="text-red-500 hover:text-red-400 transition-colors"
+                      >
+                        <Icon name="X" size={16} />
+                      </button>
+                    </div>
                   )}
                 </div>
 

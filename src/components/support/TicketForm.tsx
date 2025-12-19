@@ -190,18 +190,36 @@ const TicketForm = ({ token, servers, isBlocked, onTicketCreated, onCancel }: Ti
         </div>
 
         <div>
-          <Label htmlFor="file" className="text-white">Прикрепить файл (необязательно)</Label>
-          <Input
+          <Label htmlFor="file" className="text-white mb-3 block">Прикрепить файл (необязательно)</Label>
+          <input
             id="file"
             type="file"
             onChange={handleFileChange}
             accept="image/*,.pdf,.txt,.doc,.docx"
-            className="bg-slate-800 border-slate-700 text-white file:text-white"
+            className="hidden"
           />
+          <label 
+            htmlFor="file"
+            className="inline-flex items-center justify-center gap-2 px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-600 hover:border-slate-500 text-white rounded-md cursor-pointer transition-all"
+          >
+            <Icon name="Paperclip" size={18} />
+            <span>{formData.file ? 'Изменить файл' : 'Выбрать файл'}</span>
+          </label>
           {formData.file && (
-            <p className="text-sm text-slate-400 mt-2">
-              Файл: {formData.file.name} ({(formData.file.size / 1024).toFixed(0)} КБ)
-            </p>
+            <div className="mt-3 p-3 bg-slate-800/50 border border-slate-700 rounded-md flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Icon name="File" size={16} className="text-slate-400" />
+                <span className="text-sm text-slate-300">{formData.file.name}</span>
+                <span className="text-xs text-slate-500">({(formData.file.size / 1024).toFixed(0)} КБ)</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, file: null })}
+                className="text-red-400 hover:text-red-300 transition-colors"
+              >
+                <Icon name="X" size={16} />
+              </button>
+            </div>
           )}
         </div>
 
