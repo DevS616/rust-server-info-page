@@ -9,6 +9,7 @@ import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import RatingModal from '@/components/support/RatingModal';
 
 const API_BASE = 'https://functions.poehali.dev';
 
@@ -31,6 +32,9 @@ interface Ticket {
   created_at: string;
   steam_username: string;
   steam_avatar: string;
+  rating?: number;
+  rating_comment?: string;
+  rated_at?: string;
 }
 
 const TicketDetails = () => {
@@ -45,6 +49,7 @@ const TicketDetails = () => {
   const [file, setFile] = useState<File | null>(null);
   const [sending, setSending] = useState(false);
   const [prevMessageCount, setPrevMessageCount] = useState(0);
+  const [showRatingModal, setShowRatingModal] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -106,7 +111,13 @@ const TicketDetails = () => {
       
       if (res.ok) {
         const data = await res.json();
-        setTicket(data.ticket);
+        const ticketData = data.ticket;
+        setTicket(ticketData);
+        
+        if (ticketData.status === 'closed' && !ticketData.rating && prevMessageCount > 0) {
+          setShowRatingModal(true);
+        }
+        
         const newMessages = data.messages || [];
         
         if (newMessages.length > prevMessageCount && prevMessageCount > 0) {
@@ -233,6 +244,30 @@ const TicketDetails = () => {
     }
   };
 
+  const handleRatingSubmit = async (rating: number, comment: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/887805c0-0d3a-4f32-8436-1ba1adda4a4f/?action=rate&ticket_id=${ticketId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Auth-Token': token!
+        },
+        body: JSON.stringify({ rating, comment })
+      });
+      
+      if (res.ok) {
+        toast({ title: 'Спасибо!', description: 'Ваша оценка отправлена' });
+        loadTicketDetails();
+      } else {
+        const error = await res.json();
+        toast({ title: 'Ошибка', description: error.error || 'Не удалось отправить оценку', variant: 'destructive' });
+      }
+    } catch (error) {
+      console.error('Rating error:', error);
+      toast({ title: 'Ошибка', description: 'Не удалось отправить оценку', variant: 'destructive' });
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'open': return 'bg-green-500';
@@ -352,10 +387,40 @@ const TicketDetails = () => {
             )}
 
             {ticket.status === 'closed' && (
-              <div className="border-t pt-6">
+              <div className="border-t pt-6 space-y-4">
                 <p className="text-center text-muted-foreground">
                   Это обращение закрыто. Вы не можете отправлять новые сообщения.
                 </p>
+                
+                {ticket.rating ? (
+                  <div className="bg-slate-900 rounded-lg p-4 text-center">
+                    <p className="text-sm text-slate-400 mb-2">Ваша оценка:</p>
+                    <div className="flex justify-center gap-1 mb-2">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Icon 
+                          key={star}
+                          name="Star" 
+                          size={20}
+                          className={star <= ticket.rating! ? 'text-yellow-500 fill-yellow-500' : 'text-slate-600'}
+                        />
+                      ))}
+                    </div>
+                    {ticket.rating_comment && (
+                      <p className="text-sm text-slate-300 mt-2">"{ticket.rating_comment}"</p>
+                    )}
+                    <p className="text-xs text-slate-500 mt-2">
+                      Оценено {new Date(ticket.rated_at!).toLocaleString('ru-RU')}
+                    </p>
+                  </div>
+                ) : (
+                  <Button 
+                    onClick={() => setShowRatingModal(true)}
+                    className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800"
+                  >
+                    <Icon name="Star" size={16} className="mr-2" />
+                    Оценить качество поддержки
+                  </Button>
+                )}
               </div>
             )}
           </Card>
@@ -363,6 +428,15 @@ const TicketDetails = () => {
       </main>
 
       <Footer />
+      
+      {ticket && (
+        <RatingModal 
+          open={showRatingModal}
+          onClose={() => setShowRatingModal(false)}
+          onSubmit={handleRatingSubmit}
+          ticketSubject={ticket.subject}
+        />
+      )}
     </div>
   );
 };

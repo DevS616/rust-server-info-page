@@ -16,6 +16,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     GET /{ticket_id} - получение деталей тикета с сообщениями
     POST /{ticket_id}/reply - добавление ответа в тикет
     PUT /{ticket_id}/status - изменение статуса тикета (только админ)
+    POST /{ticket_id}/rate - оценка тикета пользователем (1-5 звезд)
     '''
     method = event.get('httpMethod', 'GET')
     
@@ -57,6 +58,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         return add_reply(ticket_id, event, user_data)
     elif method == 'PUT' and action == 'status' and ticket_id:
         return update_status(ticket_id, event, user_data)
+    elif method == 'POST' and action == 'rate' and ticket_id:
+        return rate_ticket(ticket_id, event, user_data)
     elif method == 'DELETE' and ticket_id:
         return delete_ticket(ticket_id, user_data)
     
@@ -586,6 +589,62 @@ def send_user_notification(chat_id: str, ticket_id: int, subject: str, server: s
         )
     except Exception as e:
         print(f'Failed to send user notification: {e}')
+
+
+def rate_ticket(ticket_id: str, event: Dict[str, Any], user_data: Dict[str, Any]) -> Dict[str, Any]:
+    '''Оценка тикета пользователем (1-5 звезд)'''
+    body = json.loads(event.get('body', '{}'))
+    rating = body.get('rating')
+    comment = body.get('comment', '').strip()
+    
+    if not rating or not isinstance(rating, int) or rating < 1 or rating > 5:
+        return error_response('Rating must be between 1 and 5')
+    
+    conn = psycopg2.connect(os.environ['DATABASE_URL'])
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    
+    cur.execute("SELECT user_id, status, rating FROM tickets WHERE id = %s", (ticket_id,))
+    ticket = cur.fetchone()
+    
+    if not ticket:
+        cur.close()
+        conn.close()
+        return error_response('Ticket not found', 404)
+    
+    if ticket['user_id'] != user_data['user_id']:
+        cur.close()
+        conn.close()
+        return error_response('Access denied', 403)
+    
+    if ticket['status'] != 'closed':
+        cur.close()
+        conn.close()
+        return error_response('Only closed tickets can be rated', 400)
+    
+    if ticket['rating'] is not None:
+        cur.close()
+        conn.close()
+        return error_response('Ticket already rated', 400)
+    
+    cur.execute(
+        "UPDATE tickets SET rating = %s, rating_comment = %s, rated_at = CURRENT_TIMESTAMP WHERE id = %s RETURNING *",
+        (rating, comment if comment else None, ticket_id)
+    )
+    
+    updated_ticket = cur.fetchone()
+    conn.commit()
+    cur.close()
+    conn.close()
+    
+    return {
+        'statusCode': 200,
+        'headers': {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+        },
+        'body': json.dumps({'ticket': dict(updated_ticket)}, default=str),
+        'isBase64Encoded': False
+    }
 
 
 def error_response(message: str, status_code: int = 400) -> Dict[str, Any]:
