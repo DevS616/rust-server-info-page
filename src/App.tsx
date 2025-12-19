@@ -28,6 +28,8 @@ const AppContent = () => {
 
   useEffect(() => {
     const checkMaintenance = async () => {
+      if (document.hidden) return;
+      
       try {
         const res = await fetch('https://functions.poehali.dev/1ad77753-040f-405c-8e61-7230f64e30e9/');
         if (res.ok) {
@@ -44,8 +46,20 @@ const AppContent = () => {
     };
 
     checkMaintenance();
-    const interval = setInterval(checkMaintenance, 30000);
-    return () => clearInterval(interval);
+    // Проверка режима обслуживания каждые 10 минут вместо 30 секунд
+    const interval = setInterval(checkMaintenance, 600000); // 10 минут = 600000ms
+    
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        checkMaintenance();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   if (loading) {

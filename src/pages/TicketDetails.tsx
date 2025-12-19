@@ -95,11 +95,26 @@ const TicketDetails = () => {
     if (token && ticketId) {
       loadTicketDetails();
       
+      // Опрос каждые 2 минуты вместо 10 секунд для экономии запросов
       const interval = setInterval(() => {
-        loadTicketDetails();
-      }, 10000);
+        // Проверяем, активна ли вкладка (не опрашиваем в фоне)
+        if (!document.hidden) {
+          loadTicketDetails();
+        }
+      }, 120000); // 2 минуты = 120000ms
       
-      return () => clearInterval(interval);
+      // Обновляем при возвращении на вкладку
+      const handleVisibilityChange = () => {
+        if (!document.hidden) {
+          loadTicketDetails();
+        }
+      };
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      
+      return () => {
+        clearInterval(interval);
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      };
     }
   }, [token, ticketId]);
 

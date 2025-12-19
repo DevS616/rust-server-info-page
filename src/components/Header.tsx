@@ -21,6 +21,9 @@ const Header = () => {
 
   useEffect(() => {
     const checkUnread = async () => {
+      // Не проверяем если вкладка неактивна
+      if (document.hidden) return;
+      
       const token = localStorage.getItem('support_token');
       if (!token) return;
       
@@ -39,8 +42,21 @@ const Header = () => {
     };
 
     checkUnread();
-    const interval = setInterval(checkUnread, 30000);
-    return () => clearInterval(interval);
+    // Опрос каждые 5 минут вместо 30 секунд для экономии запросов
+    const interval = setInterval(checkUnread, 300000); // 5 минут = 300000ms
+    
+    // Проверяем при возвращении на вкладку
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        checkUnread();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   useEffect(() => {
