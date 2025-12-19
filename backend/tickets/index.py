@@ -112,6 +112,28 @@ def create_ticket(event: Dict[str, Any], user_data: Dict[str, Any]) -> Dict[str,
     cur.close()
     conn.close()
     
+    # Отправка уведомления в Telegram
+    try:
+        site_url = 'https://play.devilrust.ru'
+        ticket_url = f'{site_url}/support/ticket/{ticket["id"]}'
+        
+        telegram_notify_url = 'https://functions.poehali.dev/d9aaa9bf-3c0a-459b-ae1a-3c8bb981fdc6/'
+        
+        notify_payload = {
+            'ticket_id': ticket['id'],
+            'server': server,
+            'subject': subject,
+            'url': ticket_url
+        }
+        
+        requests.post(
+            telegram_notify_url,
+            json=notify_payload,
+            timeout=5
+        )
+    except Exception as e:
+        print(f'Failed to send telegram notification: {e}')
+    
     return {
         'statusCode': 201,
         'headers': {
