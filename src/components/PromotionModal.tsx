@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
+import { publicDataService } from '@/services/publicDataService';
 
 interface PromotionData {
   enabled: boolean;
@@ -34,19 +35,13 @@ const PromotionModal = () => {
   const [promotionData, setPromotionData] = useState<PromotionData | null>(null);
 
   useEffect(() => {
-    const loadPromotion = async () => {
-      try {
-        const response = await fetch('https://functions.poehali.dev/6bf5dace-312e-443f-8666-9af4a8112d1c/');
-        if (response.ok) {
-          const data = await response.json();
-          setPromotionData(data);
-        }
-      } catch (error) {
-        console.error('Failed to load promotion:', error);
+    const unsubscribe = publicDataService.subscribe((data) => {
+      if (data.promotion) {
+        setPromotionData(data.promotion);
       }
-    };
+    });
     
-    loadPromotion();
+    return unsubscribe;
   }, []);
 
   useEffect(() => {

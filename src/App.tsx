@@ -15,6 +15,7 @@ import TicketDetails from "./pages/TicketDetails";
 import Admin from "./pages/Admin";
 import SteamCallback from "./pages/SteamCallback";
 import NotFound from "./pages/NotFound";
+import { publicDataService } from "./services/publicDataService";
 
 const queryClient = new QueryClient();
 
@@ -27,39 +28,14 @@ const AppContent = () => {
   const isAdminPath = location.pathname.startsWith('/admin');
 
   useEffect(() => {
-    const checkMaintenance = async () => {
-      if (document.hidden) return;
-      
-      try {
-        const res = await fetch('https://functions.poehali.dev/1ad77753-040f-405c-8e61-7230f64e30e9/');
-        if (res.ok) {
-          const data = await res.json();
-          setIsMaintenance(data.is_maintenance);
-          setMaintenanceTitle(data.maintenance_title);
-          setMaintenanceSubtitle(data.maintenance_subtitle);
-        }
-      } catch (error) {
-        console.error('Failed to check maintenance:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    const unsubscribe = publicDataService.subscribe((data) => {
+      setIsMaintenance(data.maintenance.enabled);
+      setMaintenanceTitle(data.maintenance.title);
+      setMaintenanceSubtitle(data.maintenance.subtitle);
+      setLoading(false);
+    });
 
-    checkMaintenance();
-    // Проверка режима обслуживания каждые 10 минут вместо 30 секунд
-    const interval = setInterval(checkMaintenance, 600000); // 10 минут = 600000ms
-    
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        checkMaintenance();
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    return () => {
-      clearInterval(interval);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
+    return unsubscribe;
   }, []);
 
   if (loading) {
