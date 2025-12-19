@@ -49,6 +49,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         print(f'Message from chat_id={chat_id}, username={username}, text={text}')
         
+        # Обработка команды /menu
+        if text.startswith('/menu'):
+            send_menu(chat_id)
+            return success_response()
+        
         if not text.startswith('/start'):
             print('Not a /start command')
             return success_response()
@@ -264,6 +269,38 @@ def send_telegram_message_with_button(chat_id: int, text: str, link_token: str):
             print(f'Error response: {response.text}')
     except Exception as e:
         print(f'Failed to send message with button: {e}')
+
+
+def send_menu(chat_id: int):
+    '''Отправка меню с кнопками'''
+    bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+    if not bot_token:
+        print('No TELEGRAM_BOT_TOKEN found!')
+        return
+    
+    try:
+        print(f'Sending menu to chat_id={chat_id}')
+        keyboard = {
+            'inline_keyboard': [
+                [{'text': '🌐 Перейти на сайт', 'url': 'https://play.devilrust.ru/support'}],
+                [{'text': '📋 Мои обращения', 'url': 'https://play.devilrust.ru/support'}]
+            ]
+        }
+        
+        response = requests.post(
+            f'https://api.telegram.org/bot{bot_token}/sendMessage',
+            json={
+                'chat_id': chat_id,
+                'text': '📱 Главное меню:\n\nВыберите действие:',
+                'reply_markup': keyboard
+            },
+            timeout=10
+        )
+        print(f'Send menu response: {response.status_code}')
+        if response.status_code != 200:
+            print(f'Error response: {response.text}')
+    except Exception as e:
+        print(f'Failed to send menu: {e}')
 
 
 def answer_callback(callback_id: str, text: str):
