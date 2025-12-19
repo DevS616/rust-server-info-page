@@ -98,6 +98,7 @@ const TicketForm = ({ token, servers, isBlocked, onTicketCreated, onCancel }: Ti
         }
       }
 
+      console.log('Creating ticket:', { server: formData.server, subject: formData.subject });
       const res = await fetch(`${API_BASE}/887805c0-0d3a-4f32-8436-1ba1adda4a4f/?action=create`, {
         method: 'POST',
         headers: { 
@@ -112,12 +113,16 @@ const TicketForm = ({ token, servers, isBlocked, onTicketCreated, onCancel }: Ti
         })
       });
 
+      console.log('Create ticket response:', res.status);
       if (res.ok) {
+        const data = await res.json();
+        console.log('Ticket created:', data);
         toast({ title: 'Успешно', description: 'Обращение создано' });
         setFormData({ server: '', subject: '', message: '', file: null });
         onTicketCreated();
       } else {
         const error = await res.json();
+        console.error('Create ticket error:', error);
         toast({ title: 'Ошибка', description: error.error || 'Не удалось создать обращение', variant: 'destructive' });
       }
     } catch (error) {
