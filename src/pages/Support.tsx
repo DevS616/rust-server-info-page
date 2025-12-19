@@ -91,6 +91,7 @@ const Support = () => {
       
       if (res.ok) {
         const data = await res.json();
+        console.log('Dashboard loaded, tickets:', data.tickets?.length || 0);
         setTickets(data.tickets || []);
         setIsBlocked(data.is_blocked);
         setTelegramLinked(data.telegram_linked || false);
@@ -104,6 +105,8 @@ const Support = () => {
             duration: 10000
           });
         }
+      } else {
+        console.error('Dashboard failed:', res.status);
       }
     } catch (error) {
       console.error('Failed to load dashboard:', error);
@@ -128,9 +131,10 @@ const Support = () => {
     setTickets([]);
   };
 
-  const handleTicketCreated = () => {
+  const handleTicketCreated = async () => {
     setShowForm(false);
-    loadTickets();
+    await new Promise(resolve => setTimeout(resolve, 500));
+    await loadTickets();
   };
 
   if (!token) {
