@@ -21,11 +21,10 @@ const Header = () => {
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    // Подписываемся на publicDataService для получения количества непрочитанных тикетов
     const unsubscribe = publicDataService.subscribe((data) => {
       setUnreadCount(data.unread_tickets);
     });
-    
+
     return unsubscribe;
   }, []);
 

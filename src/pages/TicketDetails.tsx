@@ -95,13 +95,13 @@ const TicketDetails = () => {
     if (token && ticketId) {
       loadTicketDetails();
       
-      // Опрос каждые 5 минут для экономии запросов
+      // Опрос каждые 2 минуты вместо 10 секунд для экономии запросов
       const interval = setInterval(() => {
         // Проверяем, активна ли вкладка (не опрашиваем в фоне)
         if (!document.hidden) {
           loadTicketDetails();
         }
-      }, 300000); // 5 минут = 300000ms
+      }, 120000); // 2 минуты = 120000ms
       
       // Обновляем при возвращении на вкладку
       const handleVisibilityChange = () => {

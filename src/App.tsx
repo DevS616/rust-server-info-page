@@ -8,7 +8,6 @@ import TelegramWidget from "./components/TelegramWidget";
 import PromotionModal from "./components/PromotionModal";
 import NewYearMode from "./components/NewYearMode";
 import MaintenancePage from "./components/MaintenancePage";
-import { publicDataService } from "./services/publicDataService";
 import Index from "./pages/Index";
 import BanList from "./pages/BanList";
 import Support from "./pages/Support";
@@ -16,6 +15,7 @@ import TicketDetails from "./pages/TicketDetails";
 import Admin from "./pages/Admin";
 import SteamCallback from "./pages/SteamCallback";
 import NotFound from "./pages/NotFound";
+import { publicDataService } from "./services/publicDataService";
 
 const queryClient = new QueryClient();
 
@@ -28,14 +28,13 @@ const AppContent = () => {
   const isAdminPath = location.pathname.startsWith('/admin');
 
   useEffect(() => {
-    // Подписываемся на publicDataService для получения статуса maintenance
     const unsubscribe = publicDataService.subscribe((data) => {
       setIsMaintenance(data.maintenance.enabled);
       setMaintenanceTitle(data.maintenance.title);
       setMaintenanceSubtitle(data.maintenance.subtitle);
       setLoading(false);
     });
-    
+
     return unsubscribe;
   }, []);
 

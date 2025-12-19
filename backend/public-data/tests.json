@@ -4,7 +4,13 @@
       "name": "Get public data without user",
       "method": "GET",
       "path": "/",
-      "expectedStatus": 200
+      "expectedStatus": 200,
+      "expectedBody": {
+        "maintenance": "object",
+        "online_players": 0,
+        "unread_tickets": 0
+      },
+      "bodyMatcher": "partial"
     }
   ]
 }
