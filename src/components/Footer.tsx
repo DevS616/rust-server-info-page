@@ -46,7 +46,7 @@ const Footer = () => {
                 Магазин
               </a>
 
-              <a href="https://devilrust.ru/support/" target="_blank" rel="noopener noreferrer" className="block hover:text-primary transition-colors hover:translate-x-1 transform text-[#757575]">
+              <a href="/support" className="block text-muted-foreground hover:text-primary transition-colors hover:translate-x-1 transform">
                 Поддержка
               </a>
             </div>
