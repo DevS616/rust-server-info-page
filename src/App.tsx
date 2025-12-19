@@ -8,6 +8,7 @@ import TelegramWidget from "./components/TelegramWidget";
 import PromotionModal from "./components/PromotionModal";
 import NewYearMode from "./components/NewYearMode";
 import MaintenancePage from "./components/MaintenancePage";
+import { publicDataService } from "./services/publicDataService";
 import Index from "./pages/Index";
 import BanList from "./pages/BanList";
 import Support from "./pages/Support";
@@ -27,39 +28,15 @@ const AppContent = () => {
   const isAdminPath = location.pathname.startsWith('/admin');
 
   useEffect(() => {
-    const checkMaintenance = async () => {
-      if (document.hidden) return;
-      
-      try {
-        const res = await fetch('https://functions.poehali.dev/1ad77753-040f-405c-8e61-7230f64e30e9/');
-        if (res.ok) {
-          const data = await res.json();
-          setIsMaintenance(data.is_maintenance);
-          setMaintenanceTitle(data.maintenance_title);
-          setMaintenanceSubtitle(data.maintenance_subtitle);
-        }
-      } catch (error) {
-        console.error('Failed to check maintenance:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkMaintenance();
-    // Проверка режима обслуживания каждые 10 минут вместо 30 секунд
-    const interval = setInterval(checkMaintenance, 600000); // 10 минут = 600000ms
+    // Подписываемся на publicDataService для получения статуса maintenance
+    const unsubscribe = publicDataService.subscribe((data) => {
+      setIsMaintenance(data.maintenance.enabled);
+      setMaintenanceTitle(data.maintenance.title);
+      setMaintenanceSubtitle(data.maintenance.subtitle);
+      setLoading(false);
+    });
     
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        checkMaintenance();
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    return () => {
-      clearInterval(interval);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
+    return unsubscribe;
   }, []);
 
   if (loading) {

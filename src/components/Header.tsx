@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import authConfig from '@/data/authorization.json';
 import RulesModal from '@/components/RulesModal';
 import ChristmasGarland from '@/components/ChristmasGarland';
+import { publicDataService } from '@/services/publicDataService';
 import {
   Sheet,
   SheetContent,
@@ -20,43 +21,12 @@ const Header = () => {
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    const checkUnread = async () => {
-      // Не проверяем если вкладка неактивна
-      if (document.hidden) return;
-      
-      const token = localStorage.getItem('support_token');
-      if (!token) return;
-      
-      try {
-        const res = await fetch('https://functions.poehali.dev/887805c0-0d3a-4f32-8436-1ba1adda4a4f/?action=status', {
-          headers: { 'X-Auth-Token': token }
-        });
-        
-        if (res.ok) {
-          const data = await res.json();
-          setUnreadCount(data.unread_count || 0);
-        }
-      } catch (error) {
-        console.error('Failed to check unread:', error);
-      }
-    };
-
-    checkUnread();
-    // Опрос каждые 5 минут вместо 30 секунд для экономии запросов
-    const interval = setInterval(checkUnread, 300000); // 5 минут = 300000ms
+    // Подписываемся на publicDataService для получения количества непрочитанных тикетов
+    const unsubscribe = publicDataService.subscribe((data) => {
+      setUnreadCount(data.unread_tickets);
+    });
     
-    // Проверяем при возвращении на вкладку
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        checkUnread();
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    return () => {
-      clearInterval(interval);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
+    return unsubscribe;
   }, []);
 
   useEffect(() => {
