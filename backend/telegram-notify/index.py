@@ -8,7 +8,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     '''
     Отправка уведомлений в Telegram о новых тикетах.
     POST / - отправка уведомления
-    Body: {"ticket_id": 123, "server": "Server Name", "subject": "Тема обращения", "url": "https://..."}
+    Body: {"ticket_id": 123, "server": "Server Name", "subject": "Тема", "url": "https://...", "steam_username": "Player", "steam_id": "76561198..."}
     '''
     method = event.get('httpMethod', 'POST')
     
@@ -28,11 +28,17 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     if method != 'POST':
         return error_response('Method not allowed', 405)
     
-    body = json.loads(event.get('body', '{}'))
+    try:
+        body = json.loads(event.get('body', '{}') or '{}')
+    except json.JSONDecodeError:
+        return error_response('Invalid JSON body')
+    
     ticket_id = body.get('ticket_id')
     server = body.get('server', 'Не указан')
     subject = body.get('subject', 'Без темы')
     ticket_url = body.get('url', '')
+    steam_username = body.get('steam_username', 'Unknown')
+    steam_id = body.get('steam_id', 'Unknown')
     
     if not ticket_id:
         return error_response('Ticket ID is required')
@@ -44,6 +50,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         return error_response('Telegram credentials not configured', 500)
     
     message_text = f"🎫 На сайте play.devilrust.ru новое обращение:\n\n" \
+                   f"👤 Игрок: {steam_username}\n" \
+                   f"🆔 Steam ID: <code>{steam_id}</code>\n" \
                    f"📍 Сервер: {server}\n" \
                    f"📋 Тема: {subject}"
     

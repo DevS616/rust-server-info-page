@@ -91,7 +91,7 @@ def create_ticket(event: Dict[str, Any], user_data: Dict[str, Any]) -> Dict[str,
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor(cursor_factory=RealDictCursor)
     
-    cur.execute("SELECT is_blocked FROM users WHERE id = %s", (user_data['user_id'],))
+    cur.execute("SELECT is_blocked, steam_username, steam_id FROM users WHERE id = %s", (user_data['user_id'],))
     user = cur.fetchone()
     
     if user and user['is_blocked']:
@@ -126,7 +126,9 @@ def create_ticket(event: Dict[str, Any], user_data: Dict[str, Any]) -> Dict[str,
             'ticket_id': ticket['id'],
             'server': server,
             'subject': subject,
-            'url': ticket_url
+            'url': ticket_url,
+            'steam_username': user['steam_username'] if user else 'Unknown',
+            'steam_id': user['steam_id'] if user else 'Unknown'
         }
         
         requests.post(
