@@ -123,26 +123,23 @@ def handle_callback(callback_query: Dict[str, Any]) -> Dict[str, Any]:
     print(f'Callback from chat_id={chat_id}, data={callback_data[:30]}...')
     
     if callback_data.startswith('link_'):
-        link_token = callback_data[5:]  # Убираем префикс 'link_'
-        process_link_token(chat_id, username, link_token)
-        answer_callback(callback_id, '✅ Обработка...')
+        user_id_str = callback_data[5:]  # Убираем префикс 'link_'
+        try:
+            user_id = int(user_id_str)
+            process_link_by_user_id(chat_id, username, user_id)
+            answer_callback(callback_id, '✅ Обработка...')
+        except ValueError:
+            print(f'Invalid user_id in callback: {user_id_str}')
+            answer_callback(callback_id, '❌ Ошибка')
     
     return success_response()
 
 
-def process_link_token(chat_id: int, username: str, link_token: str):
-    '''Обработка токена привязки'''
+def process_link_by_user_id(chat_id: int, username: str, user_id: int):
+    '''Обработка привязки по user_id из кнопки'''
     try:
         secret = os.environ['JWT_SECRET']
-        print(f'Processing link token: {link_token[:20]}...')
-        payload = jwt.decode(link_token, secret, algorithms=['HS256'])
-        user_id = payload.get('user_id')
-        print(f'Decoded user_id: {user_id}')
-        
-        if not user_id:
-            print('No user_id in token')
-            send_telegram_message(chat_id, '❌ Неверная ссылка привязки.')
-            return
+        print(f'Processing link for user_id={user_id}')
         
         verify_token = jwt.encode({
             'user_id': user_id,
@@ -166,6 +163,29 @@ def process_link_token(chat_id: int, username: str, link_token: str):
                 chat_id,
                 '❌ Ошибка при привязке. Попробуйте получить новую ссылку на сайте.'
             )
+    except Exception as e:
+        print(f'Error processing link: {e}')
+        send_telegram_message(
+            chat_id,
+            '❌ Произошла ошибка. Попробуйте позже.'
+        )
+
+
+def process_link_token(chat_id: int, username: str, link_token: str):
+    '''Обработка токена привязки из параметра /start'''
+    try:
+        secret = os.environ['JWT_SECRET']
+        print(f'Processing link token: {link_token[:20]}...')
+        payload = jwt.decode(link_token, secret, algorithms=['HS256'])
+        user_id = payload.get('user_id')
+        print(f'Decoded user_id: {user_id}')
+        
+        if not user_id:
+            print('No user_id in token')
+            send_telegram_message(chat_id, '❌ Неверная ссылка привязки.')
+            return
+        
+        process_link_by_user_id(chat_id, username, user_id)
     
     except jwt.ExpiredSignatureError:
         send_telegram_message(
@@ -208,16 +228,25 @@ def send_telegram_message(chat_id: int, text: str):
 
 def send_telegram_message_with_button(chat_id: int, text: str, link_token: str):
     '''Отправка сообщения с inline кнопкой'''
-    bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
-    if not bot_token:
-        print('No TELEGRAM_BOT_TOKEN found!')
-        return
-    
+    # Извлекаем user_id из токена для короткого callback_data (лимит 64 байта)
     try:
-        print(f'Sending message with button to chat_id={chat_id}')
+        secret = os.environ['JWT_SECRET']
+        payload = jwt.decode(link_token, secret, algorithms=['HS256'])
+        user_id = payload.get('user_id')
+        
+        if not user_id:
+            print('No user_id in token for button')
+            return
+        
+        bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+        if not bot_token:
+            print('No TELEGRAM_BOT_TOKEN found!')
+            return
+        
+        print(f'Sending message with button to chat_id={chat_id}, user_id={user_id}')
         keyboard = {
             'inline_keyboard': [[
-                {'text': '✅ Привязать аккаунт', 'callback_data': f'link_{link_token}'}
+                {'text': '✅ Привязать аккаунт', 'callback_data': f'link_{user_id}'}
             ]]
         }
         
