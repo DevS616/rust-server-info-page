@@ -7,7 +7,6 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import TelegramWidget from "./components/TelegramWidget";
 import PromotionModal from "./components/PromotionModal";
 import NewYearMode from "./components/NewYearMode";
-import SupportNotifications from "./components/SupportNotifications";
 import MaintenancePage from "./components/MaintenancePage";
 import Index from "./pages/Index";
 import BanList from "./pages/BanList";
@@ -66,7 +65,6 @@ const AppContent = () => {
 
   return (
     <>
-      <SupportNotifications />
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/banlist" element={<BanList />} />
