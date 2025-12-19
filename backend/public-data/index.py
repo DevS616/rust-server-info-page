@@ -3,6 +3,8 @@ import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from typing import Dict, Any
+import urllib.request
+import urllib.error
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     '''
@@ -66,7 +68,54 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'subtitle': settings['maintenance_subtitle']
             }
         
-        result['online_players'] = 0
+        # Получаем список активных серверов с их Battlemetrics ID и кешированными данными
+        cur.execute('''
+            SELECT id, battlemetrics_id, cached_players 
+            FROM t_p48919527_rust_server_info_pag.servers 
+            WHERE is_active = true
+        ''')
+        servers = cur.fetchall()
+        
+        # Суммируем онлайн игроков со всех серверов
+        total_online = 0
+        servers_updated = []
+        
+        for server in servers:
+            server_id = server['id']
+            bm_id = server['battlemetrics_id']
+            cached = server['cached_players'] or 0
+            
+            # Пытаемся получить актуальные данные от Battlemetrics
+            players_count = None
+            if bm_id and bm_id not in ['13371337', '13371338', '13371339', '13371340', '13371341', '13371342', '13371343', '13371344', '13371345']:
+                try:
+                    req = urllib.request.Request(
+                        f'https://api.battlemetrics.com/servers/{bm_id}',
+                        headers={'User-Agent': 'DevilRust-Monitor/1.0'}
+                    )
+                    with urllib.request.urlopen(req, timeout=2) as response:
+                        data = json.loads(response.read().decode())
+                        players_count = data.get('data', {}).get('attributes', {}).get('players', 0)
+                        # Обновляем кеш в БД
+                        servers_updated.append((players_count, server_id))
+                except (urllib.error.URLError, urllib.error.HTTPError, Exception):
+                    pass
+            
+            # Используем актуальные данные или кеш
+            total_online += players_count if players_count is not None else cached
+        
+        # Обновляем кеш в БД для успешно обновленных серверов
+        for players, srv_id in servers_updated:
+            cur.execute('''
+                UPDATE t_p48919527_rust_server_info_pag.servers
+                SET cached_players = %s, players_updated_at = NOW()
+                WHERE id = %s
+            ''', (players, srv_id))
+        
+        if servers_updated:
+            conn.commit()
+        
+        result['online_players'] = total_online
         
         user_id_header = event.get('headers', {}).get('X-User-Id') or event.get('headers', {}).get('x-user-id')
         
