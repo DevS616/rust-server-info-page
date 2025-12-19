@@ -167,6 +167,7 @@ def get_dashboard(user_data: Dict[str, Any]) -> Dict[str, Any]:
     cur = conn.cursor(cursor_factory=RealDictCursor)
     
     user_id = user_data['user_id']
+    print(f'Loading dashboard for user_id={user_id}')
     
     # Получаем статус пользователя
     cur.execute(f"SELECT is_blocked, telegram_chat_id, telegram_username FROM users WHERE id = {user_id}")
@@ -175,7 +176,10 @@ def get_dashboard(user_data: Dict[str, Any]) -> Dict[str, Any]:
     if not user:
         cur.close()
         conn.close()
+        print(f'User not found for user_id={user_id}')
         return error_response('User not found', 404)
+    
+    print(f'User found: {user}')
     
     # Всегда получаем только тикеты текущего пользователя (не показываем чужие)
     cur.execute(f"""
@@ -187,6 +191,9 @@ def get_dashboard(user_data: Dict[str, Any]) -> Dict[str, Any]:
         ORDER BY t.created_at DESC
     """)
     
+    tickets = cur.fetchall()
+    print(f'Found {len(tickets)} tickets for user_id={user_id}')
+    
     # Считаем общее количество непрочитанных уведомлений
     cur.execute(f"""
         SELECT COUNT(*) as count
@@ -197,7 +204,6 @@ def get_dashboard(user_data: Dict[str, Any]) -> Dict[str, Any]:
     result = cur.fetchone()
     unread_count = result['count'] if result else 0
     
-    tickets = cur.fetchall()
     cur.close()
     conn.close()
     
