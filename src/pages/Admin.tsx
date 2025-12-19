@@ -9,6 +9,7 @@ import AdminLogin from '@/components/admin/AdminLogin';
 import TicketsTab from '@/components/admin/TicketsTab';
 import ServersTab from '@/components/admin/ServersTab';
 import ManagementTab from '@/components/admin/ManagementTab';
+import PromotionTab from '@/components/admin/PromotionTab';
 
 const API_BASE = 'https://functions.poehali.dev';
 
@@ -392,6 +393,7 @@ const Admin = () => {
           <TabsList className="mb-6">
             <TabsTrigger value="tickets">Обращения</TabsTrigger>
             <TabsTrigger value="servers">Серверы</TabsTrigger>
+            <TabsTrigger value="promotions">Акции</TabsTrigger>
             <TabsTrigger value="management">Управление</TabsTrigger>
             <TabsTrigger value="admins">Администраторы</TabsTrigger>
           </TabsList>
@@ -431,6 +433,10 @@ const Admin = () => {
               cancelServerForm={cancelServerForm}
               loading={loading}
             />
+          </TabsContent>
+
+          <TabsContent value="promotions">
+            <PromotionTab />
           </TabsContent>
 
           <TabsContent value="management">
