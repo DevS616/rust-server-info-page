@@ -7,7 +7,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { publicDataService } from '@/services/publicDataService';
+import { monitoringService } from '@/services/monitoringService';
 
 const HeroSection = () => {
   const [totalPlayers, setTotalPlayers] = useState<number | null>(null);
@@ -44,8 +44,10 @@ const HeroSection = () => {
   };
 
   useEffect(() => {
-    const unsubscribe = publicDataService.subscribe((data) => {
-      setTotalPlayers(data.online_players);
+    const unsubscribe = monitoringService.subscribe((data) => {
+      if (data?.result === 'success' && data.data?.total?.players !== undefined) {
+        setTotalPlayers(data.data.total.players);
+      }
     });
     
     return unsubscribe;
