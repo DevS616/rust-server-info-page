@@ -8,29 +8,21 @@ const API_BASE = 'https://functions.poehali.dev';
 
 interface TelegramSectionProps {
   token: string;
+  initialLinked?: boolean;
+  initialUsername?: string | null;
+  onStatusChange?: () => void;
 }
 
-const TelegramSection = ({ token }: TelegramSectionProps) => {
-  const { toast } = useToast();
-  const [telegramLinked, setTelegramLinked] = useState(false);
-  const [telegramUsername, setTelegramUsername] = useState<string | null>(null);
+const TelegramSection = ({ token, initialLinked = false, initialUsername = null, onStatusChange }: TelegramSectionProps) => {
+  const { toast} = useToast();
+  const [telegramLinked, setTelegramLinked] = useState(initialLinked);
+  const [telegramUsername, setTelegramUsername] = useState<string | null>(initialUsername);
   const [showTelegramInfo, setShowTelegramInfo] = useState(false);
 
-  const checkTelegramLink = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/92e13203-5190-4bb5-b08b-d287ef896899/`, {
-        headers: { 'X-Auth-Token': token }
-      });
-      
-      if (res.ok) {
-        const data = await res.json();
-        setTelegramLinked(data.linked);
-        setTelegramUsername(data.telegram_username);
-      }
-    } catch (error) {
-      console.error('Failed to check telegram link:', error);
-    }
-  };
+  useEffect(() => {
+    setTelegramLinked(initialLinked);
+    setTelegramUsername(initialUsername);
+  }, [initialLinked, initialUsername]);
 
   const handleTelegramLink = async () => {
     console.log('handleTelegramLink called, token:', token ? 'present' : 'missing');
@@ -51,23 +43,27 @@ const TelegramSection = ({ token }: TelegramSectionProps) => {
         setShowTelegramInfo(true);
         
         const checkInterval = setInterval(async () => {
-          const checkRes = await fetch(`${API_BASE}/92e13203-5190-4bb5-b08b-d287ef896899/`, {
-            headers: { 'X-Auth-Token': token }
-          });
-          if (checkRes.ok) {
-            const checkData = await checkRes.json();
-            if (checkData.linked) {
-              setTelegramLinked(true);
-              setTelegramUsername(checkData.telegram_username);
-              setShowTelegramInfo(false);
-              clearInterval(checkInterval);
-              toast({ 
-                title: 'Успешно!', 
-                description: 'Telegram успешно привязан. Вы будете получать уведомления от поддержки.' 
-              });
+          if (onStatusChange) {
+            onStatusChange();
+            // Проверяем локальный стейт после обновления родителя
+            const checkRes = await fetch(`${API_BASE}/92e13203-5190-4bb5-b08b-d287ef896899/`, {
+              headers: { 'X-Auth-Token': token }
+            });
+            if (checkRes.ok) {
+              const checkData = await checkRes.json();
+              if (checkData.linked) {
+                setTelegramLinked(true);
+                setTelegramUsername(checkData.telegram_username);
+                setShowTelegramInfo(false);
+                clearInterval(checkInterval);
+                toast({ 
+                  title: 'Успешно!', 
+                  description: 'Telegram успешно привязан. Вы будете получать уведомления от поддержки.' 
+                });
+              }
             }
           }
-        }, 3000);
+        }, 5000);
         
         setTimeout(() => {
           clearInterval(checkInterval);
@@ -93,6 +89,7 @@ const TelegramSection = ({ token }: TelegramSectionProps) => {
       if (res.ok) {
         setTelegramLinked(false);
         setTelegramUsername(null);
+        if (onStatusChange) onStatusChange();
         toast({ title: 'Успешно', description: 'Telegram отвязан' });
       }
     } catch (error) {
@@ -100,10 +97,7 @@ const TelegramSection = ({ token }: TelegramSectionProps) => {
     }
   };
 
-  useEffect(() => {
-    console.log('TelegramSection mounted, token:', token ? 'present' : 'missing');
-    checkTelegramLink();
-  }, []);
+
 
   return (
     <Card className="p-6 bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700 mb-8">

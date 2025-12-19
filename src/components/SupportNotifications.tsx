@@ -30,23 +30,17 @@ const SupportNotifications = () => {
       if (!token) return;
 
       try {
-        const [statusRes, ticketsRes] = await Promise.all([
-          fetch(`${API_BASE}/887805c0-0d3a-4f32-8436-1ba1adda4a4f/?action=status`, {
-            headers: { 'X-Auth-Token': token }
-          }),
-          fetch(`${API_BASE}/887805c0-0d3a-4f32-8436-1ba1adda4a4f/?action=list`, {
-            headers: { 'X-Auth-Token': token }
-          })
-        ]);
+        const res = await fetch(`${API_BASE}/887805c0-0d3a-4f32-8436-1ba1adda4a4f/?action=dashboard`, {
+          headers: { 'X-Auth-Token': token }
+        });
 
-        if (statusRes.ok && ticketsRes.ok) {
-          const statusData = await statusRes.json();
-          const ticketsData = await ticketsRes.json();
-          const tickets = ticketsData.tickets || [];
+        if (res.ok) {
+          const data = await res.json();
+          const tickets = data.tickets || [];
           
           const newState: NotificationState = {
-            unreadCount: statusData.unread_count || 0,
-            isBlocked: statusData.is_blocked || false,
+            unreadCount: data.unread_count || 0,
+            isBlocked: data.is_blocked || false,
             lastChecked: Date.now(),
             tickets: tickets.map((t: any) => ({
               id: t.id,

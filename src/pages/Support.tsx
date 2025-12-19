@@ -33,6 +33,8 @@ const Support = () => {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
+  const [telegramLinked, setTelegramLinked] = useState(false);
+  const [telegramUsername, setTelegramUsername] = useState<string | null>(null);
 
   useEffect(() => {
     const urlToken = searchParams.get('token');
@@ -61,9 +63,8 @@ const Support = () => {
 
   useEffect(() => {
     if (token) {
-      loadTickets();
+      loadDashboard();
       loadServers();
-      checkUserStatus();
     } else {
       setLoading(false);
       loadServers();
@@ -82,15 +83,18 @@ const Support = () => {
     }
   };
 
-  const checkUserStatus = async () => {
+  const loadDashboard = async () => {
     try {
-      const res = await fetch(`${API_BASE}/887805c0-0d3a-4f32-8436-1ba1adda4a4f/?action=status`, {
+      const res = await fetch(`${API_BASE}/887805c0-0d3a-4f32-8436-1ba1adda4a4f/?action=dashboard`, {
         headers: { 'X-Auth-Token': token! }
       });
       
       if (res.ok) {
         const data = await res.json();
+        setTickets(data.tickets || []);
         setIsBlocked(data.is_blocked);
+        setTelegramLinked(data.telegram_linked || false);
+        setTelegramUsername(data.telegram_username || null);
         
         if (data.is_blocked) {
           toast({ 
@@ -102,25 +106,14 @@ const Support = () => {
         }
       }
     } catch (error) {
-      console.error('Failed to check user status:', error);
+      console.error('Failed to load dashboard:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
   const loadTickets = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/887805c0-0d3a-4f32-8436-1ba1adda4a4f/?action=list`, {
-        headers: { 'X-Auth-Token': token! }
-      });
-      
-      if (res.ok) {
-        const data = await res.json();
-        setTickets(data.tickets || []);
-      }
-    } catch (error) {
-      console.error('Failed to load tickets:', error);
-    } finally {
-      setLoading(false);
-    }
+    await loadDashboard();
   };
 
   const handleSteamLogin = () => {
@@ -186,7 +179,12 @@ const Support = () => {
             </Button>
           </div>
 
-          <TelegramSection token={token} />
+          <TelegramSection 
+            token={token} 
+            initialLinked={telegramLinked}
+            initialUsername={telegramUsername}
+            onStatusChange={() => loadDashboard()}
+          />
 
           {showForm ? (
             <TicketForm 

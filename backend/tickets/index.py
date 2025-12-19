@@ -45,6 +45,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     
     if method == 'POST' and action == 'create':
         return create_ticket(event, user_data)
+    elif method == 'GET' and action == 'dashboard':
+        return get_dashboard(user_data)
     elif method == 'GET' and action == 'list':
         return list_tickets(user_data)
     elif method == 'GET' and action == 'status':
@@ -119,6 +121,74 @@ def create_ticket(event: Dict[str, Any], user_data: Dict[str, Any]) -> Dict[str,
         'body': json.dumps({
             'ticket': dict(ticket),
             'message': dict(first_message)
+        }, default=str),
+        'isBase64Encoded': False
+    }
+
+
+def get_dashboard(user_data: Dict[str, Any]) -> Dict[str, Any]:
+    '''Получить все данные для dashboard за один запрос: статус, тикеты, непрочитанные'''
+    conn = psycopg2.connect(os.environ['DATABASE_URL'])
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    
+    user_id = user_data['user_id']
+    is_admin = user_data.get('is_admin', False)
+    
+    # Получаем статус пользователя
+    cur.execute("SELECT is_blocked, telegram_chat_id, telegram_username FROM users WHERE id = %s", (user_id,))
+    user = cur.fetchone()
+    
+    if not user:
+        cur.close()
+        conn.close()
+        return error_response('User not found', 404)
+    
+    # Получаем тикеты
+    if is_admin:
+        cur.execute("""
+            SELECT t.*, u.steam_username, u.steam_avatar,
+                   (SELECT COUNT(*) FROM ticket_messages WHERE ticket_id = t.id) as message_count
+            FROM tickets t
+            JOIN users u ON t.user_id = u.id
+            ORDER BY t.created_at DESC
+        """)
+        unread_count = 0
+    else:
+        cur.execute("""
+            SELECT t.*,
+                   (SELECT COUNT(*) FROM ticket_messages WHERE ticket_id = t.id) as message_count,
+                   (SELECT COUNT(*) FROM ticket_messages WHERE ticket_id = t.id AND is_admin_reply = TRUE AND is_read_by_user = FALSE) as unread_count
+            FROM tickets t
+            WHERE t.user_id = %s
+            ORDER BY t.created_at DESC
+        """, (user_id,))
+        
+        # Считаем общее количество непрочитанных уведомлений
+        cur.execute("""
+            SELECT COUNT(*) as count
+            FROM ticket_messages tm
+            JOIN tickets t ON tm.ticket_id = t.id
+            WHERE t.user_id = %s AND tm.is_admin_reply = TRUE AND tm.is_read_by_user = FALSE
+        """, (user_id,))
+        result = cur.fetchone()
+        unread_count = result['count'] if result else 0
+    
+    tickets = cur.fetchall()
+    cur.close()
+    conn.close()
+    
+    return {
+        'statusCode': 200,
+        'headers': {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+        },
+        'body': json.dumps({
+            'is_blocked': user['is_blocked'],
+            'telegram_linked': user['telegram_chat_id'] is not None,
+            'telegram_username': user.get('telegram_username'),
+            'unread_count': unread_count,
+            'tickets': [dict(t) for t in tickets]
         }, default=str),
         'isBase64Encoded': False
     }
