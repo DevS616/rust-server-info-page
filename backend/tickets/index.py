@@ -159,7 +159,6 @@ def get_dashboard(user_data: Dict[str, Any]) -> Dict[str, Any]:
     cur = conn.cursor(cursor_factory=RealDictCursor)
     
     user_id = user_data['user_id']
-    is_admin = user_data.get('is_admin', False)
     
     # Получаем статус пользователя
     cur.execute("SELECT is_blocked, telegram_chat_id, telegram_username FROM users WHERE id = %s", (user_id,))
@@ -170,35 +169,25 @@ def get_dashboard(user_data: Dict[str, Any]) -> Dict[str, Any]:
         conn.close()
         return error_response('User not found', 404)
     
-    # Получаем тикеты
-    if is_admin:
-        cur.execute("""
-            SELECT t.*, u.steam_username, u.steam_avatar,
-                   (SELECT COUNT(*) FROM ticket_messages WHERE ticket_id = t.id) as message_count
-            FROM tickets t
-            JOIN users u ON t.user_id = u.id
-            ORDER BY t.created_at DESC
-        """)
-        unread_count = 0
-    else:
-        cur.execute("""
-            SELECT t.*,
-                   (SELECT COUNT(*) FROM ticket_messages WHERE ticket_id = t.id) as message_count,
-                   (SELECT COUNT(*) FROM ticket_messages WHERE ticket_id = t.id AND is_admin_reply = TRUE AND is_read_by_user = FALSE) as unread_count
-            FROM tickets t
-            WHERE t.user_id = %s
-            ORDER BY t.created_at DESC
-        """, (user_id,))
-        
-        # Считаем общее количество непрочитанных уведомлений
-        cur.execute("""
-            SELECT COUNT(*) as count
-            FROM ticket_messages tm
-            JOIN tickets t ON tm.ticket_id = t.id
-            WHERE t.user_id = %s AND tm.is_admin_reply = TRUE AND tm.is_read_by_user = FALSE
-        """, (user_id,))
-        result = cur.fetchone()
-        unread_count = result['count'] if result else 0
+    # Всегда получаем только тикеты текущего пользователя (не показываем чужие)
+    cur.execute("""
+        SELECT t.*,
+               (SELECT COUNT(*) FROM ticket_messages WHERE ticket_id = t.id) as message_count,
+               (SELECT COUNT(*) FROM ticket_messages WHERE ticket_id = t.id AND is_admin_reply = TRUE AND is_read_by_user = FALSE) as unread_count
+        FROM tickets t
+        WHERE t.user_id = %s
+        ORDER BY t.created_at DESC
+    """, (user_id,))
+    
+    # Считаем общее количество непрочитанных уведомлений
+    cur.execute("""
+        SELECT COUNT(*) as count
+        FROM ticket_messages tm
+        JOIN tickets t ON tm.ticket_id = t.id
+        WHERE t.user_id = %s AND tm.is_admin_reply = TRUE AND tm.is_read_by_user = FALSE
+    """, (user_id,))
+    result = cur.fetchone()
+    unread_count = result['count'] if result else 0
     
     tickets = cur.fetchall()
     cur.close()
@@ -219,6 +208,9 @@ def get_dashboard(user_data: Dict[str, Any]) -> Dict[str, Any]:
         }, default=str),
         'isBase64Encoded': False
     }
+
+
+
 
 
 def list_tickets(user_data: Dict[str, Any]) -> Dict[str, Any]:
