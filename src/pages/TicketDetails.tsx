@@ -336,7 +336,7 @@ const TicketDetails = () => {
                 </div>
                 <h1 className="text-3xl font-bold mb-2">{ticket.subject}</h1>
                 <p className="text-muted-foreground">Сервер: {ticket.server}</p>
-                <p className="text-sm text-muted-foreground">{new Date(ticket.created_at).toLocaleString('ru-RU')}</p>
+                <p className="text-sm text-muted-foreground">{new Date(ticket.created_at).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}</p>
               </div>
             </div>
 
@@ -358,7 +358,7 @@ const TicketDetails = () => {
                         </a>
                       )}
                       <p className="text-xs opacity-70 mt-2">
-                        {new Date(msg.created_at).toLocaleString('ru-RU')}
+                        {new Date(msg.created_at).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}
                       </p>
                     </div>
                   </div>
@@ -424,7 +424,7 @@ const TicketDetails = () => {
                       <p className="text-sm text-slate-300 mt-2">"{ticket.rating_comment}"</p>
                     )}
                     <p className="text-xs text-slate-500 mt-2">
-                      Оценено {new Date(ticket.rated_at!).toLocaleString('ru-RU')}
+                      Оценено {new Date(ticket.rated_at!).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}
                     </p>
                   </div>
                 ) : (
