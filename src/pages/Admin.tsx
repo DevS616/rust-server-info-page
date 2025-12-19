@@ -436,7 +436,7 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="promotions">
-            <PromotionTab />
+            <PromotionTab token={token!} />
           </TabsContent>
 
           <TabsContent value="management">

@@ -1,7 +1,27 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
-import promotionData from '@/data/promotion.json';
+
+interface PromotionData {
+  enabled: boolean;
+  title: string;
+  subtitle: string;
+  startDate: string;
+  endDate: string;
+  button: {
+    text: string;
+    url: string;
+  };
+  styling: {
+    showGifts: boolean;
+    accentColor: string;
+    animation: string;
+  };
+  behavior: {
+    showOnce: boolean;
+    cookieName: string;
+  };
+}
 
 const PromotionModal = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -11,8 +31,27 @@ const PromotionModal = () => {
     minutes: number;
     seconds: number;
   } | null>(null);
+  const [promotionData, setPromotionData] = useState<PromotionData | null>(null);
 
   useEffect(() => {
+    const loadPromotion = async () => {
+      try {
+        const response = await fetch('https://functions.poehali.dev/6bf5dace-312e-443f-8666-9af4a8112d1c/');
+        if (response.ok) {
+          const data = await response.json();
+          setPromotionData(data);
+        }
+      } catch (error) {
+        console.error('Failed to load promotion:', error);
+      }
+    };
+    
+    loadPromotion();
+  }, []);
+
+  useEffect(() => {
+    if (!promotionData) return;
+    
     console.log('PromotionModal: useEffect started');
     console.log('Promotion enabled:', promotionData.enabled);
     
@@ -105,7 +144,7 @@ const PromotionModal = () => {
     }, 5000);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [promotionData]);
 
   const handleRemindLater = () => {
     const hideUntil = new Date().getTime() + (60 * 60 * 1000);
@@ -114,11 +153,13 @@ const PromotionModal = () => {
   };
 
   const handleButtonClick = () => {
-    window.open(promotionData.button.url, '_blank');
-    setIsOpen(false);
+    if (promotionData) {
+      window.open(promotionData.button.url, '_blank');
+      setIsOpen(false);
+    }
   };
 
-  if (!isOpen || !timeLeft) return null;
+  if (!isOpen || !timeLeft || !promotionData) return null;
 
   return (
     <>

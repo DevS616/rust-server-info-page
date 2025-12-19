@@ -30,35 +30,60 @@ interface PromotionData {
   };
 }
 
-const PromotionTab = () => {
+interface PromotionTabProps {
+  token: string;
+}
+
+const PromotionTab = ({ token }: PromotionTabProps) => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState<PromotionData>(promotionData);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [initialLoad, setInitialLoad] = useState(true);
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const response = await fetch('https://functions.poehali.dev/6bf5dace-312e-443f-8666-9af4a8112d1c/');
+        if (response.ok) {
+          const data = await response.json();
+          setForm(data);
+        }
+      } catch (error) {
+        console.error('Failed to load promotion settings:', error);
+      } finally {
+        setInitialLoad(false);
+      }
+    };
+    
+    loadSettings();
+  }, []);
 
   const handleSave = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/update-promotion', {
+      const response = await fetch('https://functions.poehali.dev/6bf5dace-312e-443f-8666-9af4a8112d1c/', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-Auth-Token': token
+        },
         body: JSON.stringify(form)
       });
 
       if (response.ok) {
         toast({ 
           title: 'Сохранено', 
-          description: 'Настройки акции обновлены' 
+          description: 'Настройки акции обновлены. Обновите страницу, чтобы увидеть изменения.' 
         });
-        
-        window.location.reload();
       } else {
-        throw new Error('Failed to save');
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to save');
       }
     } catch (error) {
       toast({ 
         title: 'Ошибка', 
-        description: 'Не удалось сохранить изменения. Данные сохранены локально, при обновлении страницы изменения будут утеряны.', 
+        description: error instanceof Error ? error.message : 'Не удалось сохранить изменения', 
         variant: 'destructive' 
       });
     } finally {
@@ -66,9 +91,21 @@ const PromotionTab = () => {
     }
   };
 
-  const handleReset = () => {
+  const handleReset = async () => {
     if (confirm('Сбросить все изменения?')) {
-      setForm(promotionData);
+      setLoading(true);
+      try {
+        const response = await fetch('https://functions.poehali.dev/6bf5dace-312e-443f-8666-9af4a8112d1c/');
+        if (response.ok) {
+          const data = await response.json();
+          setForm(data);
+          toast({ title: 'Сброшено', description: 'Настройки восстановлены из базы данных' });
+        }
+      } catch (error) {
+        toast({ title: 'Ошибка', description: 'Не удалось загрузить настройки', variant: 'destructive' });
+      } finally {
+        setLoading(false);
+      }
     }
   };
 

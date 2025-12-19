@@ -1,0 +1,15 @@
+{
+  "tests": [
+    {
+      "name": "Get promotion settings",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "enabled": true,
+        "title": "Временная x2 АКЦИЯ!"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}
