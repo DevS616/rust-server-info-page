@@ -8,7 +8,8 @@ from typing import Dict, Any
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     '''
-    Webhook для Telegram бота - обработка команды /start и callback кнопок
+    Webhook для Telegram бота - обработка команд и callback кнопок
+    Команды: /start (привязка), /menu (меню с кнопками), /unlink (отвязка)
     Принимает обновления от Telegram API
     '''
     method: str = event.get('httpMethod', 'POST')
@@ -52,6 +53,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         # Обработка команды /menu
         if text.startswith('/menu'):
             send_menu(chat_id)
+            return success_response()
+        
+        # Обработка команды /unlink
+        if text.startswith('/unlink'):
+            handle_unlink(chat_id)
             return success_response()
         
         if not text.startswith('/start'):
@@ -136,6 +142,9 @@ def handle_callback(callback_query: Dict[str, Any]) -> Dict[str, Any]:
         except ValueError:
             print(f'Invalid user_id in callback: {user_id_str}')
             answer_callback(callback_id, '❌ Ошибка')
+    elif callback_data == 'unlink':
+        handle_unlink(chat_id)
+        answer_callback(callback_id, '✅ Обработка...')
     
     return success_response()
 
@@ -210,6 +219,44 @@ def process_link_token(chat_id: int, username: str, link_token: str):
         )
 
 
+def handle_unlink(chat_id: int):
+    '''Обработка отвязки Telegram аккаунта'''
+    conn = psycopg2.connect(os.environ['DATABASE_URL'])
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    
+    try:
+        # Проверяем, привязан ли аккаунт
+        cur.execute(f"SELECT id, steam_username FROM users WHERE telegram_chat_id = '{chat_id}'")
+        user = cur.fetchone()
+        
+        if not user:
+            send_telegram_message(
+                chat_id,
+                '❌ Ваш аккаунт не привязан к Telegram.'
+            )
+            return
+        
+        # Отвязываем аккаунт
+        cur.execute(f"UPDATE users SET telegram_chat_id = NULL, telegram_username = NULL WHERE telegram_chat_id = '{chat_id}'")
+        conn.commit()
+        
+        send_telegram_message(
+            chat_id,
+            f'✅ Telegram успешно отвязан от аккаунта {user["steam_username"]}!\n\nВы больше не будете получать уведомления. Вы можете снова привязать аккаунт в любое время через сайт.'
+        )
+        print(f'Unlinked telegram for user_id={user["id"]}')
+    
+    except Exception as e:
+        print(f'Error unlinking telegram: {e}')
+        send_telegram_message(
+            chat_id,
+            '❌ Произошла ошибка при отвязке. Попробуйте позже.'
+        )
+    finally:
+        cur.close()
+        conn.close()
+
+
 def send_telegram_message(chat_id: int, text: str):
     '''Отправка текстового сообщения в Telegram'''
     bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
@@ -278,20 +325,38 @@ def send_menu(chat_id: int):
         print('No TELEGRAM_BOT_TOKEN found!')
         return
     
+    # Проверяем, привязан ли аккаунт
+    conn = psycopg2.connect(os.environ['DATABASE_URL'])
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    
     try:
-        print(f'Sending menu to chat_id={chat_id}')
-        keyboard = {
-            'inline_keyboard': [
-                [{'text': '🌐 Перейти на сайт', 'url': 'https://play.devilrust.ru/support'}],
-                [{'text': '📋 Мои обращения', 'url': 'https://play.devilrust.ru/support'}]
-            ]
-        }
+        cur.execute(f"SELECT id, steam_username FROM users WHERE telegram_chat_id = '{chat_id}'")
+        user = cur.fetchone()
+        
+        print(f'Sending menu to chat_id={chat_id}, user={user}')
+        
+        if user:
+            keyboard = {
+                'inline_keyboard': [
+                    [{'text': '🌐 Перейти на сайт', 'url': 'https://play.devilrust.ru/support'}],
+                    [{'text': '📋 Мои обращения', 'url': 'https://play.devilrust.ru/support'}],
+                    [{'text': '🔓 Отвязать Telegram', 'callback_data': 'unlink'}]
+                ]
+            }
+            text = f'📱 Главное меню\n\n✅ Аккаунт привязан: {user["steam_username"]}\n\nВыберите действие:'
+        else:
+            keyboard = {
+                'inline_keyboard': [
+                    [{'text': '🌐 Перейти на сайт', 'url': 'https://play.devilrust.ru/support'}]
+                ]
+            }
+            text = '📱 Главное меню\n\n❌ Аккаунт не привязан\n\nДля привязки используйте кнопку "Подключить" на сайте в разделе Техподдержка.'
         
         response = requests.post(
             f'https://api.telegram.org/bot{bot_token}/sendMessage',
             json={
                 'chat_id': chat_id,
-                'text': '📱 Главное меню:\n\nВыберите действие:',
+                'text': text,
                 'reply_markup': keyboard
             },
             timeout=10
@@ -301,6 +366,9 @@ def send_menu(chat_id: int):
             print(f'Error response: {response.text}')
     except Exception as e:
         print(f'Failed to send menu: {e}')
+    finally:
+        cur.close()
+        conn.close()
 
 
 def answer_callback(callback_id: str, text: str):
