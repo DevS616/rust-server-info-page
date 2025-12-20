@@ -341,18 +341,21 @@ def send_menu(chat_id: int):
         print(f'Sending menu to chat_id={chat_id}, user={user}')
         
         if user:
+            # Получаем BASE_URL из переменных окружения или используем дефолтный
+            base_url = os.environ.get('BASE_URL', 'https://play.devilrust.ru')
             keyboard = {
                 'inline_keyboard': [
-                    [{'text': '🌐 Перейти на сайт', 'url': 'https://play.devilrust.ru/support'}],
-                    [{'text': '📋 Мои обращения', 'url': 'https://play.devilrust.ru/support'}],
+                    [{'text': '🌐 Перейти на сайт', 'url': f'{base_url}/support'}],
+                    [{'text': '📋 Мои обращения', 'url': f'{base_url}/support'}],
                     [{'text': '🔓 Отвязать Telegram', 'callback_data': 'unlink'}]
                 ]
             }
             text = f'📱 Главное меню\n\n✅ Аккаунт привязан: {user["steam_username"]}\n\nВыберите действие:'
         else:
+            base_url = os.environ.get('BASE_URL', 'https://play.devilrust.ru')
             keyboard = {
                 'inline_keyboard': [
-                    [{'text': '🌐 Перейти на сайт', 'url': 'https://play.devilrust.ru/support'}]
+                    [{'text': '🌐 Перейти на сайт', 'url': f'{base_url}/support'}]
                 ]
             }
             text = '📱 Главное меню\n\n❌ Аккаунт не привязан\n\nДля привязки используйте кнопку "Подключить" на сайте в разделе Техподдержка.'

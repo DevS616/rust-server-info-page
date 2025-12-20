@@ -263,9 +263,7 @@ const Header = () => {
                 Магазин
               </a>
               <a 
-                href="https://devilrust.ru/support/" 
-                target="_blank" 
-                rel="noopener noreferrer" 
+                href="/support" 
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="text-base font-medium text-foreground hover:text-primary transition-colors uppercase tracking-wider py-2"
               >
