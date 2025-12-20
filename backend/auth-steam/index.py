@@ -146,27 +146,38 @@ def get_steam_user_info(steam_id: str) -> Dict[str, Any]:
     return {'username': f'Player_{steam_id}', 'avatar': ''}
 
 
+def escape_sql(value: str) -> str:
+    """Escape single quotes for SQL strings"""
+    return value.replace("'", "''")
+
+
 def save_or_update_user(steam_id: str, steam_user: Dict[str, Any]) -> Dict[str, Any]:
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor(cursor_factory=RealDictCursor)
     
-    cur.execute(
-        "SELECT * FROM users WHERE steam_id = %s",
-        (steam_id,)
-    )
+    steam_id_safe = escape_sql(steam_id)
+    cur.execute(f"SELECT * FROM users WHERE steam_id = '{steam_id_safe}'")
     existing_user = cur.fetchone()
     
+    username_safe = escape_sql(steam_user['username'])
+    avatar_safe = escape_sql(steam_user['avatar'])
+    
     if existing_user:
-        cur.execute(
-            "UPDATE users SET steam_username = %s, steam_avatar = %s, updated_at = CURRENT_TIMESTAMP WHERE steam_id = %s RETURNING *",
-            (steam_user['username'], steam_user['avatar'], steam_id)
-        )
+        cur.execute(f"""
+            UPDATE users 
+            SET steam_username = '{username_safe}', 
+                steam_avatar = '{avatar_safe}', 
+                updated_at = CURRENT_TIMESTAMP 
+            WHERE steam_id = '{steam_id_safe}' 
+            RETURNING *
+        """)
         user = cur.fetchone()
     else:
-        cur.execute(
-            "INSERT INTO users (steam_id, steam_username, steam_avatar) VALUES (%s, %s, %s) RETURNING *",
-            (steam_id, steam_user['username'], steam_user['avatar'])
-        )
+        cur.execute(f"""
+            INSERT INTO users (steam_id, steam_username, steam_avatar) 
+            VALUES ('{steam_id_safe}', '{username_safe}', '{avatar_safe}') 
+            RETURNING *
+        """)
         user = cur.fetchone()
     
     conn.commit()

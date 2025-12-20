@@ -4,6 +4,11 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 from typing import Dict, Any
 
+def escape_sql(value: str) -> str:
+    """Escape single quotes for SQL strings"""
+    return value.replace("'", "''")
+
+
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     '''
     Управление карточками серверов на главной странице
@@ -37,13 +42,18 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     try:
         if method == 'GET':
             if server_id:
-                cur.execute("""
+                try:
+                    server_id_int = int(server_id)
+                except ValueError:
+                    return error_response('Invalid server ID', 400)
+                
+                cur.execute(f"""
                     SELECT id, name, mode, ip, server_ip, battlemetrics_id, 
                            description, features, detailed_description, 
                            display_order, is_active, created_at, updated_at
                     FROM servers 
-                    WHERE id = %s
-                """, (server_id,))
+                    WHERE id = {server_id_int}
+                """)
                 server = cur.fetchone()
                 
                 if not server:
@@ -79,7 +89,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         if not token:
             return error_response('Unauthorized', 401)
         
-        cur.execute("SELECT id, role FROM admins WHERE token = %s", (token,))
+        token_safe = escape_sql(token)
+        cur.execute(f"SELECT id, role FROM admins WHERE token = '{token_safe}'")
         admin = cur.fetchone()
         
         if not admin:
@@ -100,16 +111,35 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             if not name:
                 return error_response('Name is required', 400)
             
-            cur.execute("""
+            try:
+                display_order_int = int(display_order)
+            except ValueError:
+                display_order_int = 0
+            
+            name_safe = escape_sql(name)
+            mode_safe = escape_sql(mode)
+            ip_safe = escape_sql(ip)
+            server_ip_safe = escape_sql(server_ip)
+            battlemetrics_id_safe = escape_sql(battlemetrics_id)
+            description_safe = escape_sql(description)
+            features_json = escape_sql(json.dumps(features))
+            
+            if detailed_description:
+                detailed_description_json = escape_sql(json.dumps(detailed_description))
+                detailed_sql = f"'{detailed_description_json}'"
+            else:
+                detailed_sql = 'NULL'
+            
+            cur.execute(f"""
                 INSERT INTO servers 
                 (name, mode, ip, server_ip, battlemetrics_id, description, 
                  features, detailed_description, display_order, is_active) 
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, TRUE)
+                VALUES ('{name_safe}', '{mode_safe}', '{ip_safe}', '{server_ip_safe}', 
+                        '{battlemetrics_id_safe}', '{description_safe}', 
+                        '{features_json}', {detailed_sql}, {display_order_int}, TRUE)
                 RETURNING id, name, mode, ip, server_ip, battlemetrics_id, 
                           description, features, detailed_description, display_order, is_active
-            """, (name, mode, ip, server_ip, battlemetrics_id, description, 
-                  json.dumps(features), json.dumps(detailed_description) if detailed_description else None, 
-                  display_order))
+            """)
             
             server = cur.fetchone()
             conn.commit()
@@ -124,6 +154,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         if method == 'PUT':
             if not server_id:
                 return error_response('Server ID required', 400)
+            
+            try:
+                server_id_int = int(server_id)
+            except ValueError:
+                return error_response('Invalid server ID', 400)
             
             body = json.loads(event.get('body', '{}'))
             name = body.get('name', '').strip()
@@ -140,18 +175,36 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             if not name:
                 return error_response('Name is required', 400)
             
-            cur.execute("""
+            try:
+                display_order_int = int(display_order)
+            except ValueError:
+                display_order_int = 0
+            
+            name_safe = escape_sql(name)
+            mode_safe = escape_sql(mode)
+            ip_safe = escape_sql(ip)
+            server_ip_safe = escape_sql(server_ip)
+            battlemetrics_id_safe = escape_sql(battlemetrics_id)
+            description_safe = escape_sql(description)
+            features_json = escape_sql(json.dumps(features))
+            
+            if detailed_description:
+                detailed_description_json = escape_sql(json.dumps(detailed_description))
+                detailed_sql = f"'{detailed_description_json}'"
+            else:
+                detailed_sql = 'NULL'
+            
+            cur.execute(f"""
                 UPDATE servers 
-                SET name = %s, mode = %s, ip = %s, server_ip = %s, 
-                    battlemetrics_id = %s, description = %s, 
-                    features = %s, detailed_description = %s, 
-                    display_order = %s, is_active = %s, updated_at = NOW()
-                WHERE id = %s
+                SET name = '{name_safe}', mode = '{mode_safe}', ip = '{ip_safe}', 
+                    server_ip = '{server_ip_safe}', battlemetrics_id = '{battlemetrics_id_safe}', 
+                    description = '{description_safe}', features = '{features_json}', 
+                    detailed_description = {detailed_sql}, display_order = {display_order_int}, 
+                    is_active = {is_active}, updated_at = NOW()
+                WHERE id = {server_id_int}
                 RETURNING id, name, mode, ip, server_ip, battlemetrics_id, 
                           description, features, detailed_description, display_order, is_active
-            """, (name, mode, ip, server_ip, battlemetrics_id, description,
-                  json.dumps(features), json.dumps(detailed_description) if detailed_description else None,
-                  display_order, is_active, server_id))
+            """)
             
             server = cur.fetchone()
             
@@ -171,7 +224,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             if not server_id:
                 return error_response('Server ID required', 400)
             
-            cur.execute("DELETE FROM servers WHERE id = %s RETURNING id", (server_id,))
+            try:
+                server_id_int = int(server_id)
+            except ValueError:
+                return error_response('Invalid server ID', 400)
+            
+            cur.execute(f"DELETE FROM servers WHERE id = {server_id_int} RETURNING id")
             result = cur.fetchone()
             
             if not result:

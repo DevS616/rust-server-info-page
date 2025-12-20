@@ -82,6 +82,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         return success_response()
 
 
+def escape_sql(value: str) -> str:
+    """Escape single quotes for SQL strings"""
+    return value.replace("'", "''")
+
+
 def handle_start_without_token(chat_id: int):
     '''Обработка /start без токена - проверка БД'''
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
@@ -89,10 +94,8 @@ def handle_start_without_token(chat_id: int):
     
     try:
         # Проверяем, привязан ли уже этот chat_id
-        cur.execute(
-            "SELECT id FROM users WHERE telegram_chat_id = %s",
-            (str(chat_id),)
-        )
+        chat_id_safe = escape_sql(str(chat_id))
+        cur.execute(f"SELECT id FROM users WHERE telegram_chat_id = '{chat_id_safe}'")
         existing = cur.fetchone()
         
         if existing:
@@ -226,7 +229,8 @@ def handle_unlink(chat_id: int):
     
     try:
         # Проверяем, привязан ли аккаунт
-        cur.execute(f"SELECT id, steam_username FROM users WHERE telegram_chat_id = '{chat_id}'")
+        chat_id_safe = escape_sql(str(chat_id))
+        cur.execute(f"SELECT id, steam_username FROM users WHERE telegram_chat_id = '{chat_id_safe}'")
         user = cur.fetchone()
         
         if not user:
@@ -237,7 +241,7 @@ def handle_unlink(chat_id: int):
             return
         
         # Отвязываем аккаунт
-        cur.execute(f"UPDATE users SET telegram_chat_id = NULL, telegram_username = NULL WHERE telegram_chat_id = '{chat_id}'")
+        cur.execute(f"UPDATE users SET telegram_chat_id = NULL, telegram_username = NULL WHERE telegram_chat_id = '{chat_id_safe}'")
         conn.commit()
         
         send_telegram_message(
@@ -330,7 +334,8 @@ def send_menu(chat_id: int):
     cur = conn.cursor(cursor_factory=RealDictCursor)
     
     try:
-        cur.execute(f"SELECT id, steam_username FROM users WHERE telegram_chat_id = '{chat_id}'")
+        chat_id_safe = escape_sql(str(chat_id))
+        cur.execute(f"SELECT id, steam_username FROM users WHERE telegram_chat_id = '{chat_id_safe}'")
         user = cur.fetchone()
         
         print(f'Sending menu to chat_id={chat_id}, user={user}')

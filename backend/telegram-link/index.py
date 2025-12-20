@@ -6,6 +6,11 @@ from typing import Dict, Any
 import jwt
 import requests
 
+def escape_sql(value: str) -> str:
+    """Escape single quotes for SQL strings"""
+    return value.replace("'", "''")
+
+
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     '''
     Привязка Telegram аккаунта к пользователю
@@ -62,10 +67,21 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 if not user_id or not telegram_chat_id:
                     return error_response('Invalid token', 400)
                 
-                cur.execute(
-                    "UPDATE users SET telegram_chat_id = %s, telegram_username = %s WHERE id = %s RETURNING id",
-                    (telegram_chat_id, telegram_username, user_id)
-                )
+                try:
+                    user_id_int = int(user_id)
+                    telegram_chat_id_int = int(telegram_chat_id)
+                except ValueError:
+                    return error_response('Invalid user or chat ID', 400)
+                
+                telegram_username_safe = escape_sql(telegram_username or '')
+                
+                cur.execute(f"""
+                    UPDATE users 
+                    SET telegram_chat_id = {telegram_chat_id_int}, 
+                        telegram_username = '{telegram_username_safe}' 
+                    WHERE id = {user_id_int} 
+                    RETURNING id
+                """)
                 result = cur.fetchone()
                 conn.commit()
                 
@@ -150,10 +166,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 if not user_id:
                     return error_response('Invalid token', 401)
                 
-                cur.execute(
-                    "SELECT telegram_chat_id, telegram_username FROM users WHERE id = %s",
-                    (user_id,)
-                )
+                try:
+                    user_id_int = int(user_id)
+                except ValueError:
+                    return error_response('Invalid user ID', 400)
+                
+                cur.execute(f"SELECT telegram_chat_id, telegram_username FROM users WHERE id = {user_id_int}")
                 result = cur.fetchone()
                 
                 if not result:
@@ -180,7 +198,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 if not user_id:
                     return error_response('Invalid token', 401)
                 
-                cur.execute("SELECT id, steam_id FROM users WHERE id = %s", (user_id,))
+                try:
+                    user_id_int = int(user_id)
+                except ValueError:
+                    return error_response('Invalid user ID', 400)
+                
+                cur.execute(f"SELECT id, steam_id FROM users WHERE id = {user_id_int}")
                 user = cur.fetchone()
                 
                 if not user:
@@ -191,11 +214,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'steam_id': user['steam_id']
                 }, secret, algorithm='HS256')
                 
-                # Сохраняем токен в базу для последующей верификации
-                cur.execute(
-                    "UPDATE users SET telegram_link_token = %s WHERE id = %s",
-                    (link_token, user['id'])
-                )
+                link_token_safe = escape_sql(link_token)
+                cur.execute(f"UPDATE users SET telegram_link_token = '{link_token_safe}' WHERE id = {user['id']}")
                 conn.commit()
                 
             except jwt.InvalidTokenError:
@@ -204,13 +224,13 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             bot_username = 'DevilRustBot'
             link_url = f'https://t.me/{bot_username}?start={link_token}'
             
-            print(f'Generated link for user_id={user["id"]}: {link_url[:50]}...')
-            print(f'Token preview: {link_token[:30]}...')
-            
             return {
                 'statusCode': 200,
                 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                'body': json.dumps({'link_url': link_url}),
+                'body': json.dumps({
+                    'link_url': link_url,
+                    'bot_username': bot_username
+                }),
                 'isBase64Encoded': False
             }
         
@@ -223,23 +243,35 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 if not user_id:
                     return error_response('Invalid token', 401)
                 
-                cur.execute(
-                    "UPDATE users SET telegram_chat_id = NULL, telegram_username = NULL WHERE id = %s",
-                    (user_id,)
-                )
+                try:
+                    user_id_int = int(user_id)
+                except ValueError:
+                    return error_response('Invalid user ID', 400)
+                
+                cur.execute(f"""
+                    UPDATE users 
+                    SET telegram_chat_id = NULL, 
+                        telegram_username = NULL 
+                    WHERE id = {user_id_int} 
+                    RETURNING id
+                """)
+                result = cur.fetchone()
                 conn.commit()
+                
+                if not result:
+                    return error_response('User not found', 404)
                 
                 return {
                     'statusCode': 200,
                     'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                    'body': json.dumps({'success': True}),
+                    'body': json.dumps({'message': 'Telegram unlinked successfully'}),
                     'isBase64Encoded': False
                 }
             except jwt.InvalidTokenError:
                 return error_response('Invalid token', 401)
         
-        return error_response('Invalid request', 400)
-        
+        return error_response('Not found', 404)
+    
     finally:
         cur.close()
         conn.close()
@@ -248,7 +280,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 def error_response(message: str, status_code: int = 400) -> Dict[str, Any]:
     return {
         'statusCode': status_code,
-        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+        'headers': {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+        },
         'body': json.dumps({'error': message}),
         'isBase64Encoded': False
     }
