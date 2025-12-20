@@ -56,6 +56,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     return error_response('Not found', 404)
 
 
+def escape_sql(value: str) -> str:
+    """Escape single quotes for SQL strings"""
+    return value.replace("'", "''")
+
+
 def verify_admin_token(token: Optional[str]) -> Optional[Dict[str, Any]]:
     if not token:
         return None
@@ -75,7 +80,7 @@ def get_active_servers() -> Dict[str, Any]:
     cur = conn.cursor(cursor_factory=RealDictCursor)
     
     cur.execute("""
-        SELECT id, name, is_active, created_at, updated_at
+        SELECT id, name, is_active, created_at, updated_at, battlemetrics_id, cached_players, players_updated_at
         FROM servers
         WHERE is_active = TRUE
         ORDER BY name ASC
@@ -101,7 +106,7 @@ def get_all_servers() -> Dict[str, Any]:
     cur = conn.cursor(cursor_factory=RealDictCursor)
     
     cur.execute("""
-        SELECT id, name, is_active, created_at, updated_at
+        SELECT id, name, is_active, created_at, updated_at, battlemetrics_id, cached_players, players_updated_at
         FROM servers
         ORDER BY name ASC
     """)
@@ -125,6 +130,8 @@ def create_server(event: Dict[str, Any]) -> Dict[str, Any]:
     body = json.loads(event.get('body', '{}'))
     name = body.get('name', '').strip()
     is_active = body.get('is_active', True)
+    battlemetrics_id = body.get('battlemetrics_id', None)
+    cached_players = body.get('cached_players', 0)
     
     if not name:
         return error_response('Server name is required')
@@ -133,10 +140,14 @@ def create_server(event: Dict[str, Any]) -> Dict[str, Any]:
     cur = conn.cursor(cursor_factory=RealDictCursor)
     
     try:
-        cur.execute(
-            "INSERT INTO servers (name, is_active) VALUES (%s, %s) RETURNING *",
-            (name, is_active)
-        )
+        name_safe = escape_sql(name)
+        bm_id_val = f"'{battlemetrics_id}'" if battlemetrics_id else 'NULL'
+        
+        cur.execute(f"""
+            INSERT INTO servers (name, is_active, battlemetrics_id, cached_players) 
+            VALUES ('{name_safe}', {is_active}, {bm_id_val}, {cached_players}) 
+            RETURNING *
+        """)
         server = cur.fetchone()
         conn.commit()
         
@@ -160,9 +171,16 @@ def create_server(event: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def update_server(server_id: str, event: Dict[str, Any]) -> Dict[str, Any]:
+    try:
+        server_id_int = int(server_id)
+    except ValueError:
+        return error_response('Invalid server ID', 400)
+    
     body = json.loads(event.get('body', '{}'))
     name = body.get('name', '').strip()
     is_active = body.get('is_active')
+    battlemetrics_id = body.get('battlemetrics_id')
+    cached_players = body.get('cached_players')
     
     if not name:
         return error_response('Server name is required')
@@ -171,10 +189,27 @@ def update_server(server_id: str, event: Dict[str, Any]) -> Dict[str, Any]:
     cur = conn.cursor(cursor_factory=RealDictCursor)
     
     try:
-        cur.execute(
-            "UPDATE servers SET name = %s, is_active = %s, updated_at = CURRENT_TIMESTAMP WHERE id = %s RETURNING *",
-            (name, is_active, server_id)
-        )
+        name_safe = escape_sql(name)
+        
+        # Build dynamic UPDATE query
+        update_parts = [f"name = '{name_safe}'"]
+        if is_active is not None:
+            update_parts.append(f"is_active = {is_active}")
+        if battlemetrics_id is not None:
+            bm_id_val = f"'{battlemetrics_id}'" if battlemetrics_id else 'NULL'
+            update_parts.append(f"battlemetrics_id = {bm_id_val}")
+        if cached_players is not None:
+            update_parts.append(f"cached_players = {cached_players}")
+            update_parts.append("players_updated_at = CURRENT_TIMESTAMP")
+        
+        update_parts.append("updated_at = CURRENT_TIMESTAMP")
+        
+        cur.execute(f"""
+            UPDATE servers 
+            SET {', '.join(update_parts)} 
+            WHERE id = {server_id_int} 
+            RETURNING *
+        """)
         server = cur.fetchone()
         
         if not server:
@@ -203,10 +238,15 @@ def update_server(server_id: str, event: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def delete_server(server_id: str) -> Dict[str, Any]:
+    try:
+        server_id_int = int(server_id)
+    except ValueError:
+        return error_response('Invalid server ID', 400)
+    
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor(cursor_factory=RealDictCursor)
     
-    cur.execute("DELETE FROM servers WHERE id = %s RETURNING *", (server_id,))
+    cur.execute(f"DELETE FROM servers WHERE id = {server_id_int} RETURNING *")
     server = cur.fetchone()
     
     if not server:

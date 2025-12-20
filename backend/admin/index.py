@@ -62,6 +62,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     return error_response('Not found', 404)
 
 
+def escape_sql(value: str) -> str:
+    """Escape single quotes for SQL strings"""
+    return value.replace("'", "''")
+
+
 def admin_login(event: Dict[str, Any]) -> Dict[str, Any]:
     body = json.loads(event.get('body', '{}'))
     email = body.get('email', '').strip().lower()
@@ -73,7 +78,8 @@ def admin_login(event: Dict[str, Any]) -> Dict[str, Any]:
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor(cursor_factory=RealDictCursor)
     
-    cur.execute("SELECT * FROM admins WHERE email = %s", (email,))
+    email_safe = escape_sql(email)
+    cur.execute(f"SELECT * FROM admins WHERE email = '{email_safe}'")
     admin = cur.fetchone()
     
     if not admin:
@@ -83,7 +89,8 @@ def admin_login(event: Dict[str, Any]) -> Dict[str, Any]:
     
     if admin['password_hash'] == 'PLACEHOLDER':
         hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-        cur.execute("UPDATE admins SET password_hash = %s WHERE id = %s", (hashed, admin['id']))
+        hashed_safe = escape_sql(hashed)
+        cur.execute(f"UPDATE admins SET password_hash = '{hashed_safe}' WHERE id = {admin['id']}")
         conn.commit()
         admin['password_hash'] = hashed
     
@@ -106,8 +113,9 @@ def admin_login(event: Dict[str, Any]) -> Dict[str, Any]:
         'exp': datetime.utcnow() + timedelta(days=7)
     }
     token = jwt.encode(payload, secret, algorithm='HS256')
+    token_safe = escape_sql(token)
     
-    cur.execute("UPDATE admins SET token = %s WHERE id = %s", (token, admin['id']))
+    cur.execute(f"UPDATE admins SET token = '{token_safe}' WHERE id = {admin['id']}")
     conn.commit()
     
     cur.close()
@@ -162,10 +170,15 @@ def add_admin(event: Dict[str, Any]) -> Dict[str, Any]:
     cur = conn.cursor(cursor_factory=RealDictCursor)
     
     try:
-        cur.execute(
-            "INSERT INTO admins (email, password_hash, full_name) VALUES (%s, %s, %s) RETURNING id, email, full_name, created_at",
-            (email, hashed, full_name)
-        )
+        email_safe = escape_sql(email)
+        hashed_safe = escape_sql(hashed)
+        full_name_safe = escape_sql(full_name)
+        
+        cur.execute(f"""
+            INSERT INTO admins (email, password_hash, full_name) 
+            VALUES ('{email_safe}', '{hashed_safe}', '{full_name_safe}') 
+            RETURNING id, email, full_name, created_at
+        """)
         admin = cur.fetchone()
         conn.commit()
         
@@ -179,6 +192,7 @@ def add_admin(event: Dict[str, Any]) -> Dict[str, Any]:
             'isBase64Encoded': False
         }
     except psycopg2.IntegrityError:
+        conn.rollback()
         return error_response('Admin with this email already exists', 409)
     finally:
         cur.close()
@@ -207,10 +221,15 @@ def list_admins() -> Dict[str, Any]:
 
 
 def delete_admin(admin_id: str) -> Dict[str, Any]:
+    try:
+        admin_id_int = int(admin_id)
+    except ValueError:
+        return error_response('Invalid admin ID', 400)
+    
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor()
     
-    cur.execute("SELECT email FROM admins WHERE id = %s", (admin_id,))
+    cur.execute(f"SELECT email FROM admins WHERE id = {admin_id_int}")
     admin = cur.fetchone()
     
     if not admin:
@@ -223,8 +242,8 @@ def delete_admin(admin_id: str) -> Dict[str, Any]:
         conn.close()
         return error_response('Cannot delete main admin', 403)
     
-    cur.execute("UPDATE ticket_messages SET admin_id = NULL WHERE admin_id = %s", (admin_id,))
-    cur.execute("DELETE FROM admins WHERE id = %s", (admin_id,))
+    cur.execute(f"UPDATE ticket_messages SET admin_id = NULL WHERE admin_id = {admin_id_int}")
+    cur.execute(f"DELETE FROM admins WHERE id = {admin_id_int}")
     
     conn.commit()
     cur.close()
@@ -242,10 +261,15 @@ def delete_admin(admin_id: str) -> Dict[str, Any]:
 
 
 def block_user(user_id: str) -> Dict[str, Any]:
+    try:
+        user_id_int = int(user_id)
+    except ValueError:
+        return error_response('Invalid user ID', 400)
+    
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor(cursor_factory=RealDictCursor)
     
-    cur.execute("UPDATE users SET is_blocked = TRUE WHERE id = %s RETURNING *", (user_id,))
+    cur.execute(f"UPDATE users SET is_blocked = TRUE WHERE id = {user_id_int} RETURNING *")
     user = cur.fetchone()
     
     if not user:
@@ -269,10 +293,15 @@ def block_user(user_id: str) -> Dict[str, Any]:
 
 
 def unblock_user(user_id: str) -> Dict[str, Any]:
+    try:
+        user_id_int = int(user_id)
+    except ValueError:
+        return error_response('Invalid user ID', 400)
+    
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor(cursor_factory=RealDictCursor)
     
-    cur.execute("UPDATE users SET is_blocked = FALSE WHERE id = %s RETURNING *", (user_id,))
+    cur.execute(f"UPDATE users SET is_blocked = FALSE WHERE id = {user_id_int} RETURNING *")
     user = cur.fetchone()
     
     if not user:

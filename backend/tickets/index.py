@@ -7,6 +7,9 @@ from typing import Dict, Any, Optional
 from datetime import datetime
 import requests
 
+def escape_sql(value: str) -> str:
+    return value.replace("'", "''")
+
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     '''
     API для работы с тикетами техподдержки.
@@ -91,7 +94,8 @@ def create_ticket(event: Dict[str, Any], user_data: Dict[str, Any]) -> Dict[str,
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor(cursor_factory=RealDictCursor)
     
-    cur.execute(f"SELECT is_blocked, steam_username, steam_id FROM users WHERE id = {user_data['user_id']}")
+    user_id = int(user_data['user_id'])
+    cur.execute(f"SELECT is_blocked, steam_username, steam_id FROM users WHERE id = {user_id}")
     user = cur.fetchone()
     
     if user and user['is_blocked']:
@@ -99,23 +103,24 @@ def create_ticket(event: Dict[str, Any], user_data: Dict[str, Any]) -> Dict[str,
         conn.close()
         return error_response('Вам запрещено создавать тикеты в техподдержке, ваш аккаунт заблокирован.', 403)
     
-    server_escaped = server.replace("'", "''")
-    subject_escaped = subject.replace("'", "''")
+    server_escaped = escape_sql(server)
+    subject_escaped = escape_sql(subject)
     
     cur.execute(
-        f"INSERT INTO tickets (user_id, server, subject) VALUES ({user_data['user_id']}, '{server_escaped}', '{subject_escaped}') RETURNING *"
+        f"INSERT INTO tickets (user_id, server, subject) VALUES ({user_id}, '{server_escaped}', '{subject_escaped}') RETURNING *"
     )
     ticket = cur.fetchone()
     
-    message_escaped = message.replace("'", "''")
+    message_escaped = escape_sql(message)
+    ticket_id = int(ticket['id'])
     if file_url:
-        file_url_escaped = file_url.replace("'", "''")
+        file_url_escaped = escape_sql(file_url)
         file_url_sql = f"'{file_url_escaped}'"
     else:
         file_url_sql = 'NULL'
     
     cur.execute(
-        f"INSERT INTO ticket_messages (ticket_id, user_id, message, file_url) VALUES ({ticket['id']}, {user_data['user_id']}, '{message_escaped}', {file_url_sql}) RETURNING *"
+        f"INSERT INTO ticket_messages (ticket_id, user_id, message, file_url) VALUES ({ticket_id}, {user_id}, '{message_escaped}', {file_url_sql}) RETURNING *"
     )
     first_message = cur.fetchone()
     
@@ -166,7 +171,7 @@ def get_dashboard(user_data: Dict[str, Any]) -> Dict[str, Any]:
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor(cursor_factory=RealDictCursor)
     
-    user_id = user_data['user_id']
+    user_id = int(user_data['user_id'])
     print(f'Loading dashboard for user_id={user_id}')
     
     # Получаем статус пользователя
@@ -232,26 +237,27 @@ def list_tickets(user_data: Dict[str, Any]) -> Dict[str, Any]:
     cur = conn.cursor(cursor_factory=RealDictCursor)
     
     is_admin = user_data.get('is_admin', False)
+    user_id = int(user_data['user_id'])
     
     if is_admin:
         cur.execute("""
             SELECT t.*, u.steam_username, u.steam_avatar,
                    (SELECT COUNT(*) FROM ticket_messages WHERE ticket_id = t.id) as message_count
             FROM tickets t
-            JOIN users u ON t.user_id = u.id
+            LEFT JOIN users u ON t.user_id = u.id
             ORDER BY t.created_at DESC
         """)
     else:
-        cur.execute("""
+        cur.execute(f"""
             SELECT t.*,
-                   (SELECT COUNT(*) FROM ticket_messages WHERE ticket_id = t.id) as message_count,
-                   (SELECT COUNT(*) FROM ticket_messages WHERE ticket_id = t.id AND is_admin_reply = TRUE AND is_read_by_user = FALSE) as unread_count
+                   (SELECT COUNT(*) FROM ticket_messages WHERE ticket_id = t.id) as message_count
             FROM tickets t
-            WHERE t.user_id = %s
+            WHERE t.user_id = {user_id}
             ORDER BY t.created_at DESC
-        """, (user_data['user_id'],))
+        """)
     
     tickets = cur.fetchall()
+    
     cur.close()
     conn.close()
     
@@ -261,22 +267,66 @@ def list_tickets(user_data: Dict[str, Any]) -> Dict[str, Any]:
             'Content-Type': 'application/json',
             'Access-Control-Allow-Origin': '*'
         },
-        'body': json.dumps({'tickets': [dict(t) for t in tickets]}, default=str),
+        'body': json.dumps([dict(t) for t in tickets], default=str),
+        'isBase64Encoded': False
+    }
+
+
+def get_user_status(user_data: Dict[str, Any]) -> Dict[str, Any]:
+    conn = psycopg2.connect(os.environ['DATABASE_URL'])
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    
+    user_id = int(user_data['user_id'])
+    cur.execute(f"SELECT is_blocked, telegram_chat_id, telegram_username FROM users WHERE id = {user_id}")
+    user = cur.fetchone()
+    
+    if not user:
+        cur.close()
+        conn.close()
+        return error_response('User not found', 404)
+    
+    # Подсчет непрочитанных уведомлений
+    cur.execute(f"""
+        SELECT COUNT(*) as count
+        FROM ticket_messages tm
+        JOIN tickets t ON tm.ticket_id = t.id
+        WHERE t.user_id = {user_id} AND tm.is_admin_reply = TRUE AND tm.is_read_by_user = FALSE
+    """)
+    result = cur.fetchone()
+    unread_count = result['count'] if result else 0
+    
+    cur.close()
+    conn.close()
+    
+    return {
+        'statusCode': 200,
+        'headers': {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+        },
+        'body': json.dumps({
+            'is_blocked': user['is_blocked'],
+            'telegram_linked': user['telegram_chat_id'] is not None,
+            'telegram_username': user.get('telegram_username'),
+            'unread_count': unread_count
+        }, default=str),
         'isBase64Encoded': False
     }
 
 
 def get_ticket_details(ticket_id: str, user_data: Dict[str, Any]) -> Dict[str, Any]:
+    try:
+        ticket_id_int = int(ticket_id)
+    except ValueError:
+        return error_response('Invalid ticket ID')
+    
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor(cursor_factory=RealDictCursor)
     
-    cur.execute(f"""
-        SELECT t.*, u.steam_username, u.steam_avatar, u.steam_id, u.is_blocked
-        FROM tickets t
-        JOIN users u ON t.user_id = u.id
-        WHERE t.id = {ticket_id}
-    """)
+    user_id = int(user_data['user_id'])
+    is_admin = user_data.get('is_admin', False)
     
+    cur.execute(f"SELECT * FROM tickets WHERE id = {ticket_id_int}")
     ticket = cur.fetchone()
     
     if not ticket:
@@ -284,30 +334,26 @@ def get_ticket_details(ticket_id: str, user_data: Dict[str, Any]) -> Dict[str, A
         conn.close()
         return error_response('Ticket not found', 404)
     
-    is_admin = user_data.get('is_admin', False)
-    if not is_admin and ticket['user_id'] != user_data['user_id']:
+    if not is_admin and ticket['user_id'] != user_id:
         cur.close()
         conn.close()
         return error_response('Access denied', 403)
     
     cur.execute(f"""
-        SELECT tm.*, 
-               u.steam_username as user_name, u.steam_avatar as user_avatar,
-               a.full_name as admin_name
+        SELECT tm.*, u.steam_username, u.steam_avatar, u.is_admin
         FROM ticket_messages tm
         LEFT JOIN users u ON tm.user_id = u.id
-        LEFT JOIN admins a ON tm.admin_id = a.id
-        WHERE tm.ticket_id = {ticket_id}
+        WHERE tm.ticket_id = {ticket_id_int}
         ORDER BY tm.created_at ASC
     """)
-    
     messages = cur.fetchall()
     
+    # Отметить непрочитанные сообщения как прочитанные
     if not is_admin:
         cur.execute(f"""
-            UPDATE ticket_messages 
-            SET is_read_by_user = TRUE 
-            WHERE ticket_id = {ticket_id} AND is_admin_reply = TRUE AND is_read_by_user = FALSE
+            UPDATE ticket_messages
+            SET is_read_by_user = TRUE
+            WHERE ticket_id = {ticket_id_int} AND is_admin_reply = TRUE AND is_read_by_user = FALSE
         """)
         conn.commit()
     
@@ -329,6 +375,11 @@ def get_ticket_details(ticket_id: str, user_data: Dict[str, Any]) -> Dict[str, A
 
 
 def add_reply(ticket_id: str, event: Dict[str, Any], user_data: Dict[str, Any]) -> Dict[str, Any]:
+    try:
+        ticket_id_int = int(ticket_id)
+    except ValueError:
+        return error_response('Invalid ticket ID')
+    
     body = json.loads(event.get('body', '{}'))
     message = body.get('message', '').strip()
     file_url = body.get('file_url', '').strip()
@@ -336,61 +387,49 @@ def add_reply(ticket_id: str, event: Dict[str, Any], user_data: Dict[str, Any]) 
     if not message:
         return error_response('Message is required')
     
-    # Escape all string values
-    message_escaped = message.replace("'", "''")
+    conn = psycopg2.connect(os.environ['DATABASE_URL'])
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    
+    user_id = int(user_data['user_id'])
+    is_admin = user_data.get('is_admin', False)
+    
+    cur.execute(f"SELECT * FROM tickets WHERE id = {ticket_id_int}")
+    ticket = cur.fetchone()
+    
+    if not ticket:
+        cur.close()
+        conn.close()
+        return error_response('Ticket not found', 404)
+    
+    if not is_admin and ticket['user_id'] != user_id:
+        cur.close()
+        conn.close()
+        return error_response('Access denied', 403)
+    
+    message_escaped = escape_sql(message)
+    is_admin_reply = 'TRUE' if is_admin else 'FALSE'
+    
     if file_url:
-        file_url_escaped = file_url.replace("'", "''")
+        file_url_escaped = escape_sql(file_url)
         file_url_sql = f"'{file_url_escaped}'"
     else:
         file_url_sql = 'NULL'
     
-    conn = psycopg2.connect(os.environ['DATABASE_URL'])
-    cur = conn.cursor(cursor_factory=RealDictCursor)
+    cur.execute(f"""
+        INSERT INTO ticket_messages (ticket_id, user_id, message, file_url, is_admin_reply)
+        VALUES ({ticket_id_int}, {user_id}, '{message_escaped}', {file_url_sql}, {is_admin_reply})
+        RETURNING *
+    """)
+    new_message = cur.fetchone()
     
-    is_admin = user_data.get('is_admin', False)
-    
+    # Обновить статус тикета: если админ отвечает, ставим "answered", если пользователь - "pending"
     if is_admin:
-        admin_id = user_data.get('admin_id')
-        if not admin_id:
-            cur.close()
-            conn.close()
-            return error_response('Admin ID not found in token', 400)
-        
-        cur.execute(
-            f"INSERT INTO ticket_messages (ticket_id, admin_id, message, file_url, is_admin_reply) VALUES ({ticket_id}, {admin_id}, '{message_escaped}', {file_url_sql}, TRUE) RETURNING *"
-        )
-        reply = cur.fetchone()
-        
-        cur.execute(f"""
-            SELECT u.telegram_chat_id, t.subject, t.id
-            FROM tickets t
-            JOIN users u ON t.user_id = u.id
-            WHERE t.id = {ticket_id} AND u.telegram_chat_id IS NOT NULL
-        """)
-        
-        ticket_info = cur.fetchone()
-        if ticket_info:
-            send_telegram_notification(
-                chat_id=ticket_info['telegram_chat_id'],
-                ticket_id=ticket_info['id'],
-                subject=ticket_info['subject'],
-                message_type='reply'
-            )
+        new_status = 'answered'
     else:
-        cur.execute(f"SELECT user_id FROM tickets WHERE id = {ticket_id}")
-        ticket = cur.fetchone()
-        
-        if not ticket or ticket['user_id'] != user_data['user_id']:
-            cur.close()
-            conn.close()
-            return error_response('Access denied', 403)
-        
-        cur.execute(
-            f"INSERT INTO ticket_messages (ticket_id, user_id, message, file_url) VALUES ({ticket_id}, {user_data['user_id']}, '{message_escaped}', {file_url_sql}) RETURNING *"
-        )
-        reply = cur.fetchone()
+        new_status = 'pending'
     
-    cur.execute(f"UPDATE tickets SET updated_at = CURRENT_TIMESTAMP WHERE id = {ticket_id}")
+    new_status_escaped = escape_sql(new_status)
+    cur.execute(f"UPDATE tickets SET status = '{new_status_escaped}', updated_at = NOW() WHERE id = {ticket_id_int}")
     
     conn.commit()
     cur.close()
@@ -402,54 +441,38 @@ def add_reply(ticket_id: str, event: Dict[str, Any], user_data: Dict[str, Any]) 
             'Content-Type': 'application/json',
             'Access-Control-Allow-Origin': '*'
         },
-        'body': json.dumps({'message': dict(reply)}, default=str),
+        'body': json.dumps(dict(new_message), default=str),
         'isBase64Encoded': False
     }
 
 
 def update_status(ticket_id: str, event: Dict[str, Any], user_data: Dict[str, Any]) -> Dict[str, Any]:
-    if not user_data.get('is_admin'):
+    try:
+        ticket_id_int = int(ticket_id)
+    except ValueError:
+        return error_response('Invalid ticket ID')
+    
+    if not user_data.get('is_admin', False):
         return error_response('Admin access required', 403)
     
     body = json.loads(event.get('body', '{}'))
-    status = body.get('status', '').strip()
+    new_status = body.get('status', '').strip()
     
-    if status not in ['open', 'closed', 'in_progress']:
-        return error_response('Invalid status')
-    
-    # Escape string value
-    status_escaped = status.replace("'", "''")
+    allowed_statuses = ['open', 'pending', 'answered', 'closed']
+    if new_status not in allowed_statuses:
+        return error_response(f'Status must be one of: {", ".join(allowed_statuses)}')
     
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor(cursor_factory=RealDictCursor)
     
-    cur.execute(
-        f"UPDATE tickets SET status = '{status_escaped}', updated_at = CURRENT_TIMESTAMP WHERE id = {ticket_id} RETURNING *"
-    )
-    
+    new_status_escaped = escape_sql(new_status)
+    cur.execute(f"UPDATE tickets SET status = '{new_status_escaped}', updated_at = NOW() WHERE id = {ticket_id_int} RETURNING *")
     ticket = cur.fetchone()
     
     if not ticket:
         cur.close()
         conn.close()
         return error_response('Ticket not found', 404)
-    
-    cur.execute(f"""
-        SELECT u.telegram_chat_id, t.subject, t.id
-        FROM tickets t
-        JOIN users u ON t.user_id = u.id
-        WHERE t.id = {ticket_id} AND u.telegram_chat_id IS NOT NULL
-    """)
-    
-    ticket_info = cur.fetchone()
-    if ticket_info:
-        send_telegram_notification(
-            chat_id=ticket_info['telegram_chat_id'],
-            ticket_id=ticket_info['id'],
-            subject=ticket_info['subject'],
-            message_type='status_change',
-            status=status
-        )
     
     conn.commit()
     cur.close()
@@ -461,165 +484,34 @@ def update_status(ticket_id: str, event: Dict[str, Any], user_data: Dict[str, An
             'Content-Type': 'application/json',
             'Access-Control-Allow-Origin': '*'
         },
-        'body': json.dumps({'ticket': dict(ticket)}, default=str),
+        'body': json.dumps(dict(ticket), default=str),
         'isBase64Encoded': False
     }
-
-
-def get_user_status(user_data: Dict[str, Any]) -> Dict[str, Any]:
-    conn = psycopg2.connect(os.environ['DATABASE_URL'])
-    cur = conn.cursor(cursor_factory=RealDictCursor)
-    
-    cur.execute(f"SELECT is_blocked FROM users WHERE id = {user_data['user_id']}")
-    user = cur.fetchone()
-    
-    if not user:
-        cur.close()
-        conn.close()
-        return error_response('User not found', 404)
-    
-    cur.execute(f"""
-        SELECT COUNT(*) as total_unread
-        FROM ticket_messages tm
-        JOIN tickets t ON tm.ticket_id = t.id
-        WHERE t.user_id = {user_data['user_id']} 
-        AND tm.is_admin_reply = TRUE 
-        AND tm.is_read_by_user = FALSE
-    """)
-    
-    unread_result = cur.fetchone()
-    total_unread = unread_result['total_unread'] if unread_result else 0
-    
-    cur.close()
-    conn.close()
-    
-    return {
-        'statusCode': 200,
-        'headers': {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*'
-        },
-        'body': json.dumps({
-            'is_blocked': user['is_blocked'],
-            'unread_count': total_unread
-        }),
-        'isBase64Encoded': False
-    }
-
-
-def delete_ticket(ticket_id: str, user_data: Dict[str, Any]) -> Dict[str, Any]:
-    if not user_data.get('is_admin', False):
-        return error_response('Access denied', 403)
-    
-    conn = psycopg2.connect(os.environ['DATABASE_URL'])
-    cur = conn.cursor(cursor_factory=RealDictCursor)
-    
-    cur.execute(f"SELECT id FROM tickets WHERE id = {ticket_id}")
-    ticket = cur.fetchone()
-    
-    if not ticket:
-        cur.close()
-        conn.close()
-        return error_response('Ticket not found', 404)
-    
-    cur.execute(f"DELETE FROM ticket_messages WHERE ticket_id = {ticket_id}")
-    cur.execute(f"DELETE FROM tickets WHERE id = {ticket_id}")
-    
-    conn.commit()
-    cur.close()
-    conn.close()
-    
-    return {
-        'statusCode': 200,
-        'headers': {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*'
-        },
-        'body': json.dumps({'success': True}),
-        'isBase64Encoded': False
-    }
-
-
-def send_telegram_notification(chat_id: int, ticket_id: int, subject: str, message_type: str, status: str = None):
-    bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
-    if not bot_token:
-        return
-    
-    if message_type == 'reply':
-        text = f'📩 Новый ответ на ваше обращение\n\n🎫 Тикет: {subject}'
-    elif message_type == 'status_change':
-        status_text = {'open': 'Открыт', 'in_progress': 'В работе', 'closed': 'Закрыт'}
-        text = f'🔔 Статус вашего обращения изменён\n\n🎫 Тикет: {subject}\n📊 Новый статус: {status_text.get(status, status)}'
-    else:
-        return
-    
-    keyboard = {
-        'inline_keyboard': [[
-            {
-                'text': '👁️ Перейти к обращению',
-                'url': f'https://play.devilrust.ru/support/ticket/{ticket_id}'
-            }
-        ]]
-    }
-    
-    try:
-        requests.post(
-            f'https://api.telegram.org/bot{bot_token}/sendMessage',
-            json={
-                'chat_id': chat_id,
-                'text': text,
-                'reply_markup': keyboard
-            },
-            timeout=5
-        )
-    except Exception as e:
-        print(f'Telegram notification error: {e}')
-
-
-def send_user_notification(chat_id: str, ticket_id: int, subject: str, server: str, message: str):
-    bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
-    if not bot_token:
-        return
-    
-    try:
-        notification_text = f"✉️ Новый ответ от администратора\n\n" \
-                          f"📋 Тикет: {subject}\n" \
-                          f"📍 Сервер: {server}\n\n" \
-                          f"💬 Сообщение:\n{message[:200]}{'...' if len(message) > 200 else ''}"
-        
-        ticket_url = f"https://play.devilrust.ru/support/ticket/{ticket_id}"
-        
-        keyboard = {
-            "inline_keyboard": [[
-                {"text": "Открыть обращение", "url": ticket_url}
-            ]]
-        }
-        
-        requests.post(
-            f'https://api.telegram.org/bot{bot_token}/sendMessage',
-            json={
-                'chat_id': chat_id,
-                'text': notification_text,
-                'reply_markup': keyboard
-            }
-        )
-    except Exception as e:
-        print(f'Failed to send user notification: {e}')
 
 
 def rate_ticket(ticket_id: str, event: Dict[str, Any], user_data: Dict[str, Any]) -> Dict[str, Any]:
-    '''Оценка тикета пользователем (1-5 звезд)'''
+    try:
+        ticket_id_int = int(ticket_id)
+    except ValueError:
+        return error_response('Invalid ticket ID')
+    
     body = json.loads(event.get('body', '{}'))
     rating = body.get('rating')
-    comment = body.get('comment', '').strip()
     
-    if not rating or not isinstance(rating, int) or rating < 1 or rating > 5:
+    try:
+        rating_int = int(rating)
+    except (ValueError, TypeError):
+        return error_response('Rating must be an integer')
+    
+    if rating_int < 1 or rating_int > 5:
         return error_response('Rating must be between 1 and 5')
     
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor(cursor_factory=RealDictCursor)
     
-    cur.execute("SELECT user_id, status, rating FROM tickets WHERE id = %s", (ticket_id,))
+    user_id = int(user_data['user_id'])
+    
+    cur.execute(f"SELECT * FROM tickets WHERE id = {ticket_id_int}")
     ticket = cur.fetchone()
     
     if not ticket:
@@ -627,27 +519,14 @@ def rate_ticket(ticket_id: str, event: Dict[str, Any], user_data: Dict[str, Any]
         conn.close()
         return error_response('Ticket not found', 404)
     
-    if ticket['user_id'] != user_data['user_id']:
+    if ticket['user_id'] != user_id:
         cur.close()
         conn.close()
-        return error_response('Access denied', 403)
+        return error_response('You can only rate your own tickets', 403)
     
-    if ticket['status'] != 'closed':
-        cur.close()
-        conn.close()
-        return error_response('Only closed tickets can be rated', 400)
-    
-    if ticket['rating'] is not None:
-        cur.close()
-        conn.close()
-        return error_response('Ticket already rated', 400)
-    
-    cur.execute(
-        "UPDATE tickets SET rating = %s, rating_comment = %s, rated_at = CURRENT_TIMESTAMP WHERE id = %s RETURNING *",
-        (rating, comment if comment else None, ticket_id)
-    )
-    
+    cur.execute(f"UPDATE tickets SET rating = {rating_int}, updated_at = NOW() WHERE id = {ticket_id_int} RETURNING *")
     updated_ticket = cur.fetchone()
+    
     conn.commit()
     cur.close()
     conn.close()
@@ -658,7 +537,45 @@ def rate_ticket(ticket_id: str, event: Dict[str, Any], user_data: Dict[str, Any]
             'Content-Type': 'application/json',
             'Access-Control-Allow-Origin': '*'
         },
-        'body': json.dumps({'ticket': dict(updated_ticket)}, default=str),
+        'body': json.dumps(dict(updated_ticket), default=str),
+        'isBase64Encoded': False
+    }
+
+
+def delete_ticket(ticket_id: str, user_data: Dict[str, Any]) -> Dict[str, Any]:
+    try:
+        ticket_id_int = int(ticket_id)
+    except ValueError:
+        return error_response('Invalid ticket ID')
+    
+    if not user_data.get('is_admin', False):
+        return error_response('Admin access required', 403)
+    
+    conn = psycopg2.connect(os.environ['DATABASE_URL'])
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    
+    cur.execute(f"SELECT * FROM tickets WHERE id = {ticket_id_int}")
+    ticket = cur.fetchone()
+    
+    if not ticket:
+        cur.close()
+        conn.close()
+        return error_response('Ticket not found', 404)
+    
+    cur.execute(f"DELETE FROM ticket_messages WHERE ticket_id = {ticket_id_int}")
+    cur.execute(f"DELETE FROM tickets WHERE id = {ticket_id_int}")
+    
+    conn.commit()
+    cur.close()
+    conn.close()
+    
+    return {
+        'statusCode': 200,
+        'headers': {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+        },
+        'body': json.dumps({'message': 'Ticket deleted successfully'}),
         'isBase64Encoded': False
     }
 
