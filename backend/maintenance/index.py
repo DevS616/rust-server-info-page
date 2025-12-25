@@ -38,12 +38,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             if not result:
                 cur.execute("""
                     INSERT INTO site_settings (id, is_maintenance, maintenance_title, maintenance_subtitle) 
-                    VALUES (1, FALSE, 'Сайт временно закрыт на технические работы', 
+                    VALUES (1, True, 'Сайт временно закрыт на технические работы', 
                             'Подпишитесь на наш Telegram, чтобы узнать больше о завершении работ')
                 """)
                 conn.commit()
                 result = {
-                    'is_maintenance': False,
+                    'is_maintenance': True,
                     'maintenance_title': 'Сайт временно закрыт на технические работы',
                     'maintenance_subtitle': 'Подпишитесь на наш Telegram, чтобы узнать больше о завершении работ'
                 }
