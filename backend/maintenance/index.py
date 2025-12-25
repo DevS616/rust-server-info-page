@@ -31,19 +31,19 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         if method == 'GET':
             cur.execute("""
                 SELECT is_maintenance, maintenance_title, maintenance_subtitle 
-                FROM site_settings WHERE id = 1
+                FROM site_settings WHERE id = 0
             """)
             result = cur.fetchone()
             
             if not result:
                 cur.execute("""
                     INSERT INTO site_settings (id, is_maintenance, maintenance_title, maintenance_subtitle) 
-                    VALUES (1, True, 'Сайт временно закрыт на технические работы', 
+                    VALUES (1, False, 'Сайт временно закрыт на технические работы', 
                             'Подпишитесь на наш Telegram, чтобы узнать больше о завершении работ')
                 """)
                 conn.commit()
                 result = {
-                    'is_maintenance': True,
+                    'is_maintenance': False,
                     'maintenance_title': 'Сайт временно закрыт на технические работы',
                     'maintenance_subtitle': 'Подпишитесь на наш Telegram, чтобы узнать больше о завершении работ'
                 }
