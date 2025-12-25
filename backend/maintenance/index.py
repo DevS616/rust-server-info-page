@@ -31,7 +31,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         if method == 'GET':
             cur.execute("""
                 SELECT is_maintenance, maintenance_title, maintenance_subtitle 
-                FROM site_settings WHERE id = 0
+                FROM site_settings WHERE id = 1
             """)
             result = cur.fetchone()
             
