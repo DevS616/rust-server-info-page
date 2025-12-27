@@ -267,7 +267,7 @@ def list_tickets(user_data: Dict[str, Any]) -> Dict[str, Any]:
             'Content-Type': 'application/json',
             'Access-Control-Allow-Origin': '*'
         },
-        'body': json.dumps([dict(t) for t in tickets], default=str),
+        'body': json.dumps({'tickets': [dict(t) for t in tickets]}, default=str),
         'isBase64Encoded': False
     }
 
