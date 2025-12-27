@@ -9,6 +9,7 @@ import Footer from '@/components/Footer';
 import TelegramSection from '@/components/support/TelegramSection';
 import TicketForm from '@/components/support/TicketForm';
 import TicketsList from '@/components/support/TicketsList';
+import { apiCache } from '@/utils/apiCache';
 
 const API_BASE = 'https://functions.poehali.dev';
 
@@ -72,18 +73,40 @@ const Support = () => {
   }, [token]);
 
   const loadServers = async () => {
+    // Проверяем кэш
+    const cached = apiCache.get<any[]>('servers');
+    if (cached) {
+      setServers(cached);
+      return;
+    }
+
     try {
       const res = await fetch(`${API_BASE}/cd63f370-b8ea-4adc-ace4-a274aa6f6e34/?active=true`);
       if (res.ok) {
         const data = await res.json();
         setServers(data.servers || []);
+        // Кэшируем на 5 минут (сервера меняются редко)
+        apiCache.set('servers', data.servers || [], 300000);
       }
     } catch (error) {
       console.error('Failed to load servers:', error);
     }
   };
 
-  const loadDashboard = async () => {
+  const loadDashboard = async (useCache = true) => {
+    // Проверяем кэш только если разрешено
+    if (useCache) {
+      const cached = apiCache.get<any>('dashboard');
+      if (cached) {
+        setTickets(cached.tickets || []);
+        setIsBlocked(cached.is_blocked);
+        setTelegramLinked(cached.telegram_linked || false);
+        setTelegramUsername(cached.telegram_username || null);
+        setLoading(false);
+        return;
+      }
+    }
+
     try {
       const res = await fetch(`${API_BASE}/887805c0-0d3a-4f32-8436-1ba1adda4a4f/?action=dashboard`, {
         headers: { 'X-Auth-Token': token! }
@@ -96,6 +119,9 @@ const Support = () => {
         setIsBlocked(data.is_blocked);
         setTelegramLinked(data.telegram_linked || false);
         setTelegramUsername(data.telegram_username || null);
+        
+        // Кэшируем на 30 секунд
+        apiCache.set('dashboard', data, 30000);
         
         if (data.is_blocked) {
           toast({ 
@@ -133,8 +159,11 @@ const Support = () => {
 
   const handleTicketCreated = async () => {
     setShowForm(false);
-    await new Promise(resolve => setTimeout(resolve, 500));
-    await loadTickets();
+    // Не загружаем сразу, пользователь увидит новый тикет при обновлении страницы
+    toast({ 
+      title: 'Успешно!', 
+      description: 'Обращение создано. Обновите страницу чтобы увидеть его в списке.' 
+    });
   };
 
   if (!token) {
@@ -187,7 +216,10 @@ const Support = () => {
             token={token} 
             initialLinked={telegramLinked}
             initialUsername={telegramUsername}
-            onStatusChange={() => loadDashboard()}
+            onStatusChange={() => {
+              apiCache.invalidate('dashboard');
+              loadDashboard(false);
+            }}
           />
 
           {showForm ? (

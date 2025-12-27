@@ -10,6 +10,7 @@ import TicketsTab from '@/components/admin/TicketsTab';
 import ServersTab from '@/components/admin/ServersTab';
 import ManagementTab from '@/components/admin/ManagementTab';
 import PromotionTab from '@/components/admin/PromotionTab';
+import { apiCache } from '@/utils/apiCache';
 
 const API_BASE = 'https://functions.poehali.dev';
 
@@ -78,7 +79,15 @@ const Admin = () => {
     }
   }, [searchParams]);
 
-  const loadTickets = async (authToken: string) => {
+  const loadTickets = async (authToken: string, useCache = true) => {
+    if (useCache) {
+      const cached = apiCache.get<any[]>('admin_tickets');
+      if (cached) {
+        setTickets(cached);
+        return;
+      }
+    }
+
     try {
       const res = await fetch(`${API_BASE}/887805c0-0d3a-4f32-8436-1ba1adda4a4f/?action=list`, {
         headers: { 'X-Auth-Token': authToken }
@@ -87,13 +96,23 @@ const Admin = () => {
       if (res.ok) {
         const data = await res.json();
         setTickets(data.tickets || []);
+        // Кэш на 30 секунд
+        apiCache.set('admin_tickets', data.tickets || [], 30000);
       }
     } catch (error) {
       console.error('Failed to load tickets:', error);
     }
   };
 
-  const loadServers = async (authToken: string) => {
+  const loadServers = async (authToken: string, useCache = true) => {
+    if (useCache) {
+      const cached = apiCache.get<any[]>('admin_servers');
+      if (cached) {
+        setServers(cached);
+        return;
+      }
+    }
+
     try {
       const res = await fetch(`${API_BASE}/cd63f370-b8ea-4adc-ace4-a274aa6f6e34/`, {
         headers: { 'X-Auth-Token': authToken }
@@ -102,6 +121,8 @@ const Admin = () => {
       if (res.ok) {
         const data = await res.json();
         setServers(data.servers || []);
+        // Кэш на 1 минуту
+        apiCache.set('admin_servers', data.servers || [], 60000);
       }
     } catch (error) {
       console.error('Failed to load servers:', error);
@@ -273,6 +294,8 @@ const Admin = () => {
       if (res.ok) {
         toast({ title: 'Успешно', description: 'Ответ отправлен' });
         setReply('');
+        // Инвалидируем кэш
+        apiCache.invalidate('admin_tickets');
         loadTicketDetails(selectedTicket.id.toString(), token!);
       } else {
         const error = await res.json();

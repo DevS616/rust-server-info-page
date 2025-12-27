@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import RatingModal from '@/components/support/RatingModal';
+import { apiCache } from '@/utils/apiCache';
 
 const API_BASE = 'https://functions.poehali.dev';
 
@@ -95,15 +96,7 @@ const TicketDetails = () => {
     if (token && ticketId) {
       loadTicketDetails();
       
-      // Опрос каждые 2 минуты вместо 10 секунд для экономии запросов
-      const interval = setInterval(() => {
-        // Проверяем, активна ли вкладка (не опрашиваем в фоне)
-        if (!document.hidden) {
-          loadTicketDetails();
-        }
-      }, 120000); // 2 минуты = 120000ms
-      
-      // Обновляем при возвращении на вкладку
+      // Опрос только при возвращении на вкладку (убираем автоматический опрос)
       const handleVisibilityChange = () => {
         if (!document.hidden) {
           loadTicketDetails();
@@ -112,13 +105,26 @@ const TicketDetails = () => {
       document.addEventListener('visibilitychange', handleVisibilityChange);
       
       return () => {
-        clearInterval(interval);
         document.removeEventListener('visibilitychange', handleVisibilityChange);
       };
     }
   }, [token, ticketId]);
 
-  const loadTicketDetails = async () => {
+  const loadTicketDetails = async (useCache = false) => {
+    const cacheKey = `ticket_${ticketId}`;
+    
+    // Используем кэш только для первой загрузки
+    if (useCache) {
+      const cached = apiCache.get<any>(cacheKey);
+      if (cached) {
+        setTicket(cached.ticket);
+        setMessages(cached.messages);
+        setPrevMessageCount(cached.messages.length);
+        setLoading(false);
+        return;
+      }
+    }
+
     try {
       const res = await fetch(`${API_BASE}/887805c0-0d3a-4f32-8436-1ba1adda4a4f/?ticket_id=${ticketId}`, {
         headers: { 'X-Auth-Token': token! }
@@ -128,6 +134,9 @@ const TicketDetails = () => {
         const data = await res.json();
         const ticketData = data.ticket;
         setTicket(ticketData);
+        
+        // Кэшируем на 20 секунд
+        apiCache.set(cacheKey, data, 20000);
         
         if (ticketData.status === 'closed' && !ticketData.rating && prevMessageCount > 0) {
           setShowRatingModal(true);
@@ -246,7 +255,9 @@ const TicketDetails = () => {
         toast({ title: 'Успешно', description: 'Ответ отправлен' });
         setReply('');
         setFile(null);
-        loadTicketDetails();
+        // Инвалидируем кэш и перезагружаем
+        apiCache.invalidate(`ticket_${ticketId}`);
+        loadTicketDetails(false);
       } else {
         const error = await res.json();
         toast({ title: 'Ошибка', description: error.error || 'Не удалось отправить ответ', variant: 'destructive' });

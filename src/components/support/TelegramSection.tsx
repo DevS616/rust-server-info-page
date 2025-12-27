@@ -42,33 +42,32 @@ const TelegramSection = ({ token, initialLinked = false, initialUsername = null,
         window.open(data.link_url, '_blank');
         setShowTelegramInfo(true);
         
+        // Опрашиваем реже - каждые 10 секунд вместо 5
         const checkInterval = setInterval(async () => {
-          if (onStatusChange) {
-            onStatusChange();
-            // Проверяем локальный стейт после обновления родителя
-            const checkRes = await fetch(`${API_BASE}/92e13203-5190-4bb5-b08b-d287ef896899/`, {
-              headers: { 'X-Auth-Token': token }
-            });
-            if (checkRes.ok) {
-              const checkData = await checkRes.json();
-              if (checkData.linked) {
-                setTelegramLinked(true);
-                setTelegramUsername(checkData.telegram_username);
-                setShowTelegramInfo(false);
-                clearInterval(checkInterval);
-                toast({ 
-                  title: 'Успешно!', 
-                  description: 'Telegram успешно привязан. Вы будете получать уведомления от поддержки.' 
-                });
-              }
+          const checkRes = await fetch(`${API_BASE}/92e13203-5190-4bb5-b08b-d287ef896899/`, {
+            headers: { 'X-Auth-Token': token }
+          });
+          if (checkRes.ok) {
+            const checkData = await checkRes.json();
+            if (checkData.linked) {
+              setTelegramLinked(true);
+              setTelegramUsername(checkData.telegram_username);
+              setShowTelegramInfo(false);
+              clearInterval(checkInterval);
+              if (onStatusChange) onStatusChange();
+              toast({ 
+                title: 'Успешно!', 
+                description: 'Telegram успешно привязан. Вы будете получать уведомления от поддержки.' 
+              });
             }
           }
-        }, 5000);
+        }, 10000);
         
+        // Ждём 2 минуты вместо 1
         setTimeout(() => {
           clearInterval(checkInterval);
           setShowTelegramInfo(false);
-        }, 60000);
+        }, 120000);
       } else {
         toast({ title: 'Ошибка', description: 'Не удалось создать ссылку', variant: 'destructive' });
       }
