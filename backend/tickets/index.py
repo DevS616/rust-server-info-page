@@ -323,7 +323,6 @@ def get_ticket_details(ticket_id: str, user_data: Dict[str, Any]) -> Dict[str, A
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor(cursor_factory=RealDictCursor)
     
-    user_id = int(user_data['user_id'])
     is_admin = user_data.get('is_admin', False)
     
     cur.execute(f"SELECT * FROM tickets WHERE id = {ticket_id_int}")
@@ -334,10 +333,12 @@ def get_ticket_details(ticket_id: str, user_data: Dict[str, Any]) -> Dict[str, A
         conn.close()
         return error_response('Ticket not found', 404)
     
-    if not is_admin and ticket['user_id'] != user_id:
-        cur.close()
-        conn.close()
-        return error_response('Access denied', 403)
+    if not is_admin:
+        user_id = int(user_data['user_id'])
+        if ticket['user_id'] != user_id:
+            cur.close()
+            conn.close()
+            return error_response('Access denied', 403)
     
     cur.execute(f"""
         SELECT tm.*, u.steam_username, u.steam_avatar, u.is_admin
@@ -390,7 +391,6 @@ def add_reply(ticket_id: str, event: Dict[str, Any], user_data: Dict[str, Any]) 
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor(cursor_factory=RealDictCursor)
     
-    user_id = int(user_data['user_id'])
     is_admin = user_data.get('is_admin', False)
     
     cur.execute(f"SELECT * FROM tickets WHERE id = {ticket_id_int}")
@@ -401,10 +401,14 @@ def add_reply(ticket_id: str, event: Dict[str, Any], user_data: Dict[str, Any]) 
         conn.close()
         return error_response('Ticket not found', 404)
     
-    if not is_admin and ticket['user_id'] != user_id:
-        cur.close()
-        conn.close()
-        return error_response('Access denied', 403)
+    if not is_admin:
+        user_id = int(user_data['user_id'])
+        if ticket['user_id'] != user_id:
+            cur.close()
+            conn.close()
+            return error_response('Access denied', 403)
+    else:
+        user_id = int(user_data['admin_id'])
     
     message_escaped = escape_sql(message)
     is_admin_reply = 'TRUE' if is_admin else 'FALSE'
