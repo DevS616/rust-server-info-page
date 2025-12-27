@@ -237,17 +237,17 @@ def list_tickets(user_data: Dict[str, Any]) -> Dict[str, Any]:
     cur = conn.cursor(cursor_factory=RealDictCursor)
     
     is_admin = user_data.get('is_admin', False)
-    user_id = int(user_data['user_id'])
     
     if is_admin:
         cur.execute("""
-            SELECT t.*, u.steam_username, u.steam_avatar,
+            SELECT t.*, u.steam_username, u.steam_avatar, u.steam_id, u.is_blocked,
                    (SELECT COUNT(*) FROM ticket_messages WHERE ticket_id = t.id) as message_count
             FROM tickets t
             LEFT JOIN users u ON t.user_id = u.id
             ORDER BY t.created_at DESC
         """)
     else:
+        user_id = int(user_data['user_id'])
         cur.execute(f"""
             SELECT t.*,
                    (SELECT COUNT(*) FROM ticket_messages WHERE ticket_id = t.id) as message_count

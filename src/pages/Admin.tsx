@@ -68,9 +68,10 @@ const Admin = () => {
   useEffect(() => {
     const storedToken = localStorage.getItem('admin_token');
     if (storedToken) {
+      console.log('Admin token found, loading data...');
       setToken(storedToken);
-      loadTickets(storedToken);
-      loadServers(storedToken);
+      loadTickets(storedToken, false); // Первая загрузка - без кэша
+      loadServers(storedToken, false);
     }
     
     const ticketId = searchParams.get('ticket');
@@ -83,21 +84,28 @@ const Admin = () => {
     if (useCache) {
       const cached = apiCache.get<any[]>('admin_tickets');
       if (cached) {
+        console.log('Using cached admin tickets:', cached.length);
         setTickets(cached);
         return;
       }
     }
 
+    console.log('Loading admin tickets from API...');
     try {
       const res = await fetch(`${API_BASE}/887805c0-0d3a-4f32-8436-1ba1adda4a4f/?action=list`, {
         headers: { 'X-Auth-Token': authToken }
       });
       
+      console.log('Admin tickets response status:', res.status);
+      
       if (res.ok) {
         const data = await res.json();
+        console.log('Admin tickets loaded:', data);
         setTickets(data.tickets || []);
         // Кэш на 30 секунд
         apiCache.set('admin_tickets', data.tickets || [], 30000);
+      } else {
+        console.error('Failed to load admin tickets, status:', res.status);
       }
     } catch (error) {
       console.error('Failed to load tickets:', error);
@@ -161,7 +169,7 @@ const Admin = () => {
         localStorage.setItem('admin_token', data.token);
         setToken(data.token);
         setAdmin(data.admin);
-        loadTickets(data.token);
+        loadTickets(data.token, false); // Первая загрузка - без кэша
         toast({ title: 'Успешно', description: 'Вы вошли в систему' });
       } else {
         const error = await res.json();
