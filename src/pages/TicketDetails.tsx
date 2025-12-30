@@ -96,10 +96,10 @@ const TicketDetails = () => {
     if (token && ticketId) {
       loadTicketDetails();
       
-      // Опрос только при возвращении на вкладку (убираем автоматический опрос)
+      // Опрос только при возвращении на вкладку
       const handleVisibilityChange = () => {
         if (!document.hidden) {
-          loadTicketDetails();
+          loadTicketDetails(false);
         }
       };
       document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -110,10 +110,10 @@ const TicketDetails = () => {
     }
   }, [token, ticketId]);
 
-  const loadTicketDetails = async (useCache = false) => {
+  const loadTicketDetails = async (useCache = true) => {
     const cacheKey = `ticket_${ticketId}`;
     
-    // Используем кэш только для первой загрузки
+    // Используем кэш по умолчанию
     if (useCache) {
       const cached = apiCache.get<any>(cacheKey);
       if (cached) {
@@ -135,8 +135,8 @@ const TicketDetails = () => {
         const ticketData = data.ticket;
         setTicket(ticketData);
         
-        // Кэшируем на 20 секунд
-        apiCache.set(cacheKey, data, 20000);
+        // Кэшируем на 60 секунд
+        apiCache.set(cacheKey, data, 60000);
         
         if (ticketData.status === 'closed' && !ticketData.rating && prevMessageCount > 0) {
           setShowRatingModal(true);

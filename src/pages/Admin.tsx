@@ -102,8 +102,8 @@ const Admin = () => {
         const data = await res.json();
         console.log('Admin tickets loaded:', data);
         setTickets(data.tickets || []);
-        // Кэш на 30 секунд
-        apiCache.set('admin_tickets', data.tickets || [], 30000);
+        // Кэш на 60 секунд
+        apiCache.set('admin_tickets', data.tickets || [], 60000);
       } else {
         console.error('Failed to load admin tickets, status:', res.status);
       }
@@ -129,8 +129,8 @@ const Admin = () => {
       if (res.ok) {
         const data = await res.json();
         setServers(data.servers || []);
-        // Кэш на 1 минуту
-        apiCache.set('admin_servers', data.servers || [], 60000);
+        // Кэш на 5 минут
+        apiCache.set('admin_servers', data.servers || [], 300000);
       }
     } catch (error) {
       console.error('Failed to load servers:', error);

@@ -63,12 +63,11 @@ const Support = () => {
   }, [searchParams, navigate]);
 
   useEffect(() => {
+    loadServers();
     if (token) {
       loadDashboard();
-      loadServers();
     } else {
       setLoading(false);
-      loadServers();
     }
   }, [token]);
 
@@ -85,8 +84,8 @@ const Support = () => {
       if (res.ok) {
         const data = await res.json();
         setServers(data.servers || []);
-        // Кэшируем на 5 минут (сервера меняются редко)
-        apiCache.set('servers', data.servers || [], 300000);
+        // Кэшируем на 10 минут (сервера меняются редко)
+        apiCache.set('servers', data.servers || [], 600000);
       }
     } catch (error) {
       console.error('Failed to load servers:', error);
@@ -120,8 +119,8 @@ const Support = () => {
         setTelegramLinked(data.telegram_linked || false);
         setTelegramUsername(data.telegram_username || null);
         
-        // Кэшируем на 30 секунд
-        apiCache.set('dashboard', data, 30000);
+        // Кэшируем на 60 секунд
+        apiCache.set('dashboard', data, 60000);
         
         if (data.is_blocked) {
           toast({ 
