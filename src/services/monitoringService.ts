@@ -99,8 +99,16 @@ class MonitoringService {
   private startAutoFetch(): void {
     this.fetchData();
     this.fetchInterval = window.setInterval(() => {
-      this.fetchData();
-    }, 120000);
+      if (document.visibilityState === 'visible') {
+        this.fetchData();
+      }
+    }, 300000);
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && !this.isFetching) {
+        this.fetchData();
+      }
+    });
   }
 
   destroy(): void {

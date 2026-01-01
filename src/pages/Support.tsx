@@ -119,8 +119,8 @@ const Support = () => {
         setTelegramLinked(data.telegram_linked || false);
         setTelegramUsername(data.telegram_username || null);
         
-        // Кэшируем на 60 секунд
-        apiCache.set('dashboard', data, 60000);
+        // Кэшируем на 2 минуты
+        apiCache.set('dashboard', data, 120000);
         
         if (data.is_blocked) {
           toast({ 

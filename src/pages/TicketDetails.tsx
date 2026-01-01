@@ -135,8 +135,8 @@ const TicketDetails = () => {
         const ticketData = data.ticket;
         setTicket(ticketData);
         
-        // Кэшируем на 60 секунд
-        apiCache.set(cacheKey, data, 60000);
+        // Кэшируем на 2 минуты
+        apiCache.set(cacheKey, data, 120000);
         
         if (ticketData.status === 'closed' && !ticketData.rating && prevMessageCount > 0) {
           setShowRatingModal(true);
