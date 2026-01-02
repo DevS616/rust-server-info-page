@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import Icon from '@/components/ui/icon';
@@ -54,6 +55,8 @@ interface TicketsTabProps {
   setFilterServer: (server: string) => void;
   filterUnread: boolean;
   setFilterUnread: (unread: boolean) => void;
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
   servers: string[];
 }
 
@@ -79,6 +82,8 @@ const TicketsTab = ({
   setFilterServer,
   filterUnread,
   setFilterUnread,
+  searchQuery,
+  setSearchQuery,
   servers
 }: TicketsTabProps) => {
   const copySteamId = (steamId: string) => {
@@ -219,6 +224,31 @@ const TicketsTab = ({
   return (
     <div className="space-y-4">
       <Card className="p-4">
+        <div className="flex flex-wrap gap-4 items-end mb-4">
+          <div className="flex-1 min-w-[300px]">
+            <Label className="text-sm mb-2 block">Поиск</Label>
+            <div className="relative">
+              <Icon name="Search" className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+              <Input
+                placeholder="Поиск по теме, имени пользователя или Steam ID..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+              {searchQuery && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                  onClick={() => setSearchQuery('')}
+                >
+                  <Icon name="X" size={16} />
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+
         <div className="flex flex-wrap gap-4 items-center">
           <div className="flex-1 min-w-[200px]">
             <Label className="text-sm mb-2 block">Статус</Label>

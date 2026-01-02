@@ -59,6 +59,7 @@ const Admin = () => {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterServer, setFilterServer] = useState<string>('all');
   const [filterUnread, setFilterUnread] = useState<boolean>(false);
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [reply, setReply] = useState('');
@@ -223,12 +224,21 @@ const Admin = () => {
       filtered = filtered.filter(t => t.unread_count && t.unread_count > 0);
     }
 
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(t => 
+        t.subject.toLowerCase().includes(query) ||
+        t.steam_username.toLowerCase().includes(query) ||
+        t.steam_id.includes(query)
+      );
+    }
+
     setFilteredTickets(filtered);
   };
 
   useEffect(() => {
     applyFilters();
-  }, [filterStatus, filterServer, filterUnread, tickets]);
+  }, [filterStatus, filterServer, filterUnread, searchQuery, tickets]);
 
   const handleCreateServer = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -491,6 +501,8 @@ const Admin = () => {
               setFilterServer={setFilterServer}
               filterUnread={filterUnread}
               setFilterUnread={setFilterUnread}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
               servers={Array.from(new Set(tickets.map(t => t.server)))}
             />
           </TabsContent>
