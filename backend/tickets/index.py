@@ -475,7 +475,7 @@ def update_status(ticket_id: str, event: Dict[str, Any], user_data: Dict[str, An
     body = json.loads(event.get('body', '{}'))
     new_status = body.get('status', '').strip()
     
-    allowed_statuses = ['open', 'pending', 'answered', 'closed']
+    allowed_statuses = ['open', 'pending', 'answered', 'closed', 'in_progress']
     if new_status not in allowed_statuses:
         return error_response(f'Status must be one of: {", ".join(allowed_statuses)}')
     

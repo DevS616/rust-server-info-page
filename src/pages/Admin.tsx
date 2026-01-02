@@ -402,8 +402,12 @@ const Admin = () => {
       
       if (res.ok) {
         toast({ title: 'Успешно', description: 'Статус изменён' });
-        loadTickets(token!);
+        apiCache.invalidate('admin_tickets');
+        loadTickets(token!, false);
         loadTicketDetails(selectedTicket.id.toString(), token!);
+      } else {
+        const error = await res.json();
+        toast({ title: 'Ошибка', description: error.error || 'Не удалось изменить статус', variant: 'destructive' });
       }
     } catch (error) {
       toast({ title: 'Ошибка', description: 'Не удалось изменить статус', variant: 'destructive' });

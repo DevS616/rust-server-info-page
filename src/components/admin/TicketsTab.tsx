@@ -104,9 +104,18 @@ const TicketsTab = ({
         <Card className="p-6">
           <div className="flex items-start justify-between mb-6">
             <div className="flex items-start gap-4">
-              <img src={selectedTicket.steam_avatar} alt="" className="w-12 h-12 rounded-full" />
+              {selectedTicket.steam_avatar ? (
+                <img src={selectedTicket.steam_avatar} alt="" className="w-12 h-12 rounded-full" />
+              ) : (
+                <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                  <Icon name="User" size={24} className="text-muted-foreground" />
+                </div>
+              )}
               <div>
-                <h2 className="text-2xl font-semibold">{selectedTicket.subject}</h2>
+                <div className="flex items-center gap-2 mb-1">
+                  <h2 className="text-2xl font-semibold">{selectedTicket.subject}</h2>
+                  <span className="text-sm text-muted-foreground">#{selectedTicket.id}</span>
+                </div>
                 <p className="text-muted-foreground">от {selectedTicket.steam_username}</p>
                 <div className="flex items-center gap-2 mt-1">
                   <p className="text-sm text-muted-foreground">Steam64ID: {selectedTicket.steam_id}</p>
@@ -328,7 +337,13 @@ const TicketsTab = ({
             }}>
             <div className="flex items-start justify-between">
               <div className="flex items-start gap-3 flex-1">
-                <img src={ticket.steam_avatar} alt="" className="w-10 h-10 rounded-full" />
+                {ticket.steam_avatar ? (
+                  <img src={ticket.steam_avatar} alt="" className="w-10 h-10 rounded-full" />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                    <Icon name="User" size={20} className="text-muted-foreground" />
+                  </div>
+                )}
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <span className={`w-2 h-2 rounded-full ${getStatusColor(ticket.status)}`}></span>
@@ -336,6 +351,7 @@ const TicketsTab = ({
                   </div>
                   <div className="flex items-center gap-2">
                     <h3 className="text-lg font-semibold">{ticket.subject}</h3>
+                    <span className="text-xs text-muted-foreground">#{ticket.id}</span>
                     {ticket.unread_count !== undefined && ticket.unread_count > 0 && (
                       <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
                         {ticket.unread_count}
