@@ -341,9 +341,13 @@ def get_ticket_details(ticket_id: str, user_data: Dict[str, Any]) -> Dict[str, A
             return error_response('Access denied', 403)
     
     cur.execute(f"""
-        SELECT tm.*, u.steam_username, u.steam_avatar, u.is_admin
+        SELECT tm.*, 
+               u.steam_username as user_name, 
+               u.steam_avatar as user_avatar,
+               a.full_name as admin_name
         FROM ticket_messages tm
-        LEFT JOIN users u ON tm.user_id = u.id
+        LEFT JOIN users u ON tm.user_id = u.id AND tm.is_admin_reply = FALSE
+        LEFT JOIN admins a ON tm.admin_id = a.id AND tm.is_admin_reply = TRUE
         WHERE tm.ticket_id = {ticket_id_int}
         ORDER BY tm.created_at ASC
     """)
