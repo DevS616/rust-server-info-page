@@ -57,6 +57,8 @@ interface TicketsTabProps {
   setFilterUnread: (unread: boolean) => void;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
+  sortBy: string;
+  setSortBy: (sort: string) => void;
   servers: string[];
 }
 
@@ -84,6 +86,8 @@ const TicketsTab = ({
   setFilterUnread,
   searchQuery,
   setSearchQuery,
+  sortBy,
+  setSortBy,
   servers
 }: TicketsTabProps) => {
   const copySteamId = (steamId: string) => {
@@ -277,6 +281,22 @@ const TicketsTab = ({
                 {servers.map(server => (
                   <SelectItem key={server} value={server}>{server}</SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex-1 min-w-[200px]">
+            <Label className="text-sm mb-2 block">Сортировка</Label>
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="date_desc">Сначала новые</SelectItem>
+                <SelectItem value="date_asc">Сначала старые</SelectItem>
+                <SelectItem value="unread_desc">Больше непрочитанных</SelectItem>
+                <SelectItem value="status">По статусу</SelectItem>
+                <SelectItem value="messages_desc">Больше сообщений</SelectItem>
               </SelectContent>
             </Select>
           </div>

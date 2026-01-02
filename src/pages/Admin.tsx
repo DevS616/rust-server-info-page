@@ -60,6 +60,7 @@ const Admin = () => {
   const [filterServer, setFilterServer] = useState<string>('all');
   const [filterUnread, setFilterUnread] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [sortBy, setSortBy] = useState<string>('date_desc');
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [reply, setReply] = useState('');
@@ -233,12 +234,32 @@ const Admin = () => {
       );
     }
 
+    // Применяем сортировку
+    switch (sortBy) {
+      case 'date_desc':
+        filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        break;
+      case 'date_asc':
+        filtered.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        break;
+      case 'unread_desc':
+        filtered.sort((a, b) => (b.unread_count || 0) - (a.unread_count || 0));
+        break;
+      case 'status':
+        const statusOrder: Record<string, number> = { open: 1, pending: 2, answered: 3, closed: 4 };
+        filtered.sort((a, b) => (statusOrder[a.status] || 99) - (statusOrder[b.status] || 99));
+        break;
+      case 'messages_desc':
+        filtered.sort((a, b) => b.message_count - a.message_count);
+        break;
+    }
+
     setFilteredTickets(filtered);
   };
 
   useEffect(() => {
     applyFilters();
-  }, [filterStatus, filterServer, filterUnread, searchQuery, tickets]);
+  }, [filterStatus, filterServer, filterUnread, searchQuery, sortBy, tickets]);
 
   const handleCreateServer = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -503,6 +524,8 @@ const Admin = () => {
               setFilterUnread={setFilterUnread}
               searchQuery={searchQuery}
               setSearchQuery={setSearchQuery}
+              sortBy={sortBy}
+              setSortBy={setSortBy}
               servers={Array.from(new Set(tickets.map(t => t.server)))}
             />
           </TabsContent>
