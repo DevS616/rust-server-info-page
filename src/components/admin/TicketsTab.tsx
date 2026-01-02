@@ -200,6 +200,8 @@ const TicketsTab = ({
     );
   }
 
+  console.log('TicketsTab render:', { ticketsCount: tickets.length, tickets });
+  
   return (
     <div className="grid gap-4">
       {tickets.length === 0 ? (

@@ -67,11 +67,14 @@ const Admin = () => {
 
   useEffect(() => {
     const storedToken = localStorage.getItem('admin_token');
+    console.log('Admin useEffect:', { hasToken: !!storedToken, tokenLength: storedToken?.length });
     if (storedToken) {
       console.log('Admin token found, loading data...');
       setToken(storedToken);
       loadTickets(storedToken, false); // Первая загрузка - без кэша
       loadServers(storedToken, false);
+    } else {
+      console.log('No admin token found in localStorage');
     }
     
     const ticketId = searchParams.get('ticket');
@@ -101,11 +104,17 @@ const Admin = () => {
       if (res.ok) {
         const data = await res.json();
         console.log('Admin tickets loaded:', data);
-        setTickets(data.tickets || []);
+        console.log('Tickets array:', data.tickets);
+        console.log('Tickets count:', data.tickets?.length || 0);
+        const ticketsArray = data.tickets || [];
+        setTickets(ticketsArray);
+        console.log('State updated with tickets:', ticketsArray.length);
         // Кэш на 60 секунд
-        apiCache.set('admin_tickets', data.tickets || [], 60000);
+        apiCache.set('admin_tickets', ticketsArray, 60000);
       } else {
         console.error('Failed to load admin tickets, status:', res.status);
+        const errorText = await res.text();
+        console.error('Error response:', errorText);
       }
     } catch (error) {
       console.error('Failed to load tickets:', error);
