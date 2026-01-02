@@ -55,6 +55,10 @@ const Admin = () => {
   const [admin, setAdmin] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [filteredTickets, setFilteredTickets] = useState<Ticket[]>([]);
+  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [filterServer, setFilterServer] = useState<string>('all');
+  const [filterUnread, setFilterUnread] = useState<boolean>(false);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [reply, setReply] = useState('');
@@ -90,6 +94,7 @@ const Admin = () => {
       if (cached) {
         console.log('Using cached admin tickets:', cached.length);
         setTickets(cached);
+        setFilteredTickets(cached);
         return;
       }
     }
@@ -109,6 +114,7 @@ const Admin = () => {
         console.log('Tickets count:', data.tickets?.length || 0);
         const ticketsArray = data.tickets || [];
         setTickets(ticketsArray);
+        setFilteredTickets(ticketsArray);
         console.log('State updated with tickets:', ticketsArray.length);
         // Кэш на 60 секунд
         apiCache.set('admin_tickets', ticketsArray, 60000);
@@ -197,9 +203,32 @@ const Admin = () => {
     setToken(null);
     setAdmin(null);
     setTickets([]);
+    setFilteredTickets([]);
     setSelectedTicket(null);
     setServers([]);
   };
+
+  const applyFilters = () => {
+    let filtered = [...tickets];
+
+    if (filterStatus !== 'all') {
+      filtered = filtered.filter(t => t.status === filterStatus);
+    }
+
+    if (filterServer !== 'all') {
+      filtered = filtered.filter(t => t.server === filterServer);
+    }
+
+    if (filterUnread) {
+      filtered = filtered.filter(t => t.unread_count && t.unread_count > 0);
+    }
+
+    setFilteredTickets(filtered);
+  };
+
+  useEffect(() => {
+    applyFilters();
+  }, [filterStatus, filterServer, filterUnread, tickets]);
 
   const handleCreateServer = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -441,7 +470,7 @@ const Admin = () => {
 
           <TabsContent value="tickets" className="space-y-6">
             <TicketsTab
-              tickets={tickets}
+              tickets={filteredTickets}
               selectedTicket={selectedTicket}
               setSelectedTicket={setSelectedTicket}
               messages={messages}
@@ -456,6 +485,13 @@ const Admin = () => {
               getStatusColor={getStatusColor}
               getStatusText={getStatusText}
               loading={loading}
+              filterStatus={filterStatus}
+              setFilterStatus={setFilterStatus}
+              filterServer={filterServer}
+              setFilterServer={setFilterServer}
+              filterUnread={filterUnread}
+              setFilterUnread={setFilterUnread}
+              servers={Array.from(new Set(tickets.map(t => t.server)))}
             />
           </TabsContent>
 

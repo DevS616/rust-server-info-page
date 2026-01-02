@@ -3,6 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import Icon from '@/components/ui/icon';
 
 interface Ticket {
@@ -47,6 +48,13 @@ interface TicketsTabProps {
   getStatusColor: (status: string) => string;
   getStatusText: (status: string) => string;
   loading: boolean;
+  filterStatus: string;
+  setFilterStatus: (status: string) => void;
+  filterServer: string;
+  setFilterServer: (server: string) => void;
+  filterUnread: boolean;
+  setFilterUnread: (unread: boolean) => void;
+  servers: string[];
 }
 
 const TicketsTab = ({
@@ -64,7 +72,14 @@ const TicketsTab = ({
   token,
   getStatusColor,
   getStatusText,
-  loading
+  loading,
+  filterStatus,
+  setFilterStatus,
+  filterServer,
+  setFilterServer,
+  filterUnread,
+  setFilterUnread,
+  servers
 }: TicketsTabProps) => {
   const copySteamId = (steamId: string) => {
     navigator.clipboard.writeText(steamId);
@@ -202,13 +217,59 @@ const TicketsTab = ({
   }
 
   return (
-    <div className="grid gap-4">
-      {tickets.length === 0 ? (
-        <Card className="p-8 text-center">
-          <Icon name="Inbox" className="mx-auto mb-4 text-muted-foreground" size={48} />
-          <p className="text-muted-foreground">Нет обращений</p>
-        </Card>
-      ) : (
+    <div className="space-y-4">
+      <Card className="p-4">
+        <div className="flex flex-wrap gap-4 items-center">
+          <div className="flex-1 min-w-[200px]">
+            <Label className="text-sm mb-2 block">Статус</Label>
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Все статусы</SelectItem>
+                <SelectItem value="open">Открыт</SelectItem>
+                <SelectItem value="pending">Ожидает</SelectItem>
+                <SelectItem value="answered">Отвечен</SelectItem>
+                <SelectItem value="closed">Закрыт</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex-1 min-w-[200px]">
+            <Label className="text-sm mb-2 block">Сервер</Label>
+            <Select value={filterServer} onValueChange={setFilterServer}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Все серверы</SelectItem>
+                {servers.map(server => (
+                  <SelectItem key={server} value={server}>{server}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-end pb-1">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <Checkbox 
+                checked={filterUnread} 
+                onCheckedChange={(checked) => setFilterUnread(checked === true)}
+              />
+              <span className="text-sm">Только непрочитанные</span>
+            </label>
+          </div>
+        </div>
+      </Card>
+
+      <div className="grid gap-4">
+        {tickets.length === 0 ? (
+          <Card className="p-8 text-center">
+            <Icon name="Inbox" className="mx-auto mb-4 text-muted-foreground" size={48} />
+            <p className="text-muted-foreground">Нет обращений</p>
+          </Card>
+        ) : (
         tickets.map((ticket) => (
           <Card key={ticket.id} className="p-4 hover:shadow-lg transition-shadow cursor-pointer"
             onClick={() => {
@@ -243,7 +304,8 @@ const TicketsTab = ({
             </div>
           </Card>
         ))
-      )}
+        )}
+      </div>
     </div>
   );
 };
