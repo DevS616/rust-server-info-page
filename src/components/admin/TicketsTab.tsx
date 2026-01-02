@@ -40,6 +40,8 @@ interface TicketsTabProps {
   messages: Message[];
   reply: string;
   setReply: (reply: string) => void;
+  replyFile: File | null;
+  setReplyFile: (file: File | null) => void;
   handleSendReply: () => void;
   handleChangeStatus: (status: string) => void;
   handleBlockUser: (userId: number, block: boolean) => void;
@@ -69,6 +71,8 @@ const TicketsTab = ({
   messages,
   reply,
   setReply,
+  replyFile,
+  setReplyFile,
   handleSendReply,
   handleChangeStatus,
   handleBlockUser,
@@ -215,6 +219,45 @@ const TicketsTab = ({
               rows={4}
               className="mb-2"
             />
+            
+            <div className="mb-3">
+              <Label htmlFor="reply-file" className="cursor-pointer">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  <Icon name="Paperclip" size={16} />
+                  <span>Прикрепить файл</span>
+                </div>
+              </Label>
+              <Input
+                id="reply-file"
+                type="file"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    const file = e.target.files[0];
+                    if (file.size > 10 * 1024 * 1024) {
+                      alert('Размер файла не должен превышать 10 МБ');
+                      return;
+                    }
+                    setReplyFile(file);
+                  }
+                }}
+                className="hidden"
+              />
+              {replyFile && (
+                <div className="mt-2 flex items-center gap-2 text-sm">
+                  <Icon name="File" size={16} />
+                  <span>{replyFile.name}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setReplyFile(null)}
+                    className="h-6 px-2"
+                  >
+                    <Icon name="X" size={14} />
+                  </Button>
+                </div>
+              )}
+            </div>
+            
             <Button onClick={handleSendReply} disabled={!reply.trim() || loading}>
               {loading ? (
                 <>

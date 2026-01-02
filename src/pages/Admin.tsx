@@ -64,6 +64,7 @@ const Admin = () => {
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [reply, setReply] = useState('');
+  const [replyFile, setReplyFile] = useState<File | null>(null);
   
   const [servers, setServers] = useState<Server[]>([]);
   const [editingServer, setEditingServer] = useState<Server | null>(null);
@@ -355,24 +356,67 @@ const Admin = () => {
     setShowServerForm(false);
   };
 
+  const uploadFile = async (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const base64 = (reader.result as string).split(',')[1];
+          const res = await fetch(`${API_BASE}/b36ed6dc-c690-4e62-b1e9-e3dd1b1d15c5/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              file: base64,
+              filename: file.name,
+              content_type: file.type
+            })
+          });
+          
+          if (res.ok) {
+            const data = await res.json();
+            resolve(data.url);
+          } else {
+            reject(new Error('Upload failed'));
+          }
+        } catch (error) {
+          reject(error);
+        }
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleSendReply = async () => {
     if (!reply.trim() || !selectedTicket) return;
     
     setLoading(true);
     try {
+      let fileUrl = '';
+      
+      if (replyFile) {
+        try {
+          fileUrl = await uploadFile(replyFile);
+        } catch (error) {
+          toast({ title: 'Ошибка', description: 'Не удалось загрузить файл', variant: 'destructive' });
+          setLoading(false);
+          return;
+        }
+      }
+      
       const res = await fetch(`${API_BASE}/887805c0-0d3a-4f32-8436-1ba1adda4a4f/?action=reply&ticket_id=${selectedTicket.id}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-Auth-Token': token!
         },
-        body: JSON.stringify({ message: reply })
+        body: JSON.stringify({ message: reply, file_url: fileUrl })
       });
       
       if (res.ok) {
         toast({ title: 'Успешно', description: 'Ответ отправлен' });
         setReply('');
-        // Инвалидируем кэш
+        setReplyFile(null);
         apiCache.invalidate('admin_tickets');
         loadTicketDetails(selectedTicket.id.toString(), token!);
       } else {
@@ -511,6 +555,8 @@ const Admin = () => {
               messages={messages}
               reply={reply}
               setReply={setReply}
+              replyFile={replyFile}
+              setReplyFile={setReplyFile}
               handleSendReply={handleSendReply}
               handleChangeStatus={handleChangeStatus}
               handleBlockUser={handleBlockUser}

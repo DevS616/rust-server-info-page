@@ -37,6 +37,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     
     if method == 'POST' and action == 'login':
         return admin_login(event)
+    elif method == 'POST' and action == 'reset_password':
+        return reset_password(event)
     
     headers = event.get('headers') or {}
     token = headers.get('x-auth-token') or headers.get('X-Auth-Token')
@@ -68,7 +70,8 @@ def escape_sql(value: str) -> str:
 
 
 def admin_login(event: Dict[str, Any]) -> Dict[str, Any]:
-    body = json.loads(event.get('body', '{}'))
+    body_str = event.get('body', '{}') or '{}'
+    body = json.loads(body_str) if body_str else {}
     email = body.get('email', '').strip().lower()
     password = body.get('password', '')
     
@@ -139,6 +142,43 @@ def admin_login(event: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def reset_password(event: Dict[str, Any]) -> Dict[str, Any]:
+    body_str = event.get('body', '{}') or '{}'
+    body = json.loads(body_str) if body_str else {}
+    email = body.get('email', '').strip().lower()
+    
+    if not email:
+        return error_response('Email is required')
+    
+    conn = psycopg2.connect(os.environ['DATABASE_URL'])
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    
+    email_safe = escape_sql(email)
+    cur.execute(f"SELECT id FROM admins WHERE email = '{email_safe}'")
+    admin = cur.fetchone()
+    
+    if not admin:
+        cur.close()
+        conn.close()
+        return error_response('Admin not found', 404)
+    
+    cur.execute(f"UPDATE admins SET password_hash = 'PLACEHOLDER' WHERE id = {admin['id']}")
+    conn.commit()
+    
+    cur.close()
+    conn.close()
+    
+    return {
+        'statusCode': 200,
+        'headers': {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+        },
+        'body': json.dumps({'success': True, 'message': 'Password reset successfully'}),
+        'isBase64Encoded': False
+    }
+
+
 def verify_admin_token(token: Optional[str]) -> Optional[Dict[str, Any]]:
     if not token:
         return None
@@ -156,7 +196,8 @@ def verify_admin_token(token: Optional[str]) -> Optional[Dict[str, Any]]:
 
 
 def add_admin(event: Dict[str, Any]) -> Dict[str, Any]:
-    body = json.loads(event.get('body', '{}'))
+    body_str = event.get('body', '{}') or '{}'
+    body = json.loads(body_str) if body_str else {}
     email = body.get('email', '').strip().lower()
     password = body.get('password', '')
     full_name = body.get('full_name', '').strip()
