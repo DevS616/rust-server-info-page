@@ -25,6 +25,7 @@ interface Ticket {
   steam_id: string;
   is_blocked: boolean;
   message_count: number;
+  unread_count?: number;
   user_id: number;
 }
 

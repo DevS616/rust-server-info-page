@@ -16,6 +16,7 @@ interface Ticket {
   steam_id: string;
   is_blocked: boolean;
   message_count: number;
+  unread_count?: number;
   user_id: number;
 }
 
@@ -222,7 +223,14 @@ const TicketsTab = ({
                     <span className={`w-2 h-2 rounded-full ${getStatusColor(ticket.status)}`}></span>
                     <span className="text-sm font-medium">{getStatusText(ticket.status)}</span>
                   </div>
-                  <h3 className="text-lg font-semibold">{ticket.subject}</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-semibold">{ticket.subject}</h3>
+                    {ticket.unread_count !== undefined && ticket.unread_count > 0 && (
+                      <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                        {ticket.unread_count}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-sm text-muted-foreground">от {ticket.steam_username}</p>
                   <p className="text-sm text-muted-foreground">Сервер: {ticket.server}</p>
                   <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">

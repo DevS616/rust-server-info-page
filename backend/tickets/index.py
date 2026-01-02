@@ -241,7 +241,8 @@ def list_tickets(user_data: Dict[str, Any]) -> Dict[str, Any]:
     if is_admin:
         cur.execute("""
             SELECT t.*, u.steam_username, u.steam_avatar, u.steam_id, u.is_blocked,
-                   (SELECT COUNT(*) FROM ticket_messages WHERE ticket_id = t.id) as message_count
+                   (SELECT COUNT(*) FROM ticket_messages WHERE ticket_id = t.id) as message_count,
+                   (SELECT COUNT(*) FROM ticket_messages WHERE ticket_id = t.id AND is_admin_reply = FALSE AND is_read_by_admin = FALSE) as unread_count
             FROM tickets t
             LEFT JOIN users u ON t.user_id = u.id
             ORDER BY t.created_at DESC
@@ -359,6 +360,14 @@ def get_ticket_details(ticket_id: str, user_data: Dict[str, Any]) -> Dict[str, A
             UPDATE ticket_messages
             SET is_read_by_user = TRUE
             WHERE ticket_id = {ticket_id_int} AND is_admin_reply = TRUE AND is_read_by_user = FALSE
+        """)
+        conn.commit()
+    else:
+        # Для админа отмечаем сообщения пользователей как прочитанные
+        cur.execute(f"""
+            UPDATE ticket_messages
+            SET is_read_by_admin = TRUE
+            WHERE ticket_id = {ticket_id_int} AND is_admin_reply = FALSE AND is_read_by_admin = FALSE
         """)
         conn.commit()
     
