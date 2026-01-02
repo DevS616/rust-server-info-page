@@ -233,12 +233,10 @@ def get_dashboard(user_data: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def list_tickets(user_data: Dict[str, Any]) -> Dict[str, Any]:
-    print(f'list_tickets called with user_data: {user_data}')
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor(cursor_factory=RealDictCursor)
     
     is_admin = user_data.get('is_admin', False)
-    print(f'is_admin: {is_admin}')
     
     if is_admin:
         cur.execute("""
@@ -259,7 +257,6 @@ def list_tickets(user_data: Dict[str, Any]) -> Dict[str, Any]:
         """)
     
     tickets = cur.fetchall()
-    print(f'Found {len(tickets)} tickets for admin={is_admin}')
     
     cur.close()
     conn.close()
