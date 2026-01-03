@@ -4,6 +4,7 @@ import Icon from '@/components/ui/icon';
 import Header from '@/components/Header';
 import HeroSection from '@/components/HeroSection';
 import ServersSection from '@/components/ServersSection';
+import NewsSection from '@/components/NewsSection';
 import HowToStartSection from '@/components/HowToStartSection';
 import Footer from '@/components/Footer';
 
@@ -36,6 +37,7 @@ const Index = () => {
       <Header />
       <HeroSection />
       <ServersSection />
+      <NewsSection />
       <HowToStartSection />
       <Footer />
 
