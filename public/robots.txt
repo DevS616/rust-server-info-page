@@ -1,14 +1,25 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /steam-callback
+
+Sitemap: https://devilrust.poehali.dev/sitemap.xml
+
+# Yandex
+User-agent: Yandex
+Allow: /
+
+# Google
 User-agent: Googlebot
 Allow: /
 
+# Bing
 User-agent: Bingbot
 Allow: /
 
+# Social
 User-agent: Twitterbot
 Allow: /
 
 User-agent: facebookexternalhit
-Allow: /
-
-User-agent: *
 Allow: /
