@@ -1,0 +1,12 @@
+{
+  "tests": [
+    {
+      "name": "Get published news list",
+      "method": "GET",
+      "path": "/?action=list",
+      "expectedStatus": 200,
+      "expectedBody": [],
+      "bodyMatcher": "type"
+    }
+  ]
+}

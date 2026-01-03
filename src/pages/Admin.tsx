@@ -10,6 +10,7 @@ import TicketsTab from '@/components/admin/TicketsTab';
 import ServersTab from '@/components/admin/ServersTab';
 import ManagementTab from '@/components/admin/ManagementTab';
 import PromotionTab from '@/components/admin/PromotionTab';
+import NewsTab from '@/components/admin/NewsTab';
 import { apiCache } from '@/utils/apiCache';
 
 const API_BASE = 'https://functions.poehali.dev';
@@ -539,9 +540,10 @@ const Admin = () => {
 
       <main className="container mx-auto px-4 py-6">
         <Tabs defaultValue="tickets" className="w-full">
-          <TabsList className="mb-6">
+          <TabsList className="mb-6 flex-wrap h-auto">
             <TabsTrigger value="tickets">Обращения</TabsTrigger>
             <TabsTrigger value="servers">Серверы</TabsTrigger>
+            <TabsTrigger value="news">Новости</TabsTrigger>
             <TabsTrigger value="promotions">Акции</TabsTrigger>
             <TabsTrigger value="management">Управление</TabsTrigger>
             <TabsTrigger value="admins">Администраторы</TabsTrigger>
@@ -595,6 +597,10 @@ const Admin = () => {
               cancelServerForm={cancelServerForm}
               loading={loading}
             />
+          </TabsContent>
+
+          <TabsContent value="news">
+            <NewsTab password={token!} />
           </TabsContent>
 
           <TabsContent value="promotions">

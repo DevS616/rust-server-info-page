@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
@@ -9,42 +10,8 @@ interface NewsItem {
   date: string;
   category: 'update' | 'event' | 'wipe' | 'news';
   icon: string;
+  is_published: boolean;
 }
-
-const newsItems: NewsItem[] = [
-  {
-    id: 1,
-    title: 'Новогодний ивент 2026',
-    description: 'Начался праздничный ивент с уникальными наградами и х2 к дропу подарков! Собирайте новогодние ящики и получайте эксклюзивные скины.',
-    date: '25 декабря 2025',
-    category: 'event',
-    icon: 'Gift'
-  },
-  {
-    id: 2,
-    title: 'Еженедельный вайп серверов',
-    description: 'Запланирован вайп всех х2-х10 серверов. Карты обновлены, добавлены новые монументы. Приготовьтесь к свежему старту!',
-    date: '4 января 2026',
-    category: 'wipe',
-    icon: 'RefreshCw'
-  },
-  {
-    id: 3,
-    title: 'Обновление античита',
-    description: 'Внедрена новая система защиты от читеров. Мы постоянно работаем над безопасностью игры и честной игровой средой для всех игроков.',
-    date: '28 декабря 2025',
-    category: 'update',
-    icon: 'Shield'
-  },
-  {
-    id: 4,
-    title: 'Открытие 10-го сервера',
-    description: 'Скоро откроется новый х100 сервер для любителей быстрого прогресса! Следите за анонсами в нашем Telegram канале.',
-    date: 'Скоро',
-    category: 'news',
-    icon: 'Rocket'
-  }
-];
 
 const categoryConfig = {
   update: { label: 'Обновление', color: 'bg-blue-500/10 text-blue-500 border-blue-500/20' },
@@ -54,6 +21,41 @@ const categoryConfig = {
 };
 
 const NewsSection = () => {
+  const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchNews = async () => {
+      try {
+        const res = await fetch('https://functions.poehali.dev/e6be6494-14cb-4278-882b-d4498bef6cf6/?action=list');
+        if (res.ok) {
+          const data = await res.json();
+          setNewsItems(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch news:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchNews();
+  }, []);
+
+  if (loading) {
+    return (
+      <section className="py-20 px-4 bg-muted/30">
+        <div className="container mx-auto max-w-7xl text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+        </div>
+      </section>
+    );
+  }
+
+  if (newsItems.length === 0) {
+    return null;
+  }
+
   return (
     <section className="py-20 px-4 bg-muted/30">
       <div className="container mx-auto max-w-7xl">
