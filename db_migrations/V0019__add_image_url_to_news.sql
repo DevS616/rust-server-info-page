@@ -1,0 +1,1 @@
+ALTER TABLE news ADD COLUMN image_url TEXT;

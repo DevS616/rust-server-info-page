@@ -25,6 +25,7 @@ interface NewsItem {
   date: string;
   category: 'update' | 'event' | 'wipe' | 'news';
   icon: string;
+  image_url?: string;
   is_published: boolean;
   created_at: string;
   updated_at: string;
@@ -58,8 +59,11 @@ const NewsTab = ({ password }: NewsTabProps) => {
     date: '',
     category: 'news' as 'update' | 'event' | 'wipe' | 'news',
     icon: 'Newspaper',
+    image_url: '',
     is_published: true
   });
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const fetchNews = async () => {
     try {
@@ -90,8 +94,10 @@ const NewsTab = ({ password }: NewsTabProps) => {
         date: newsItem.date,
         category: newsItem.category,
         icon: newsItem.icon,
+        image_url: newsItem.image_url || '',
         is_published: newsItem.is_published
       });
+      setImagePreview(newsItem.image_url || null);
     } else {
       setEditingNews(null);
       setFormData({
@@ -100,10 +106,35 @@ const NewsTab = ({ password }: NewsTabProps) => {
         date: new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }),
         category: 'news',
         icon: 'Newspaper',
+        image_url: '',
         is_published: true
       });
+      setImagePreview(null);
     }
+    setImageFile(null);
     setIsDialogOpen(true);
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({ title: 'Ошибка', description: 'Размер файла не должен превышать 5 МБ', variant: 'destructive' });
+        return;
+      }
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    setFormData({ ...formData, image_url: '' });
   };
 
   const handleSave = async () => {
@@ -118,7 +149,22 @@ const NewsTab = ({ password }: NewsTabProps) => {
         : 'https://functions.poehali.dev/e6be6494-14cb-4278-882b-d4498bef6cf6/';
 
       const method = editingNews ? 'PUT' : 'POST';
-      const body = editingNews ? { ...formData, id: editingNews.id } : formData;
+      let body: any = editingNews ? { ...formData, id: editingNews.id } : formData;
+      
+      if (imageFile) {
+        const reader = new FileReader();
+        const base64Promise = new Promise<string>((resolve) => {
+          reader.onloadend = () => {
+            const base64 = (reader.result as string).split(',')[1];
+            resolve(base64);
+          };
+          reader.readAsDataURL(imageFile);
+        });
+        
+        const base64 = await base64Promise;
+        const ext = imageFile.name.split('.').pop() || 'jpg';
+        body = { ...body, image_base64: base64, image_type: ext };
+      }
 
       const res = await fetch(url, {
         method,
@@ -188,9 +234,17 @@ const NewsTab = ({ password }: NewsTabProps) => {
             <CardHeader>
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-4 flex-1 min-w-0">
-                  <div className="p-3 rounded-lg bg-primary/10 shrink-0">
-                    <Icon name={item.icon} className="h-6 w-6 text-primary" />
-                  </div>
+                  {item.image_url ? (
+                    <img 
+                      src={item.image_url} 
+                      alt={item.title}
+                      className="w-16 h-16 object-cover rounded-lg shrink-0"
+                    />
+                  ) : (
+                    <div className="p-3 rounded-lg bg-primary/10 shrink-0">
+                      <Icon name={item.icon} className="h-6 w-6 text-primary" />
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2 flex-wrap">
                       <CardTitle className="text-lg">{item.title}</CardTitle>
@@ -306,6 +360,40 @@ const NewsTab = ({ password }: NewsTabProps) => {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="image">Изображение (опционально)</Label>
+              <div className="space-y-4">
+                {imagePreview && (
+                  <div className="relative inline-block">
+                    <img 
+                      src={imagePreview} 
+                      alt="Preview" 
+                      className="w-full max-w-md h-48 object-cover rounded-lg border"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 right-2"
+                      onClick={handleRemoveImage}
+                    >
+                      <Icon name="X" className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+                <Input
+                  id="image"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="cursor-pointer"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Рекомендуемый размер: 800x400px. Макс. размер: 5 МБ
+                </p>
+              </div>
             </div>
 
             <div className="flex items-center space-x-2">

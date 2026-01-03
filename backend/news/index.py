@@ -1,5 +1,8 @@
 import json
 import os
+import base64
+import uuid
+import boto3
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
@@ -32,7 +35,7 @@ def handler(event: dict, context) -> dict:
                 with conn.cursor(cursor_factory=RealDictCursor) as cur:
                     cur.execute('''
                         SELECT id, title, description, date, category, icon, 
-                               is_published, created_at, updated_at
+                               image_url, is_published, created_at, updated_at
                         FROM news
                         WHERE is_published = TRUE
                         ORDER BY created_at DESC
@@ -59,7 +62,7 @@ def handler(event: dict, context) -> dict:
                 with conn.cursor(cursor_factory=RealDictCursor) as cur:
                     cur.execute('''
                         SELECT id, title, description, date, category, icon, 
-                               is_published, created_at, updated_at
+                               image_url, is_published, created_at, updated_at
                         FROM news
                         ORDER BY created_at DESC
                     ''')
@@ -90,12 +93,33 @@ def handler(event: dict, context) -> dict:
             icon = data.get('icon', 'Newspaper')
             is_published = data.get('is_published', True)
             
+            image_url = None
+            if data.get('image_base64'):
+                s3 = boto3.client('s3',
+                    endpoint_url='https://bucket.poehali.dev',
+                    aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'],
+                    aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY']
+                )
+                
+                image_data = base64.b64decode(data['image_base64'])
+                image_ext = data.get('image_type', 'jpg')
+                image_filename = f"news/{uuid.uuid4()}.{image_ext}"
+                
+                s3.put_object(
+                    Bucket='files',
+                    Key=image_filename,
+                    Body=image_data,
+                    ContentType=f'image/{image_ext}'
+                )
+                
+                image_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{image_filename}"
+            
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute('''
-                    INSERT INTO news (title, description, date, category, icon, is_published)
-                    VALUES (%s, %s, %s, %s, %s, %s)
-                    RETURNING id, title, description, date, category, icon, is_published, created_at, updated_at
-                ''', (title, description, date, category, icon, is_published))
+                    INSERT INTO news (title, description, date, category, icon, image_url, is_published)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    RETURNING id, title, description, date, category, icon, image_url, is_published, created_at, updated_at
+                ''', (title, description, date, category, icon, image_url, is_published))
                 news_item = cur.fetchone()
             
             conn.close()
@@ -124,14 +148,35 @@ def handler(event: dict, context) -> dict:
             icon = data.get('icon')
             is_published = data.get('is_published')
             
+            image_url = data.get('image_url')
+            if data.get('image_base64'):
+                s3 = boto3.client('s3',
+                    endpoint_url='https://bucket.poehali.dev',
+                    aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'],
+                    aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY']
+                )
+                
+                image_data = base64.b64decode(data['image_base64'])
+                image_ext = data.get('image_type', 'jpg')
+                image_filename = f"news/{uuid.uuid4()}.{image_ext}"
+                
+                s3.put_object(
+                    Bucket='files',
+                    Key=image_filename,
+                    Body=image_data,
+                    ContentType=f'image/{image_ext}'
+                )
+                
+                image_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{image_filename}"
+            
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute('''
                     UPDATE news
                     SET title = %s, description = %s, date = %s, category = %s, 
-                        icon = %s, is_published = %s, updated_at = CURRENT_TIMESTAMP
+                        icon = %s, image_url = %s, is_published = %s, updated_at = CURRENT_TIMESTAMP
                     WHERE id = %s
-                    RETURNING id, title, description, date, category, icon, is_published, created_at, updated_at
-                ''', (title, description, date, category, icon, is_published, news_id))
+                    RETURNING id, title, description, date, category, icon, image_url, is_published, created_at, updated_at
+                ''', (title, description, date, category, icon, image_url, is_published, news_id))
                 news_item = cur.fetchone()
             
             conn.close()

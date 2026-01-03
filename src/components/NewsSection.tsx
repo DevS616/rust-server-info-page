@@ -10,6 +10,7 @@ interface NewsItem {
   date: string;
   category: 'update' | 'event' | 'wipe' | 'news';
   icon: string;
+  image_url?: string;
   is_published: boolean;
 }
 
@@ -70,7 +71,16 @@ const NewsSection = () => {
 
         <div className="grid md:grid-cols-2 gap-6">
           {newsItems.map((item) => (
-            <Card key={item.id} className="group hover:shadow-lg transition-all duration-300 hover:scale-[1.02] border-muted">
+            <Card key={item.id} className="group hover:shadow-lg transition-all duration-300 hover:scale-[1.02] border-muted overflow-hidden">
+              {item.image_url && (
+                <div className="w-full h-48 overflow-hidden">
+                  <img 
+                    src={item.image_url} 
+                    alt={item.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                </div>
+              )}
               <CardHeader>
                 <div className="flex items-start justify-between gap-4 mb-2">
                   <div className="p-3 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
