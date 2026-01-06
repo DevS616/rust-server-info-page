@@ -31,7 +31,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         if method == 'GET':
             cur.execute("""
                 SELECT is_maintenance, maintenance_title, maintenance_subtitle,
-                       newyear_snow_enabled, newyear_lights_enabled
+                       newyear_snow_enabled, newyear_lights_enabled, active_holiday
                 FROM site_settings WHERE id = 1
             """)
             result = cur.fetchone()
