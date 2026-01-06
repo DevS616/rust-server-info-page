@@ -414,7 +414,7 @@ def add_reply(ticket_id: str, event: Dict[str, Any], user_data: Dict[str, Any]) 
     
     is_admin = user_data.get('is_admin', False)
     
-    cur.execute(f"SELECT * FROM tickets WHERE id = {ticket_id_int}")
+    cur.execute(f"SELECT t.*, u.telegram_chat_id, u.steam_username FROM tickets t LEFT JOIN users u ON t.user_id = u.id WHERE t.id = {ticket_id_int}")
     ticket = cur.fetchone()
     
     if not ticket:
@@ -460,6 +460,31 @@ def add_reply(ticket_id: str, event: Dict[str, Any], user_data: Dict[str, Any]) 
     cur.close()
     conn.close()
     
+    # Отправка уведомления в Telegram если это ответ админа
+    if is_admin and ticket.get('telegram_chat_id'):
+        try:
+            site_url = 'https://play.devilrust.ru'
+            ticket_url = f'{site_url}/support/ticket/{ticket_id_int}'
+            
+            telegram_bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+            if telegram_bot_token:
+                telegram_text = f"📩 *Новый ответ на ваше обращение #{ticket_id_int}*\n\n"
+                telegram_text += f"*Тема:* {ticket['subject']}\n\n"
+                telegram_text += f"*Ответ администратора:*\n{message[:200]}{'...' if len(message) > 200 else ''}\n\n"
+                telegram_text += f"[Открыть обращение]({ticket_url})"
+                
+                requests.post(
+                    f"https://api.telegram.org/bot{telegram_bot_token}/sendMessage",
+                    json={
+                        'chat_id': ticket['telegram_chat_id'],
+                        'text': telegram_text,
+                        'parse_mode': 'Markdown'
+                    },
+                    timeout=5
+                )
+        except Exception as e:
+            print(f'Failed to send telegram notification: {e}')
+    
     return {
         'statusCode': 201,
         'headers': {
@@ -490,18 +515,55 @@ def update_status(ticket_id: str, event: Dict[str, Any], user_data: Dict[str, An
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor(cursor_factory=RealDictCursor)
     
-    new_status_escaped = escape_sql(new_status)
-    cur.execute(f"UPDATE tickets SET status = '{new_status_escaped}', updated_at = NOW() WHERE id = {ticket_id_int} RETURNING *")
-    ticket = cur.fetchone()
+    # Получаем старый статус и данные пользователя
+    cur.execute(f"SELECT t.*, u.telegram_chat_id FROM tickets t LEFT JOIN users u ON t.user_id = u.id WHERE t.id = {ticket_id_int}")
+    old_ticket = cur.fetchone()
     
-    if not ticket:
+    if not old_ticket:
         cur.close()
         conn.close()
         return error_response('Ticket not found', 404)
     
+    old_status = old_ticket['status']
+    new_status_escaped = escape_sql(new_status)
+    cur.execute(f"UPDATE tickets SET status = '{new_status_escaped}', updated_at = NOW() WHERE id = {ticket_id_int} RETURNING *")
+    ticket = cur.fetchone()
+    
     conn.commit()
     cur.close()
     conn.close()
+    
+    # Отправка уведомления в Telegram при смене статуса
+    if old_status != new_status and old_ticket.get('telegram_chat_id'):
+        try:
+            status_names = {
+                'open': 'Открыт',
+                'in_progress': 'В работе',
+                'answered': 'Получен ответ',
+                'closed': 'Закрыт'
+            }
+            
+            site_url = 'https://play.devilrust.ru'
+            ticket_url = f'{site_url}/support/ticket/{ticket_id_int}'
+            
+            telegram_bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+            if telegram_bot_token:
+                telegram_text = f"🔔 *Статус обращения #{ticket_id_int} изменён*\n\n"
+                telegram_text += f"*Тема:* {ticket['subject']}\n"
+                telegram_text += f"*Новый статус:* {status_names.get(new_status, new_status)}\n\n"
+                telegram_text += f"[Открыть обращение]({ticket_url})"
+                
+                requests.post(
+                    f"https://api.telegram.org/bot{telegram_bot_token}/sendMessage",
+                    json={
+                        'chat_id': old_ticket['telegram_chat_id'],
+                        'text': telegram_text,
+                        'parse_mode': 'Markdown'
+                    },
+                    timeout=5
+                )
+        except Exception as e:
+            print(f'Failed to send telegram notification: {e}')
     
     return {
         'statusCode': 200,
@@ -522,6 +584,7 @@ def rate_ticket(ticket_id: str, event: Dict[str, Any], user_data: Dict[str, Any]
     
     body = json.loads(event.get('body', '{}'))
     rating = body.get('rating')
+    comment = body.get('comment', '').strip()
     
     try:
         rating_int = int(rating)
@@ -549,7 +612,13 @@ def rate_ticket(ticket_id: str, event: Dict[str, Any], user_data: Dict[str, Any]
         conn.close()
         return error_response('You can only rate your own tickets', 403)
     
-    cur.execute(f"UPDATE tickets SET rating = {rating_int}, updated_at = NOW() WHERE id = {ticket_id_int} RETURNING *")
+    if comment:
+        comment_escaped = escape_sql(comment)
+        comment_sql = f"rating_comment = '{comment_escaped}',"
+    else:
+        comment_sql = "rating_comment = NULL,"
+    
+    cur.execute(f"UPDATE tickets SET rating = {rating_int}, {comment_sql} rated_at = NOW(), updated_at = NOW() WHERE id = {ticket_id_int} RETURNING *")
     updated_ticket = cur.fetchone()
     
     conn.commit()

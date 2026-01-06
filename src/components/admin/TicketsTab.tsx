@@ -20,6 +20,9 @@ interface Ticket {
   message_count: number;
   unread_count?: number;
   user_id: number;
+  rating?: number;
+  rating_comment?: string;
+  rated_at?: string;
 }
 
 interface Message {
@@ -133,6 +136,17 @@ const TicketsTab = ({
                   </Button>
                 </div>
                 <p className="text-xs md:text-sm text-muted-foreground mt-1">Сервер: {selectedTicket.server}</p>
+                {selectedTicket.rating && (
+                  <div className="mt-2 p-2 bg-yellow-500/10 border border-yellow-500/30 rounded">
+                    <div className="flex items-center gap-1 mb-1">
+                      <Icon name="Star" size={16} className="text-yellow-500" />
+                      <span className="text-sm font-semibold">Оценка: {selectedTicket.rating}/5</span>
+                    </div>
+                    {selectedTicket.rating_comment && (
+                      <p className="text-xs text-muted-foreground italic">"{selectedTicket.rating_comment}"</p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
             
@@ -411,6 +425,12 @@ const TicketsTab = ({
                   <div className="flex items-center gap-2 md:gap-4 mt-2 text-xs md:text-sm text-muted-foreground flex-wrap">
                     <span className="whitespace-nowrap">Сообщений: {ticket.message_count}</span>
                     <span className="whitespace-nowrap">{new Date(ticket.created_at).toLocaleDateString('ru-RU')}</span>
+                    {ticket.rating && (
+                      <div className="flex items-center gap-1 text-yellow-500">
+                        <Icon name="Star" size={14} className="fill-yellow-500" />
+                        <span className="font-semibold">{ticket.rating}/5</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
