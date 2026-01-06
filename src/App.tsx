@@ -27,8 +27,17 @@ const AppContent = () => {
   const isAdminPath = location.pathname.startsWith('/admin');
 
   useEffect(() => {
+    let lastCheckTime = 0;
+    const MIN_CHECK_INTERVAL = 60000;
+
     const checkMaintenance = async () => {
       if (document.hidden) return;
+      
+      const now = Date.now();
+      if (now - lastCheckTime < MIN_CHECK_INTERVAL) {
+        return;
+      }
+      lastCheckTime = now;
       
       try {
         const res = await fetch('https://functions.poehali.dev/1ad77753-040f-405c-8e61-7230f64e30e9/');
@@ -46,8 +55,7 @@ const AppContent = () => {
     };
 
     checkMaintenance();
-    // Проверка режима обслуживания каждые 10 минут вместо 30 секунд
-    const interval = setInterval(checkMaintenance, 600000); // 10 минут = 600000ms
+    const interval = setInterval(checkMaintenance, 600000);
     
     const handleVisibilityChange = () => {
       if (!document.hidden) {
