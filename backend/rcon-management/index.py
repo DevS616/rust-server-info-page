@@ -56,11 +56,20 @@ def handler(event: dict, context) -> dict:
 
 
 def verify_admin_token(token: str, secret: str) -> bool:
-    import jwt
+    if not token:
+        return False
+    
     try:
-        jwt.decode(token, secret, algorithms=['HS256'])
+        import jwt
+        payload = jwt.decode(token, secret, algorithms=['HS256'])
+        
+        if not payload.get('is_admin'):
+            print('Token is valid but is_admin flag is missing')
+            return False
+        
         return True
-    except:
+    except Exception as e:
+        print(f'JWT verification failed: {e}')
         return False
 
 
