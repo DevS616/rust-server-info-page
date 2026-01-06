@@ -94,12 +94,16 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 }
             
             body_data = json.loads(event.get('body', '{}'))
+            print(f'Body data: {body_data}')
+            
             is_maintenance = body_data.get('is_maintenance', False)
             maintenance_title = body_data.get('maintenance_title', 'Сайт временно закрыт на технические работы')
             maintenance_subtitle = body_data.get('maintenance_subtitle', 'Подпишитесь на наш Telegram, чтобы узнать больше о завершении работ')
             newyear_snow = body_data.get('newyear_snow_enabled')
             newyear_lights = body_data.get('newyear_lights_enabled')
             active_holiday = body_data.get('active_holiday')
+            
+            print(f'Active holiday to save: {active_holiday}')
             
             update_fields = []
             update_values = []
@@ -126,12 +130,18 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             update_fields.append('updated_at = NOW()')
             update_values.append(1)
             
-            cur.execute(f"""
+            query = f"""
                 UPDATE site_settings 
                 SET {', '.join(update_fields)}
                 WHERE id = %s
-            """, tuple(update_values))
+            """
+            print(f'Update query: {query}')
+            print(f'Update values: {tuple(update_values)}')
+            
+            cur.execute(query, tuple(update_values))
             conn.commit()
+            
+            print('Update committed successfully')
             
             cur.execute("""
                 SELECT is_maintenance, maintenance_title, maintenance_subtitle,
