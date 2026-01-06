@@ -217,6 +217,7 @@ const ServersSection = () => {
     const stats = serverStats[server.battlemetricsId];
     const online = stats?.players ?? '—';
     const slots = stats?.maxPlayers ?? '—';
+    const isServerOnline = stats !== undefined;
     const isVisible = visibleCards.has(server.id);
 
     return (
@@ -250,11 +251,11 @@ const ServersSection = () => {
                       <span className="text-muted-foreground">/</span>
                       <span className="text-muted-foreground">{slots}</span>
                     </div>
-                    <div className={`h-1.5 w-full rounded-full ${stats ? 'bg-green-500' : 'bg-red-500'}`} />
+                    <div className={`h-1.5 w-full rounded-full ${isServerOnline ? 'bg-green-500' : 'bg-red-500'}`} />
                   </div>
                 </TooltipTrigger>
                 <TooltipContent className="max-w-xs">
-                  <p>{stats ? 'Сервер включен' : 'Сервер выключен'}</p>
+                  <p>{isServerOnline ? 'Сервер включен' : 'Сервер выключен'}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
