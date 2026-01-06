@@ -12,7 +12,7 @@ namespace Oxide.Plugins
     class PlayerManagementAPI : RustPlugin
     {
         [PluginReference]
-        private Plugin IQBanSystem;
+        private RustPlugin IQBanSystem;
         private Configuration config;
 
         #region Configuration
