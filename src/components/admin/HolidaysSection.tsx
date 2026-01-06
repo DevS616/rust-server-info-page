@@ -53,7 +53,11 @@ const HolidaysSection = ({ token }: HolidaysSectionProps) => {
       if (res.ok) {
         const data = await res.json();
         console.log('Response data:', data);
-        setActiveHoliday(data.active_holiday || null);
+        const finalValue = data.active_holiday || null;
+        setActiveHoliday(finalValue);
+        
+        window.dispatchEvent(new CustomEvent('holidayChanged', { detail: finalValue }));
+        console.log('Dispatched holidayChanged event with:', finalValue);
         
         const holidayNames: Record<string, string> = {
           newyear: 'Новый год',
