@@ -100,13 +100,16 @@ namespace Oxide.Plugins
                 position = $"{p.transform.position.x:F0}, {p.transform.position.y:F0}, {p.transform.position.z:F0}"
             }).ToList();
 
-            arg.ReplyWith(JsonConvert.SerializeObject(new
+            var response = JsonConvert.SerializeObject(new
             {
                 success = true,
                 server_name = ConVar.Server.hostname,
                 players = players,
                 total = players.Count
-            }));
+            });
+            
+            // Используем SendReply для корректной работы с RCON
+            SendReply(arg, response);
         }
 
         [ConsoleCommand("playerapi.kick")]
@@ -120,7 +123,7 @@ namespace Oxide.Plugins
             var player = FindPlayer(playerId);
             if (player == null)
             {
-                arg.ReplyWith(JsonConvert.SerializeObject(new { success = false, error = "Player not found" }));
+                SendReply(arg, JsonConvert.SerializeObject(new { success = false, error = "Player not found" }));
                 return;
             }
 
@@ -131,7 +134,7 @@ namespace Oxide.Plugins
             }
             
             player.Kick(reason);
-            arg.ReplyWith(JsonConvert.SerializeObject(new { success = true, message = $"Игрок {player.displayName} кикнут" }));
+            SendReply(arg, JsonConvert.SerializeObject(new { success = true, message = $"Игрок {player.displayName} кикнут" }));
         }
 
         [ConsoleCommand("playerapi.ban")]
@@ -146,7 +149,7 @@ namespace Oxide.Plugins
             var player = FindPlayer(playerId);
             if (player == null)
             {
-                arg.ReplyWith(JsonConvert.SerializeObject(new { success = false, error = "Player not found" }));
+                SendReply(arg, JsonConvert.SerializeObject(new { success = false, error = "Player not found" }));
                 return;
             }
 
@@ -164,7 +167,7 @@ namespace Oxide.Plugins
                     
                     if (canBan is string || (canBan is bool && !(bool)canBan))
                     {
-                        arg.ReplyWith(JsonConvert.SerializeObject(new 
+                        SendReply(arg, JsonConvert.SerializeObject(new 
                         { 
                             success = false, 
                             error = canBan is string ? (string)canBan : "Ban blocked by another plugin"
@@ -186,7 +189,7 @@ namespace Oxide.Plugins
                         player.Kick($"Навсегда забанен: {reason}");
                     }
                     
-                    arg.ReplyWith(JsonConvert.SerializeObject(new 
+                    SendReply(arg, JsonConvert.SerializeObject(new 
                     { 
                         success = true, 
                         message = $"Игрок {player.displayName} забанен через IQBanSystem",
@@ -197,7 +200,7 @@ namespace Oxide.Plugins
                 catch (Exception ex)
                 {
                     PrintError($"Ошибка IQBanSystem: {ex.Message}");
-                    arg.ReplyWith(JsonConvert.SerializeObject(new 
+                    SendReply(arg, JsonConvert.SerializeObject(new 
                     { 
                         success = false, 
                         error = $"IQBanSystem error: {ex.Message}"
@@ -227,7 +230,7 @@ namespace Oxide.Plugins
                 player.Kick($"Навсегда забанен: {reason}");
             }
 
-            arg.ReplyWith(JsonConvert.SerializeObject(new 
+            SendReply(arg, JsonConvert.SerializeObject(new 
             { 
                 success = true, 
                 message = $"Игрок {player.displayName} забанен (ServerUsers)",
@@ -246,7 +249,7 @@ namespace Oxide.Plugins
             var player = FindPlayer(playerId);
             if (player == null)
             {
-                arg.ReplyWith(JsonConvert.SerializeObject(new { success = false, error = "Player not found" }));
+                SendReply(arg, JsonConvert.SerializeObject(new { success = false, error = "Player not found" }));
                 return;
             }
 
@@ -261,10 +264,10 @@ namespace Oxide.Plugins
                 }
             });
 
-            arg.ReplyWith(JsonConvert.SerializeObject(new 
+            SendReply(arg, JsonConvert.SerializeObject(new 
             { 
                 success = true, 
-                message = $"Player {player.displayName} muted for {durationMinutes} minutes" 
+                message = $"Игрок {player.displayName} замучен на {durationMinutes} минут" 
             }));
         }
 
@@ -277,7 +280,7 @@ namespace Oxide.Plugins
             var providedKey = arg.GetString(arg.Args.Length - 1);
             if (providedKey != config.ApiKey)
             {
-                arg.ReplyWith(JsonConvert.SerializeObject(new { success = false, error = "Invalid API key" }));
+                SendReply(arg, JsonConvert.SerializeObject(new { success = false, error = "Invalid API key" }));
                 return false;
             }
             return true;
