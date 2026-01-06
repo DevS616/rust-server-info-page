@@ -8,10 +8,12 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { monitoringService } from '@/services/monitoringService';
+import serversData from '@/data/servers.json';
 
 const HeroSection = () => {
   const [totalPlayers, setTotalPlayers] = useState<number | null>(null);
   const [displayPlayers, setDisplayPlayers] = useState<number>(0);
+  const [onlineServersCount, setOnlineServersCount] = useState<number>(0);
   const [coinRain, setCoinRain] = useState(false);
   const lastVendingSound = useRef(0);
 
@@ -47,6 +49,20 @@ const HeroSection = () => {
     const unsubscribe = monitoringService.subscribe((data) => {
       if (data?.result === 'success' && data.data?.total?.players !== undefined) {
         setTotalPlayers(data.data.total.players);
+        
+        const allServers = [...serversData.pveServers, ...serversData.pvpServers];
+        let onlineCount = 0;
+        
+        data.data.servers.forEach((server: any) => {
+          const serverIp = `${server.ip}:${server.port}`;
+          const matchedServer = allServers.find(s => s.serverIp === serverIp);
+          
+          if (matchedServer && server.playersMax > 0) {
+            onlineCount++;
+          }
+        });
+        
+        setOnlineServersCount(onlineCount);
       }
     });
     
@@ -167,8 +183,8 @@ const HeroSection = () => {
 
           <div className="grid grid-cols-3 gap-8 pt-8">
             <div className="flex flex-col items-center p-4 rounded-lg glow-border bg-card/50 backdrop-blur-sm">
-              <div className="text-4xl font-bold text-primary glow-text">9</div>
-              <div className="text-sm text-muted-foreground uppercase tracking-wider">Серверов</div>
+              <div className="text-4xl font-bold text-primary glow-text">{onlineServersCount || 9}</div>
+              <div className="text-sm text-muted-foreground uppercase tracking-wider">Серверов онлайн</div>
             </div>
 <TooltipProvider>
               <Tooltip>
