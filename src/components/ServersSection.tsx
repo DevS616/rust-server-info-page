@@ -63,7 +63,9 @@ type FilterType = 'all' | 'pve' | 'pvp';
 const ServersSection = () => {
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isConnectDialogOpen, setIsConnectDialogOpen] = useState(false);
   const [selectedServer, setSelectedServer] = useState<typeof pveServers[0] | null>(null);
+  const [connectServer, setConnectServer] = useState<typeof pveServers[0] | null>(null);
   const [sortBy, setSortBy] = useState<SortType>('number');
   const [filterBy, setFilterBy] = useState<FilterType>('all');
   const [serverStats, setServerStats] = useState<Record<string, { players: number; maxPlayers: number }>>({});
@@ -157,8 +159,14 @@ const ServersSection = () => {
     };
   }, [sortBy, filterBy]);
 
-  const handleConnect = (ip: string) => {
-    const connectCommand = `connect ${ip}`;
+  const handleConnect = (server: typeof pveServers[0]) => {
+    setConnectServer(server);
+    setIsConnectDialogOpen(true);
+  };
+
+  const handleCopyConnectCommand = () => {
+    if (!connectServer) return;
+    const connectCommand = `connect ${connectServer.ip}`;
     navigator.clipboard.writeText(connectCommand);
     toast({
       title: "Команда скопирована!",
@@ -299,7 +307,7 @@ const ServersSection = () => {
             <div className="flex gap-2">
               <Button 
                 className="flex-1 font-semibold uppercase tracking-wider" 
-                onClick={() => handleConnect(server.ip)}
+                onClick={() => handleConnect(server)}
                 onMouseEnter={playHoverSound}
               >
                 <Icon name="Rocket" className="mr-2 h-4 w-4" />
@@ -424,7 +432,7 @@ const ServersSection = () => {
               size="lg"
               onClick={() => {
                 if (selectedServer) {
-                  handleConnect(selectedServer.ip);
+                  handleConnect(selectedServer);
                   setIsDialogOpen(false);
                 }
               }}
@@ -432,6 +440,95 @@ const ServersSection = () => {
             >
               <Icon name="Rocket" className="mr-2 h-5 w-5" />
               Подключиться к серверу
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isConnectDialogOpen} onOpenChange={setIsConnectDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl flex items-center gap-2">
+              <Icon name="Rocket" className="h-6 w-6 text-primary" />
+              Как подключиться к серверу
+            </DialogTitle>
+            <DialogDescription>
+              Следуйте инструкции ниже, чтобы зайти на {connectServer?.name}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 mt-4">
+            <div className="space-y-4">
+              <div className="flex gap-4 items-start p-4 rounded-lg bg-primary/5 border border-primary/10">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
+                  1
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold mb-2">Запустите Rust</h4>
+                  <p className="text-sm text-muted-foreground">Откройте игру и дождитесь полной загрузки главного меню</p>
+                </div>
+              </div>
+
+              <div className="flex gap-4 items-start p-4 rounded-lg bg-primary/5 border border-primary/10">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
+                  2
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold mb-2">Откройте консоль</h4>
+                  <p className="text-sm text-muted-foreground mb-2">Нажмите клавишу <kbd className="px-2 py-1 bg-background border rounded">F1</kbd> на клавиатуре</p>
+                  <p className="text-xs text-muted-foreground">Откроется консоль разработчика в левой части экрана</p>
+                </div>
+              </div>
+
+              <div className="flex gap-4 items-start p-4 rounded-lg bg-primary/5 border border-primary/10">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
+                  3
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold mb-3">Скопируйте команду подключения</h4>
+                  <div className="flex items-center gap-2 p-3 rounded-lg bg-background border">
+                    <code className="flex-1 text-sm font-mono text-primary">connect {connectServer?.ip}</code>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleCopyConnectCommand}
+                      className="flex-shrink-0"
+                    >
+                      <Icon name="Copy" className="h-4 w-4 mr-2" />
+                      Копировать
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-4 items-start p-4 rounded-lg bg-primary/5 border border-primary/10">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
+                  4
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold mb-2">Вставьте и выполните</h4>
+                  <p className="text-sm text-muted-foreground mb-2">Вставьте команду в консоль (Ctrl+V) и нажмите <kbd className="px-2 py-1 bg-background border rounded">Enter</kbd></p>
+                  <p className="text-xs text-muted-foreground">Начнётся подключение к серверу, дождитесь загрузки!</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+              <div className="flex items-start gap-3">
+                <Icon name="Info" className="h-5 w-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-semibold text-yellow-500 mb-1">Совет</p>
+                  <p className="text-muted-foreground">Если у вас возникли проблемы с подключением, попробуйте перезапустить игру или проверьте подключение к интернету</p>
+                </div>
+              </div>
+            </div>
+
+            <Button 
+              className="w-full font-semibold" 
+              size="lg"
+              onClick={() => setIsConnectDialogOpen(false)}
+            >
+              Понятно, спасибо!
             </Button>
           </div>
         </DialogContent>
