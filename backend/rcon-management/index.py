@@ -154,14 +154,28 @@ class RCONClient:
         try:
             size_data = self.socket.recv(4)
             if len(size_data) < 4:
+                print(f'Failed to read size header: got {len(size_data)} bytes')
                 return None
             
             size = struct.unpack('<i', size_data)[0]
-            data = self.socket.recv(size)
+            print(f'Packet size: {size} bytes')
+            
+            # Читаем данные по частям, пока не получим весь пакет
+            data = b''
+            while len(data) < size:
+                chunk = self.socket.recv(size - len(data))
+                if not chunk:
+                    print(f'Connection closed while reading packet')
+                    return None
+                data += chunk
+            
+            print(f'Received {len(data)} bytes')
             
             req_id = struct.unpack('<i', data[0:4])[0]
             req_type = struct.unpack('<i', data[4:8])[0]
             body = data[8:-2].decode('utf-8', errors='ignore')
+            
+            print(f'Packet: id={req_id}, type={req_type}, body_len={len(body)}')
             
             return (req_id, req_type, body)
         except Exception as e:
