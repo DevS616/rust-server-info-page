@@ -19,8 +19,15 @@ const Header = () => {
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
+    let lastCheckTime = 0;
+    const MIN_CHECK_INTERVAL = 600000;
+
     const checkUnread = async () => {
       if (document.hidden) return;
+      
+      const now = Date.now();
+      if (now - lastCheckTime < MIN_CHECK_INTERVAL) return;
+      lastCheckTime = now;
       
       const token = localStorage.getItem('support_token');
       if (!token) return;
@@ -40,7 +47,7 @@ const Header = () => {
     };
 
     checkUnread();
-    const interval = setInterval(checkUnread, 300000);
+    const interval = setInterval(checkUnread, 600000);
     
     const handleVisibilityChange = () => {
       if (!document.hidden) {

@@ -97,16 +97,24 @@ class MonitoringService {
   }
 
   private startAutoFetch(): void {
+    let lastFetchTime = Date.now();
+    const MIN_FETCH_INTERVAL = 600000;
+
     this.fetchData();
     this.fetchInterval = window.setInterval(() => {
       if (document.visibilityState === 'visible') {
         this.fetchData();
+        lastFetchTime = Date.now();
       }
-    }, 300000);
+    }, 600000);
 
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible' && !this.isFetching) {
-        this.fetchData();
+        const now = Date.now();
+        if (now - lastFetchTime >= MIN_FETCH_INTERVAL) {
+          this.fetchData();
+          lastFetchTime = now;
+        }
       }
     });
   }

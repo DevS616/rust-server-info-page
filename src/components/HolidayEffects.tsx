@@ -24,10 +24,8 @@ const HolidayEffects = () => {
 
     loadHoliday();
     window.addEventListener('holidayChanged', handleHolidayChange as EventListener);
-    const interval = setInterval(loadHoliday, 30000);
     
     return () => {
-      clearInterval(interval);
       window.removeEventListener('holidayChanged', handleHolidayChange as EventListener);
     };
   }, []);
