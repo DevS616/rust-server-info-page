@@ -108,8 +108,7 @@ namespace Oxide.Plugins
                 total = players.Count
             }, Formatting.None);
             
-            // Выводим в консоль с префиксом для парсинга через RCON
-            Puts($"[PLAYERAPI_RESPONSE]{response}");
+            arg.ReplyWith(response);
         }
 
         [ConsoleCommand("playerapi.kick")]
@@ -123,7 +122,7 @@ namespace Oxide.Plugins
             var player = FindPlayer(playerId);
             if (player == null)
             {
-                SendReply(arg, JsonConvert.SerializeObject(new { success = false, error = "Player not found" }));
+                arg.ReplyWith(JsonConvert.SerializeObject(new { success = false, error = "Player not found" }));
                 return;
             }
 
@@ -134,7 +133,7 @@ namespace Oxide.Plugins
             }
             
             player.Kick(reason);
-            SendReply(arg, JsonConvert.SerializeObject(new { success = true, message = $"Игрок {player.displayName} кикнут" }));
+            arg.ReplyWith(JsonConvert.SerializeObject(new { success = true, message = $"Игрок {player.displayName} кикнут" }));
         }
 
         [ConsoleCommand("playerapi.ban")]
@@ -149,7 +148,7 @@ namespace Oxide.Plugins
             var player = FindPlayer(playerId);
             if (player == null)
             {
-                SendReply(arg, JsonConvert.SerializeObject(new { success = false, error = "Player not found" }));
+                arg.ReplyWith(JsonConvert.SerializeObject(new { success = false, error = "Player not found" }));
                 return;
             }
 
@@ -167,7 +166,7 @@ namespace Oxide.Plugins
                     
                     if (canBan is string || (canBan is bool && !(bool)canBan))
                     {
-                        SendReply(arg, JsonConvert.SerializeObject(new 
+                        arg.ReplyWith(JsonConvert.SerializeObject(new 
                         { 
                             success = false, 
                             error = canBan is string ? (string)canBan : "Ban blocked by another plugin"
@@ -189,7 +188,7 @@ namespace Oxide.Plugins
                         player.Kick($"Навсегда забанен: {reason}");
                     }
                     
-                    SendReply(arg, JsonConvert.SerializeObject(new 
+                    arg.ReplyWith(JsonConvert.SerializeObject(new 
                     { 
                         success = true, 
                         message = $"Игрок {player.displayName} забанен через IQBanSystem",
@@ -200,7 +199,7 @@ namespace Oxide.Plugins
                 catch (Exception ex)
                 {
                     PrintError($"Ошибка IQBanSystem: {ex.Message}");
-                    SendReply(arg, JsonConvert.SerializeObject(new 
+                    arg.ReplyWith(JsonConvert.SerializeObject(new 
                     { 
                         success = false, 
                         error = $"IQBanSystem error: {ex.Message}"
@@ -230,7 +229,7 @@ namespace Oxide.Plugins
                 player.Kick($"Навсегда забанен: {reason}");
             }
 
-            SendReply(arg, JsonConvert.SerializeObject(new 
+            arg.ReplyWith(JsonConvert.SerializeObject(new 
             { 
                 success = true, 
                 message = $"Игрок {player.displayName} забанен (ServerUsers)",
@@ -249,7 +248,7 @@ namespace Oxide.Plugins
             var player = FindPlayer(playerId);
             if (player == null)
             {
-                SendReply(arg, JsonConvert.SerializeObject(new { success = false, error = "Player not found" }));
+                arg.ReplyWith(JsonConvert.SerializeObject(new { success = false, error = "Player not found" }));
                 return;
             }
 
@@ -264,7 +263,7 @@ namespace Oxide.Plugins
                 }
             });
 
-            SendReply(arg, JsonConvert.SerializeObject(new 
+            arg.ReplyWith(JsonConvert.SerializeObject(new 
             { 
                 success = true, 
                 message = $"Игрок {player.displayName} замучен на {durationMinutes} минут" 
