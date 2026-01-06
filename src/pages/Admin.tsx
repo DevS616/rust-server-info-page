@@ -287,6 +287,24 @@ const Admin = () => {
     }
   };
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'open': return 'bg-green-500/20 text-green-400 border-green-500/30';
+      case 'closed': return 'bg-slate-500/20 text-slate-400 border-slate-500/30';
+      case 'in_progress': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+      default: return 'bg-slate-500/20 text-slate-400 border-slate-500/30';
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'open': return 'Открыт';
+      case 'closed': return 'Закрыт';
+      case 'in_progress': return 'В работе';
+      default: return status;
+    }
+  };
+
   if (!token) {
     return (
       <AdminLogin 
@@ -342,11 +360,20 @@ const Admin = () => {
             <TicketsTab 
               tickets={filteredTickets}
               selectedTicket={selectedTicket}
+              setSelectedTicket={setSelectedTicket}
               messages={messages}
               reply={reply}
               setReply={setReply}
               replyFile={replyFile}
               setReplyFile={setReplyFile}
+              handleSendReply={handleSendReply}
+              handleChangeStatus={handleChangeStatus}
+              handleBlockUser={handleBlockUser}
+              handleDeleteTicket={handleDeleteTicket}
+              loadTicketDetails={loadTicketDetails}
+              token={token!}
+              getStatusColor={getStatusColor}
+              getStatusText={getStatusText}
               loading={loading}
               filterStatus={filterStatus}
               setFilterStatus={setFilterStatus}
@@ -358,16 +385,7 @@ const Admin = () => {
               setSearchQuery={setSearchQuery}
               sortBy={sortBy}
               setSortBy={setSortBy}
-              servers={servers}
-              onSelectTicket={(ticket) => {
-                setSelectedTicket(ticket);
-                loadTicketDetails(ticket.id.toString(), token!);
-              }}
-              onSendReply={handleSendReply}
-              onChangeStatus={handleChangeStatus}
-              onBlockUser={handleBlockUser}
-              onDeleteTicket={handleDeleteTicket}
-              onBack={() => setSelectedTicket(null)}
+              servers={servers.map(s => s.name)}
             />
           </TabsContent>
 
