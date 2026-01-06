@@ -228,9 +228,17 @@ const ServersSection = () => {
         data-card-id={server.id}
         className={`group relative overflow-hidden rounded-xl border ${borderColor} bg-gradient-to-br ${cardColor} p-6 transition-all hover:shadow-xl hover:shadow-primary/10 flex flex-col h-full ${
           isVisible ? 'server-card-visible' : 'server-card-animate'
-        }`}
+        } ${!isServerOnline ? 'opacity-40' : ''}`}
         style={isVisible ? { animationDelay: `${index * 0.1}s` } : undefined}
       >
+        {!isServerOnline && (
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-20 flex items-center justify-center pointer-events-none">
+            <div className="text-center px-4">
+              <Icon name="PowerOff" className="h-8 w-8 text-red-500 mx-auto mb-2" />
+              <p className="text-sm font-semibold text-foreground">Сервер выключен или на перезагрузке</p>
+            </div>
+          </div>
+        )}
         <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-background/50 opacity-0 transition-opacity group-hover:opacity-100" />
         <div className="relative z-10 flex flex-col h-full">
           <div className="mb-4 flex items-start justify-between">
@@ -299,7 +307,7 @@ const ServersSection = () => {
               </Button>
               <Button 
                 variant="outline" 
-                className={`${borderColor} hover:bg-primary/10`}
+                className={`${borderColor} hover:bg-primary/10 relative z-30`}
                 onClick={() => handleShowDetails(server)}
               >
                 <Icon name="Info" className="h-4 w-4" />
