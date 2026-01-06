@@ -6,7 +6,7 @@ import time
 from typing import Dict, List, Optional, Tuple
 
 def handler(event: dict, context) -> dict:
-    '''Backend для RCON управления игроками на Rust серверах через Oxide плагин'''
+    '''Backend для RCON управления игроками на Rust серверах через Oxide плагин (v2)'''
     
     method = event.get('httpMethod', 'GET')
     
