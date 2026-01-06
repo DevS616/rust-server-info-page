@@ -30,7 +30,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     try:
         if method == 'GET':
             cur.execute("""
-                SELECT is_maintenance, maintenance_title, maintenance_subtitle 
+                SELECT is_maintenance, maintenance_title, maintenance_subtitle,
+                       newyear_snow_enabled, newyear_lights_enabled
                 FROM site_settings WHERE id = 1
             """)
             result = cur.fetchone()
@@ -58,7 +59,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'body': json.dumps({
                     'is_maintenance': result['is_maintenance'],
                     'maintenance_title': result['maintenance_title'],
-                    'maintenance_subtitle': result['maintenance_subtitle']
+                    'maintenance_subtitle': result['maintenance_subtitle'],
+                    'newyear_snow_enabled': result.get('newyear_snow_enabled', True),
+                    'newyear_lights_enabled': result.get('newyear_lights_enabled', True)
                 })
             }
         
@@ -86,19 +89,44 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             is_maintenance = body_data.get('is_maintenance', False)
             maintenance_title = body_data.get('maintenance_title', 'Сайт временно закрыт на технические работы')
             maintenance_subtitle = body_data.get('maintenance_subtitle', 'Подпишитесь на наш Telegram, чтобы узнать больше о завершении работ')
+            newyear_snow = body_data.get('newyear_snow_enabled')
+            newyear_lights = body_data.get('newyear_lights_enabled')
+            
+            update_fields = []
+            update_values = []
+            
+            if 'is_maintenance' in body_data:
+                update_fields.append('is_maintenance = %s')
+                update_values.append(is_maintenance)
+            if 'maintenance_title' in body_data:
+                update_fields.append('maintenance_title = %s')
+                update_values.append(maintenance_title)
+            if 'maintenance_subtitle' in body_data:
+                update_fields.append('maintenance_subtitle = %s')
+                update_values.append(maintenance_subtitle)
+            if 'newyear_snow_enabled' in body_data:
+                update_fields.append('newyear_snow_enabled = %s')
+                update_values.append(newyear_snow)
+            if 'newyear_lights_enabled' in body_data:
+                update_fields.append('newyear_lights_enabled = %s')
+                update_values.append(newyear_lights)
+            
+            update_fields.append('updated_at = NOW()')
+            update_values.append(1)
+            
+            cur.execute(f"""
+                UPDATE site_settings 
+                SET {', '.join(update_fields)}
+                WHERE id = %s
+            """, tuple(update_values))
+            conn.commit()
             
             cur.execute("""
-                INSERT INTO site_settings (id, is_maintenance, maintenance_title, maintenance_subtitle) 
-                VALUES (1, %s, %s, %s) 
-                ON CONFLICT (id) 
-                DO UPDATE SET 
-                    is_maintenance = %s, 
-                    maintenance_title = %s, 
-                    maintenance_subtitle = %s, 
-                    updated_at = NOW()
-            """, (is_maintenance, maintenance_title, maintenance_subtitle,
-                  is_maintenance, maintenance_title, maintenance_subtitle))
-            conn.commit()
+                SELECT is_maintenance, maintenance_title, maintenance_subtitle,
+                       newyear_snow_enabled, newyear_lights_enabled
+                FROM site_settings WHERE id = 1
+            """)
+            updated = cur.fetchone()
             
             return {
                 'statusCode': 200,
@@ -109,9 +137,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'isBase64Encoded': False,
                 'body': json.dumps({
                     'success': True,
-                    'is_maintenance': is_maintenance,
-                    'maintenance_title': maintenance_title,
-                    'maintenance_subtitle': maintenance_subtitle
+                    'is_maintenance': updated['is_maintenance'],
+                    'maintenance_title': updated['maintenance_title'],
+                    'maintenance_subtitle': updated['maintenance_subtitle'],
+                    'newyear_snow_enabled': updated['newyear_snow_enabled'],
+                    'newyear_lights_enabled': updated['newyear_lights_enabled']
                 })
             }
         

@@ -20,6 +20,8 @@ const MaintenanceSection = ({ token }: MaintenanceSectionProps) => {
   const [maintenanceSubtitle, setMaintenanceSubtitle] = useState('Подпишитесь на наш Telegram, чтобы узнать больше о завершении работ');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [newyearSnow, setNewyearSnow] = useState(true);
+  const [newyearLights, setNewyearLights] = useState(true);
 
   useEffect(() => {
     loadMaintenanceStatus();
@@ -33,6 +35,8 @@ const MaintenanceSection = ({ token }: MaintenanceSectionProps) => {
         setIsMaintenance(data.is_maintenance);
         setMaintenanceTitle(data.maintenance_title);
         setMaintenanceSubtitle(data.maintenance_subtitle);
+        setNewyearSnow(data.newyear_snow_enabled ?? true);
+        setNewyearLights(data.newyear_lights_enabled ?? true);
       }
     } catch (error) {
       console.error('Failed to load maintenance status:', error);
@@ -93,7 +97,6 @@ const MaintenanceSection = ({ token }: MaintenanceSectionProps) => {
           'X-Auth-Token': token
         },
         body: JSON.stringify({ 
-          is_maintenance: isMaintenance,
           maintenance_title: maintenanceTitle,
           maintenance_subtitle: maintenanceSubtitle
         })
@@ -224,6 +227,79 @@ const MaintenanceSection = ({ token }: MaintenanceSectionProps) => {
             <Icon name="Settings" className="h-16 w-16 text-primary mx-auto" />
             <h4 className="text-2xl font-bold">{maintenanceTitle}</h4>
             <p className="text-muted-foreground">{maintenanceSubtitle}</p>
+          </div>
+        </div>
+
+        <div className="border-t pt-6 mt-6">
+          <h3 className="text-lg font-semibold mb-3">Новогодние эффекты</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Управление новогодним оформлением сайта
+          </p>
+          
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 p-4 border rounded-lg">
+              <input
+                type="checkbox"
+                id="snow-toggle"
+                checked={newyearSnow}
+                onChange={async (e) => {
+                  const newValue = e.target.checked;
+                  setNewyearSnow(newValue);
+                  try {
+                    const res = await fetch(`${API_BASE}/1ad77753-040f-405c-8e61-7230f64e30e9/`, {
+                      method: 'PUT',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'X-Auth-Token': token
+                      },
+                      body: JSON.stringify({ newyear_snow_enabled: newValue })
+                    });
+                    if (res.ok) {
+                      toast({ title: 'Успешно', description: newValue ? 'Снег включен' : 'Снег отключен' });
+                    }
+                  } catch (error) {
+                    toast({ title: 'Ошибка', description: 'Не удалось обновить настройку', variant: 'destructive' });
+                  }
+                }}
+                className="w-4 h-4"
+              />
+              <Label htmlFor="snow-toggle" className="cursor-pointer flex items-center gap-2">
+                <Icon name="CloudSnow" className="h-5 w-5 text-primary" />
+                Снежинки на сайте
+              </Label>
+            </div>
+
+            <div className="flex items-center gap-3 p-4 border rounded-lg">
+              <input
+                type="checkbox"
+                id="lights-toggle"
+                checked={newyearLights}
+                onChange={async (e) => {
+                  const newValue = e.target.checked;
+                  setNewyearLights(newValue);
+                  try {
+                    const res = await fetch(`${API_BASE}/1ad77753-040f-405c-8e61-7230f64e30e9/`, {
+                      method: 'PUT',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'X-Auth-Token': token
+                      },
+                      body: JSON.stringify({ newyear_lights_enabled: newValue })
+                    });
+                    if (res.ok) {
+                      toast({ title: 'Успешно', description: newValue ? 'Гирлянды включены' : 'Гирлянды отключены' });
+                    }
+                  } catch (error) {
+                    toast({ title: 'Ошибка', description: 'Не удалось обновить настройку', variant: 'destructive' });
+                  }
+                }}
+                className="w-4 h-4"
+              />
+              <Label htmlFor="lights-toggle" className="cursor-pointer flex items-center gap-2">
+                <Icon name="Zap" className="h-5 w-5 text-primary" />
+                Гирлянды на шапке
+              </Label>
+            </div>
           </div>
         </div>
       </div>

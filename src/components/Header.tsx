@@ -18,10 +18,10 @@ const Header = () => {
   const [isRulesOpen, setIsRulesOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [showGarland, setShowGarland] = useState(true);
 
   useEffect(() => {
     const checkUnread = async () => {
-      // Не проверяем если вкладка неактивна
       if (document.hidden) return;
       
       const token = localStorage.getItem('support_token');
@@ -41,20 +41,34 @@ const Header = () => {
       }
     };
 
+    const checkGarlandSettings = async () => {
+      try {
+        const res = await fetch('https://functions.poehali.dev/1ad77753-040f-405c-8e61-7230f64e30e9/');
+        if (res.ok) {
+          const data = await res.json();
+          setShowGarland(data.newyear_lights_enabled ?? true);
+        }
+      } catch (error) {
+        console.error('Failed to check garland settings:', error);
+      }
+    };
+
     checkUnread();
-    // Опрос каждые 5 минут вместо 30 секунд для экономии запросов
-    const interval = setInterval(checkUnread, 300000); // 5 минут = 300000ms
+    checkGarlandSettings();
+    const interval = setInterval(checkUnread, 300000);
+    const garlandInterval = setInterval(checkGarlandSettings, 60000);
     
-    // Проверяем при возвращении на вкладку
     const handleVisibilityChange = () => {
       if (!document.hidden) {
         checkUnread();
+        checkGarlandSettings();
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
     
     return () => {
       clearInterval(interval);
+      clearInterval(garlandInterval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
@@ -133,7 +147,7 @@ const Header = () => {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-primary/20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 shadow-lg shadow-primary/5 relative">
-      <ChristmasGarland />
+      {showGarland && <ChristmasGarland />}
       <div className="container flex h-16 items-center justify-between my-0">
         <a href="/" className="flex items-center space-x-2 group">
           <img 
