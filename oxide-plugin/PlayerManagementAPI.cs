@@ -106,10 +106,10 @@ namespace Oxide.Plugins
                 server_name = ConVar.Server.hostname,
                 players = players,
                 total = players.Count
-            });
+            }, Formatting.None);
             
-            // Используем SendReply для корректной работы с RCON
-            SendReply(arg, response);
+            // Выводим в консоль с префиксом для парсинга через RCON
+            Puts($"[PLAYERAPI_RESPONSE]{response}");
         }
 
         [ConsoleCommand("playerapi.kick")]

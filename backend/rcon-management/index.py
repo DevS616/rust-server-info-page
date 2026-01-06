@@ -212,6 +212,26 @@ def execute_rcon_command(server: Dict[str, str], command: str) -> Optional[str]:
         return None
 
 
+def parse_plugin_response(raw_response: str) -> Optional[dict]:
+    '''Извлекает JSON из ответа плагина с префиксом [PLAYERAPI_RESPONSE]'''
+    if not raw_response:
+        return None
+    
+    # Ищем строку с префиксом
+    lines = raw_response.split('\n')
+    for line in lines:
+        if '[PLAYERAPI_RESPONSE]' in line:
+            try:
+                json_str = line.split('[PLAYERAPI_RESPONSE]', 1)[1].strip()
+                return json.loads(json_str)
+            except (json.JSONDecodeError, IndexError) as e:
+                print(f'Failed to parse plugin response: {e}')
+                print(f'Line: {line}')
+                return None
+    
+    return None
+
+
 def list_all_players() -> dict:
     '''Получает список всех игроков со всех серверов через Oxide плагин'''
     servers = get_rcon_credentials()
@@ -240,19 +260,18 @@ def list_all_players() -> dict:
             response = execute_rcon_command(server, command)
             
             if response:
-                try:
-                    data = json.loads(response)
-                    if data.get('success'):
-                        players = data.get('players', [])
-                        for player in players:
-                            player['server'] = server['name']
-                        all_players.extend(players)
-                        print(f'Found {len(players)} players on {server["name"]}')
-                    else:
-                        print(f'API error on {server["name"]}: {data.get("error", "Unknown")}')
-                except json.JSONDecodeError as e:
-                    print(f'JSON parse error for {server["name"]}: {e}')
-                    print(f'Response: {response[:200]}')
+                data = parse_plugin_response(response)
+                if data and data.get('success'):
+                    players = data.get('players', [])
+                    for player in players:
+                        player['server'] = server['name']
+                    all_players.extend(players)
+                    print(f'Found {len(players)} players on {server["name"]}')
+                elif data:
+                    print(f'API error on {server["name"]}: {data.get("error", "Unknown")}')
+                else:
+                    print(f'No parseable response from {server["name"]}')
+                    print(f'Raw response: {response[:300]}')
             else:
                 print(f'No response from {server["name"]}')
         except Exception as e:
@@ -301,8 +320,8 @@ def kick_player(data: dict) -> dict:
     result = execute_rcon_command(target_server, command)
     
     if result:
-        try:
-            data = json.loads(result)
+        data = parse_plugin_response(result)
+        if data:
             if data.get('success'):
                 return {
                     'statusCode': 200,
@@ -315,12 +334,6 @@ def kick_player(data: dict) -> dict:
                     'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
                     'body': json.dumps({'error': data.get('error', 'Failed to kick player')})
                 }
-        except json.JSONDecodeError:
-            return {
-                'statusCode': 500,
-                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                'body': json.dumps({'error': 'Invalid response from server'})
-            }
     
     return {
         'statusCode': 500,
@@ -365,8 +378,8 @@ def ban_player(data: dict) -> dict:
     result = execute_rcon_command(target_server, command)
     
     if result:
-        try:
-            data = json.loads(result)
+        data = parse_plugin_response(result)
+        if data:
             if data.get('success'):
                 return {
                     'statusCode': 200,
@@ -428,8 +441,8 @@ def mute_player(data: dict) -> dict:
     result = execute_rcon_command(target_server, command)
     
     if result:
-        try:
-            data = json.loads(result)
+        data = parse_plugin_response(result)
+        if data:
             if data.get('success'):
                 return {
                     'statusCode': 200,
@@ -442,12 +455,6 @@ def mute_player(data: dict) -> dict:
                     'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
                     'body': json.dumps({'error': data.get('error', 'Failed to mute player')})
                 }
-        except json.JSONDecodeError:
-            return {
-                'statusCode': 500,
-                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                'body': json.dumps({'error': 'Invalid response from server'})
-            }
     
     return {
         'statusCode': 500,
