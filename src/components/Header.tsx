@@ -4,7 +4,6 @@ import Icon from '@/components/ui/icon';
 import { useEffect, useState } from 'react';
 import authConfig from '@/data/authorization.json';
 import RulesModal from '@/components/RulesModal';
-import ChristmasGarland from '@/components/ChristmasGarland';
 import {
   Sheet,
   SheetContent,
@@ -18,7 +17,6 @@ const Header = () => {
   const [isRulesOpen, setIsRulesOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [showGarland, setShowGarland] = useState(true);
 
   useEffect(() => {
     const checkUnread = async () => {
@@ -41,34 +39,18 @@ const Header = () => {
       }
     };
 
-    const checkGarlandSettings = async () => {
-      try {
-        const res = await fetch('https://functions.poehali.dev/1ad77753-040f-405c-8e61-7230f64e30e9/');
-        if (res.ok) {
-          const data = await res.json();
-          setShowGarland(data.newyear_lights_enabled ?? true);
-        }
-      } catch (error) {
-        console.error('Failed to check garland settings:', error);
-      }
-    };
-
     checkUnread();
-    checkGarlandSettings();
     const interval = setInterval(checkUnread, 300000);
-    const garlandInterval = setInterval(checkGarlandSettings, 60000);
     
     const handleVisibilityChange = () => {
       if (!document.hidden) {
         checkUnread();
-        checkGarlandSettings();
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
     
     return () => {
       clearInterval(interval);
-      clearInterval(garlandInterval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
@@ -147,7 +129,6 @@ const Header = () => {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-primary/20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 shadow-lg shadow-primary/5 relative">
-      {showGarland && <ChristmasGarland />}
       <div className="container flex h-16 items-center justify-between my-0">
         <a href="/" className="flex items-center space-x-2 group">
           <img 

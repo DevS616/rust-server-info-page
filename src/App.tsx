@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import TelegramWidget from "./components/TelegramWidget";
 import PromotionModal from "./components/PromotionModal";
-import NewYearMode from "./components/NewYearMode";
+import HolidayEffects from "./components/HolidayEffects";
 import MaintenancePage from "./components/MaintenancePage";
 import Index from "./pages/Index";
 import BanList from "./pages/BanList";
@@ -99,7 +99,7 @@ const App = () => (
       <Sonner />
       <TelegramWidget />
       <PromotionModal />
-      <NewYearMode />
+      <HolidayEffects />
       <BrowserRouter>
         <AppContent />
       </BrowserRouter>

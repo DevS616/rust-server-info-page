@@ -8,9 +8,7 @@
       "expectedBody": {
         "is_maintenance": "boolean",
         "maintenance_title": "string",
-        "maintenance_subtitle": "string",
-        "newyear_snow_enabled": "boolean",
-        "newyear_lights_enabled": "boolean"
+        "maintenance_subtitle": "string"
       },
       "bodyMatcher": "partial"
     }

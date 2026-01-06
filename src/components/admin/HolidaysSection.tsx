@@ -10,11 +10,12 @@ interface HolidaysSectionProps {
   token: string;
 }
 
+type HolidayType = 'newyear' | 'halloween' | 'autumn' | null;
+
 const HolidaysSection = ({ token }: HolidaysSectionProps) => {
   const { toast } = useToast();
-  const [snowEnabled, setSnowEnabled] = useState(true);
-  const [lightsEnabled, setLightsEnabled] = useState(true);
-  const [loading, setLoading] = useState<'snow' | 'lights' | null>(null);
+  const [activeHoliday, setActiveHoliday] = useState<HolidayType>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -25,39 +26,41 @@ const HolidaysSection = ({ token }: HolidaysSectionProps) => {
       const res = await fetch(`${API_BASE}/1ad77753-040f-405c-8e61-7230f64e30e9/`);
       if (res.ok) {
         const data = await res.json();
-        setSnowEnabled(data.newyear_snow_enabled ?? true);
-        setLightsEnabled(data.newyear_lights_enabled ?? true);
+        setActiveHoliday(data.active_holiday || null);
       }
     } catch (error) {
       console.error('Failed to load settings:', error);
     }
   };
 
-  const toggleSetting = async (setting: 'snow' | 'lights', currentValue: boolean) => {
-    setLoading(setting);
+  const toggleHoliday = async (holiday: HolidayType) => {
+    setLoading(true);
     try {
-      const field = setting === 'snow' ? 'newyear_snow_enabled' : 'newyear_lights_enabled';
+      const newValue = activeHoliday === holiday ? null : holiday;
       const res = await fetch(`${API_BASE}/1ad77753-040f-405c-8e61-7230f64e30e9/`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'X-Auth-Token': token
         },
-        body: JSON.stringify({ [field]: !currentValue })
+        body: JSON.stringify({ active_holiday: newValue })
       });
 
       if (res.ok) {
         const data = await res.json();
-        if (setting === 'snow') {
-          setSnowEnabled(data.newyear_snow_enabled);
-        } else {
-          setLightsEnabled(data.newyear_lights_enabled);
-        }
+        setActiveHoliday(data.active_holiday || null);
+        
+        const holidayNames: Record<string, string> = {
+          newyear: 'Новый год',
+          halloween: 'Хэллоуин',
+          autumn: 'Осень'
+        };
+        
         toast({
           title: 'Успешно',
-          description: !currentValue 
-            ? (setting === 'snow' ? 'Снег включен' : 'Гирлянды включены')
-            : (setting === 'snow' ? 'Снег отключен' : 'Гирлянды отключены')
+          description: newValue 
+            ? `Тема "${holidayNames[newValue]}" активирована` 
+            : 'Праздничная тема отключена'
         });
       } else {
         const error = await res.json();
@@ -74,70 +77,102 @@ const HolidaysSection = ({ token }: HolidaysSectionProps) => {
         variant: 'destructive'
       });
     } finally {
-      setLoading(null);
+      setLoading(false);
     }
   };
+
+  const holidays = [
+    {
+      id: 'newyear' as HolidayType,
+      name: 'Новый год',
+      icon: 'Snowflake',
+      description: 'Падающий снег и праздничные гирлянды',
+      color: 'text-blue-500'
+    },
+    {
+      id: 'halloween' as HolidayType,
+      name: 'Хэллоуин',
+      icon: 'Ghost',
+      description: 'Летающие привидения и паутина',
+      color: 'text-orange-500'
+    },
+    {
+      id: 'autumn' as HolidayType,
+      name: 'Осень',
+      icon: 'Leaf',
+      description: 'Падающие осенние листья',
+      color: 'text-amber-600'
+    }
+  ];
 
   return (
     <Card className="p-6">
       <div className="mb-6">
         <h2 className="text-2xl font-semibold mb-2">Праздничное оформление</h2>
         <p className="text-muted-foreground">
-          Управление новогодними эффектами на сайте
+          Выберите активную праздничную тему для сайта. Может быть активна только одна тема одновременно.
         </p>
       </div>
 
       <div className="space-y-4">
-        <div className="flex items-center justify-between p-6 bg-muted rounded-lg">
-          <div className="flex items-center gap-4">
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center ${snowEnabled ? 'bg-primary/20' : 'bg-muted-foreground/20'}`}>
-              <Icon name="CloudSnow" className={`h-6 w-6 ${snowEnabled ? 'text-primary' : 'text-muted-foreground'}`} />
-            </div>
-            <div>
-              <div className="text-lg font-medium">Снежинки</div>
-              <p className="text-sm text-muted-foreground mt-1">
-                {snowEnabled ? 'Падающий снег на всех страницах сайта' : 'Снег отключен'}
-              </p>
-            </div>
-          </div>
+        {holidays.map((holiday) => {
+          const isActive = activeHoliday === holiday.id;
+          
+          return (
+            <div
+              key={holiday.id}
+              className={`flex items-center justify-between p-6 rounded-lg border-2 transition-all ${
+                isActive 
+                  ? 'bg-primary/10 border-primary' 
+                  : 'bg-muted border-transparent'
+              }`}
+            >
+              <div className="flex items-center gap-4">
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                  isActive ? 'bg-primary/20' : 'bg-muted-foreground/20'
+                }`}>
+                  <Icon 
+                    name={holiday.icon as any} 
+                    className={`h-6 w-6 ${isActive ? holiday.color : 'text-muted-foreground'}`} 
+                  />
+                </div>
+                <div>
+                  <div className="text-lg font-medium">{holiday.name}</div>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {holiday.description}
+                  </p>
+                </div>
+              </div>
 
-          <Button
-            onClick={() => toggleSetting('snow', snowEnabled)}
-            disabled={loading === 'snow'}
-            variant={snowEnabled ? 'default' : 'outline'}
-            size="lg"
-            className="min-w-[160px]"
-          >
-            <Icon name={snowEnabled ? 'Check' : 'X'} className="mr-2" />
-            {loading === 'snow' ? 'Применение...' : snowEnabled ? 'Отключить' : 'Включить'}
-          </Button>
-        </div>
-
-        <div className="flex items-center justify-between p-6 bg-muted rounded-lg">
-          <div className="flex items-center gap-4">
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center ${lightsEnabled ? 'bg-primary/20' : 'bg-muted-foreground/20'}`}>
-              <Icon name="Lightbulb" className={`h-6 w-6 ${lightsEnabled ? 'text-primary' : 'text-muted-foreground'}`} />
+              <Button
+                onClick={() => toggleHoliday(holiday.id)}
+                disabled={loading}
+                variant={isActive ? 'default' : 'outline'}
+                size="lg"
+                className="min-w-[160px]"
+              >
+                <Icon name={isActive ? 'Check' : 'Sparkles'} className="mr-2" />
+                {loading ? 'Применение...' : isActive ? 'Отключить' : 'Включить'}
+              </Button>
             </div>
-            <div>
-              <div className="text-lg font-medium">Гирлянды</div>
-              <p className="text-sm text-muted-foreground mt-1">
-                {lightsEnabled ? 'Анимированные гирлянды в шапке сайта' : 'Гирлянды отключены'}
-              </p>
-            </div>
-          </div>
-
-          <Button
-            onClick={() => toggleSetting('lights', lightsEnabled)}
-            disabled={loading === 'lights'}
-            variant={lightsEnabled ? 'default' : 'outline'}
-            size="lg"
-            className="min-w-[160px]"
-          >
-            <Icon name={lightsEnabled ? 'Check' : 'X'} className="mr-2" />
-            {loading === 'lights' ? 'Применение...' : lightsEnabled ? 'Отключить' : 'Включить'}
-          </Button>
-        </div>
+          );
+        })}
       </div>
+
+      {activeHoliday && (
+        <div className="mt-6 p-4 bg-primary/10 border border-primary rounded-lg">
+          <div className="flex items-start gap-3">
+            <Icon name="Info" className="text-primary mt-0.5" size={20} />
+            <div>
+              <p className="font-medium text-primary">Активная тема</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Праздничные эффекты отображаются на всех страницах сайта. 
+                Только одна тема может быть активна одновременно.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </Card>
   );
 };

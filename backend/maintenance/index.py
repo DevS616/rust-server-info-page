@@ -61,7 +61,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'maintenance_title': result['maintenance_title'],
                     'maintenance_subtitle': result['maintenance_subtitle'],
                     'newyear_snow_enabled': result.get('newyear_snow_enabled', True),
-                    'newyear_lights_enabled': result.get('newyear_lights_enabled', True)
+                    'newyear_lights_enabled': result.get('newyear_lights_enabled', True),
+                    'active_holiday': result.get('active_holiday')
                 })
             }
         
@@ -91,6 +92,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             maintenance_subtitle = body_data.get('maintenance_subtitle', 'Подпишитесь на наш Telegram, чтобы узнать больше о завершении работ')
             newyear_snow = body_data.get('newyear_snow_enabled')
             newyear_lights = body_data.get('newyear_lights_enabled')
+            active_holiday = body_data.get('active_holiday')
             
             update_fields = []
             update_values = []
@@ -110,6 +112,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             if 'newyear_lights_enabled' in body_data:
                 update_fields.append('newyear_lights_enabled = %s')
                 update_values.append(newyear_lights)
+            if 'active_holiday' in body_data:
+                update_fields.append('active_holiday = %s')
+                update_values.append(active_holiday)
             
             update_fields.append('updated_at = NOW()')
             update_values.append(1)
@@ -123,7 +128,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             
             cur.execute("""
                 SELECT is_maintenance, maintenance_title, maintenance_subtitle,
-                       newyear_snow_enabled, newyear_lights_enabled
+                       newyear_snow_enabled, newyear_lights_enabled, active_holiday
                 FROM site_settings WHERE id = 1
             """)
             updated = cur.fetchone()
@@ -140,8 +145,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'is_maintenance': updated['is_maintenance'],
                     'maintenance_title': updated['maintenance_title'],
                     'maintenance_subtitle': updated['maintenance_subtitle'],
-                    'newyear_snow_enabled': updated['newyear_snow_enabled'],
-                    'newyear_lights_enabled': updated['newyear_lights_enabled']
+                    'newyear_snow_enabled': updated.get('newyear_snow_enabled', True),
+                    'newyear_lights_enabled': updated.get('newyear_lights_enabled', True),
+                    'active_holiday': updated.get('active_holiday')
                 })
             }
         
