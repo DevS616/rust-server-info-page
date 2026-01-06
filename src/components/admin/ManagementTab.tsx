@@ -3,6 +3,7 @@ import Icon from '@/components/ui/icon';
 import { useState } from 'react';
 import MaintenanceSection from './MaintenanceSection';
 import ServersManagement from './ServersManagement';
+import HolidaysSection from './HolidaysSection';
 import ServerDialog, { type Server } from './ServerDialog';
 
 interface ManagementTabProps {
@@ -10,7 +11,7 @@ interface ManagementTabProps {
 }
 
 const ManagementTab = ({ token }: ManagementTabProps) => {
-  const [activeTab, setActiveTab] = useState<'maintenance' | 'servers'>('maintenance');
+  const [activeTab, setActiveTab] = useState<'maintenance' | 'servers' | 'holidays'>('maintenance');
   const [showServerDialog, setShowServerDialog] = useState(false);
   const [editingServer, setEditingServer] = useState<Server | null>(null);
   const [serversLength, setServersLength] = useState(0);
@@ -53,6 +54,13 @@ const ManagementTab = ({ token }: ManagementTabProps) => {
           <Icon name="Server" className="mr-2" />
           Карточки серверов
         </Button>
+        <Button
+          onClick={() => setActiveTab('holidays')}
+          variant={activeTab === 'holidays' ? 'default' : 'outline'}
+        >
+          <Icon name="PartyPopper" className="mr-2" />
+          Праздники
+        </Button>
       </div>
 
       {activeTab === 'maintenance' && <MaintenanceSection token={token} />}
@@ -64,6 +72,8 @@ const ManagementTab = ({ token }: ManagementTabProps) => {
           onEditServer={handleEditServer}
         />
       )}
+
+      {activeTab === 'holidays' && <HolidaysSection token={token} />}
 
       <ServerDialog
         open={showServerDialog}

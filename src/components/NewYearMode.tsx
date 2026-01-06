@@ -29,7 +29,6 @@ const NewYearMode = () => {
   return (
     <>
       {config.snowflakes && <Snowflakes />}
-      {config.lights && <ChristmasLights />}
     </>
   );
 };
@@ -70,31 +69,6 @@ const Snowflakes = () => {
         }
         .snowflake {
           animation: snowfall linear infinite;
-        }
-      `}</style>
-    </div>
-  );
-};
-
-const ChristmasLights = () => {
-  return (
-    <div className="fixed top-0 left-0 right-0 h-16 pointer-events-none z-50 flex justify-around">
-      {Array.from({ length: 20 }).map((_, i) => (
-        <div
-          key={i}
-          className="w-2 h-2 rounded-full animate-pulse"
-          style={{
-            backgroundColor: ['#ff0000', '#00ff00', '#ffff00', '#0000ff', '#ff00ff'][i % 5],
-            animationDelay: `${i * 0.2}s`,
-            animationDuration: '1.5s',
-            marginTop: '8px'
-          }}
-        />
-      ))}
-      <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 0.3; transform: scale(0.8); }
-          50% { opacity: 1; transform: scale(1.2); }
         }
       `}</style>
     </div>
