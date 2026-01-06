@@ -7,10 +7,12 @@ using Newtonsoft.Json;
 
 namespace Oxide.Plugins
 {
-    [Info("Player Management API", "YourName", "1.0.0")]
-    [Description("REST API для управления игроками через HTTP")]
+    [Info("Player Management API", "YourName", "1.1.0")]
+    [Description("REST API для управления игроками через HTTP с интеграцией IQBanSystem")]
     class PlayerManagementAPI : RustPlugin
     {
+        [PluginReference]
+        private Plugin IQBanSystem;
         private Configuration config;
 
         #region Configuration
@@ -122,8 +124,14 @@ namespace Oxide.Plugins
                 return;
             }
 
+            // Вызываем хук IQBanSystem если доступен
+            if (IQBanSystem != null && IQBanSystem.IsLoaded)
+            {
+                Interface.CallHook("OnKickPlayer", player.UserIDString, reason, null);
+            }
+            
             player.Kick(reason);
-            arg.ReplyWith(JsonConvert.SerializeObject(new { success = true, message = $"Player {player.displayName} kicked" }));
+            arg.ReplyWith(JsonConvert.SerializeObject(new { success = true, message = $"Игрок {player.displayName} кикнут" }));
         }
 
         [ConsoleCommand("playerapi.ban")]
@@ -142,34 +150,88 @@ namespace Oxide.Plugins
                 return;
             }
 
-            // Добавляем в бан-лист
+            // Используем IQBanSystem если доступен
+            if (IQBanSystem != null && IQBanSystem.IsLoaded)
+            {
+                try
+                {
+                    // IQBanSystem принимает время в секундах
+                    // 0 или отрицательное значение = навсегда
+                    double banTimeSeconds = durationMinutes > 0 ? durationMinutes * 60.0 : -1.0;
+                    
+                    // Вызываем хук CanBanPlayer для проверки
+                    var canBan = Interface.CallHook("CanBanPlayer", player.userID, reason, banTimeSeconds, null);
+                    
+                    if (canBan is string || (canBan is bool && !(bool)canBan))
+                    {
+                        arg.ReplyWith(JsonConvert.SerializeObject(new 
+                        { 
+                            success = false, 
+                            error = canBan is string ? (string)canBan : "Ban blocked by another plugin"
+                        }));
+                        return;
+                    }
+                    
+                    // Вызываем хуки бана
+                    Interface.CallHook("OnBannedPlayerID", player.userID, reason, banTimeSeconds, null);
+                    
+                    // Кикаем игрока
+                    if (durationMinutes > 0)
+                    {
+                        var until = DateTime.UtcNow.AddMinutes(durationMinutes);
+                        player.Kick($"Забанен: {reason} (до {until:yyyy-MM-dd HH:mm} UTC)");
+                    }
+                    else
+                    {
+                        player.Kick($"Навсегда забанен: {reason}");
+                    }
+                    
+                    arg.ReplyWith(JsonConvert.SerializeObject(new 
+                    { 
+                        success = true, 
+                        message = $"Игрок {player.displayName} забанен через IQBanSystem",
+                        duration = durationMinutes > 0 ? $"{durationMinutes} минут" : "навсегда"
+                    }));
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    PrintError($"Ошибка IQBanSystem: {ex.Message}");
+                    arg.ReplyWith(JsonConvert.SerializeObject(new 
+                    { 
+                        success = false, 
+                        error = $"IQBanSystem error: {ex.Message}"
+                    }));
+                    return;
+                }
+            }
+            
+            // Fallback: используем стандартный ServerUsers если IQBanSystem недоступен
             ServerUsers.Set(player.userID, ServerUsers.UserGroup.Banned, player.displayName, reason);
             ServerUsers.Save();
             
             if (durationMinutes > 0)
             {
-                // Временный бан - планируем разбан
                 var until = DateTime.UtcNow.AddMinutes(durationMinutes);
-                player.Kick($"Banned: {reason} (until {until:yyyy-MM-dd HH:mm} UTC)");
+                player.Kick($"Забанен: {reason} (до {until:yyyy-MM-dd HH:mm} UTC)");
                 
                 timer.Once(durationMinutes * 60f, () =>
                 {
                     ServerUsers.Remove(player.userID);
                     ServerUsers.Save();
-                    Puts($"Temporary ban expired for {player.displayName} ({player.userID})");
+                    Puts($"Временный бан истек для {player.displayName} ({player.userID})");
                 });
             }
             else
             {
-                // Перманентный бан
-                player.Kick($"Permanently banned: {reason}");
+                player.Kick($"Навсегда забанен: {reason}");
             }
 
             arg.ReplyWith(JsonConvert.SerializeObject(new 
             { 
                 success = true, 
-                message = $"Player {player.displayName} banned",
-                duration = durationMinutes > 0 ? $"{durationMinutes} minutes" : "permanent"
+                message = $"Игрок {player.displayName} забанен (ServerUsers)",
+                duration = durationMinutes > 0 ? $"{durationMinutes} минут" : "навсегда"
             }));
         }
 
