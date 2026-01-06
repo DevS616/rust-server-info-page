@@ -251,7 +251,7 @@ const ServersSection = () => {
               </span>
             </div>
             <TooltipProvider>
-              <Tooltip>
+              <Tooltip delayDuration={0}>
                 <TooltipTrigger asChild>
                   <div className="text-right cursor-help">
                     <div className="text-2xl font-bold mb-2" style={{fontFamily: 'Nunito, sans-serif'}}>
@@ -262,7 +262,7 @@ const ServersSection = () => {
                     <div className={`h-1.5 w-full rounded-full ${isServerOnline ? 'bg-green-500' : 'bg-red-500'}`} />
                   </div>
                 </TooltipTrigger>
-                <TooltipContent className="max-w-xs z-[999]">
+                <TooltipContent className="max-w-xs">
                   <p>{isServerOnline ? 'Сервер включен' : 'Сервер выключен'}</p>
                 </TooltipContent>
               </Tooltip>
