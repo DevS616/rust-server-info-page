@@ -232,7 +232,7 @@ const ServersSection = () => {
         style={isVisible ? { animationDelay: `${index * 0.1}s` } : undefined}
       >
         {!isServerOnline && (
-          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-20 flex items-center justify-center pointer-events-none">
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-20 flex items-center justify-center">
             <div className="text-center px-4">
               <Icon name="PowerOff" className="h-8 w-8 text-red-500 mx-auto mb-2" />
               <p className="text-sm font-semibold text-foreground">Сервер выключен или на перезагрузке</p>
@@ -262,7 +262,7 @@ const ServersSection = () => {
                     <div className={`h-1.5 w-full rounded-full ${isServerOnline ? 'bg-green-500' : 'bg-red-500'}`} />
                   </div>
                 </TooltipTrigger>
-                <TooltipContent className="max-w-xs">
+                <TooltipContent className="max-w-xs z-[999]">
                   <p>{isServerOnline ? 'Сервер включен' : 'Сервер выключен'}</p>
                 </TooltipContent>
               </Tooltip>
@@ -307,7 +307,7 @@ const ServersSection = () => {
               </Button>
               <Button 
                 variant="outline" 
-                className={`${borderColor} hover:bg-primary/10 relative z-30`}
+                className={`${borderColor} hover:bg-primary/10 ${isServerOnline ? 'relative z-30' : ''}`}
                 onClick={() => handleShowDetails(server)}
               >
                 <Icon name="Info" className="h-4 w-4" />
