@@ -7,12 +7,18 @@ const HolidayEffects = () => {
   const [activeHoliday, setActiveHoliday] = useState<HolidayType>(null);
 
   useEffect(() => {
-    fetch('https://functions.poehali.dev/1ad77753-040f-405c-8e61-7230f64e30e9/')
-      .then(res => res.json())
-      .then(data => {
-        setActiveHoliday(data.active_holiday || null);
-      })
-      .catch(() => setActiveHoliday(null));
+    const loadHoliday = () => {
+      fetch('https://functions.poehali.dev/1ad77753-040f-405c-8e61-7230f64e30e9/')
+        .then(res => res.json())
+        .then(data => {
+          setActiveHoliday(data.active_holiday || null);
+        })
+        .catch(() => setActiveHoliday(null));
+    };
+
+    loadHoliday();
+    const interval = setInterval(loadHoliday, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   if (!activeHoliday) return null;
