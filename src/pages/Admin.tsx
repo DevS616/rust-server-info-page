@@ -318,41 +318,41 @@ const Admin = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto p-6">
-        <Card className="p-6 mb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold mb-2">Админ-панель</h1>
-              <p className="text-muted-foreground">Управление сайтом</p>
+      <div className="container mx-auto p-3 md:p-6">
+        <Card className="p-4 md:p-6 mb-4 md:mb-6">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-xl md:text-3xl font-bold mb-1 md:mb-2">Админ-панель</h1>
+              <p className="text-sm md:text-base text-muted-foreground">Управление сайтом</p>
             </div>
-            <Button onClick={handleLogout} variant="outline">
-              <Icon name="LogOut" className="mr-2 h-4 w-4" />
-              Выйти
+            <Button onClick={handleLogout} variant="outline" size="sm" className="flex-shrink-0">
+              <Icon name="LogOut" className="h-4 w-4 md:mr-2" />
+              <span className="hidden md:inline">Выйти</span>
             </Button>
           </div>
         </Card>
 
         <Tabs defaultValue="tickets" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="tickets">
-              <Icon name="MessageSquare" className="mr-2 h-4 w-4" />
-              Обращения
+          <TabsList className="grid w-full grid-cols-5 h-auto">
+            <TabsTrigger value="tickets" className="text-xs md:text-sm px-2 py-2 md:py-2.5">
+              <Icon name="MessageSquare" className="h-4 w-4 md:mr-2" />
+              <span className="hidden sm:inline">Обращения</span>
             </TabsTrigger>
-            <TabsTrigger value="servers">
-              <Icon name="Database" className="mr-2 h-4 w-4" />
-              Серверы
+            <TabsTrigger value="servers" className="text-xs md:text-sm px-2 py-2 md:py-2.5">
+              <Icon name="Database" className="h-4 w-4 md:mr-2" />
+              <span className="hidden sm:inline">Серверы</span>
             </TabsTrigger>
-            <TabsTrigger value="management">
-              <Icon name="Settings" className="mr-2 h-4 w-4" />
-              Управление
+            <TabsTrigger value="management" className="text-xs md:text-sm px-2 py-2 md:py-2.5">
+              <Icon name="Settings" className="h-4 w-4 md:mr-2" />
+              <span className="hidden sm:inline">Управление</span>
             </TabsTrigger>
-            <TabsTrigger value="promotion">
-              <Icon name="Gift" className="mr-2 h-4 w-4" />
-              Акция
+            <TabsTrigger value="promotion" className="text-xs md:text-sm px-2 py-2 md:py-2.5">
+              <Icon name="Gift" className="h-4 w-4 md:mr-2" />
+              <span className="hidden sm:inline">Акция</span>
             </TabsTrigger>
-            <TabsTrigger value="news">
-              <Icon name="Newspaper" className="mr-2 h-4 w-4" />
-              Новости
+            <TabsTrigger value="news" className="text-xs md:text-sm px-2 py-2 md:py-2.5">
+              <Icon name="Newspaper" className="h-4 w-4 md:mr-2" />
+              <span className="hidden sm:inline">Новости</span>
             </TabsTrigger>
           </TabsList>
 

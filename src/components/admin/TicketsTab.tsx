@@ -105,40 +105,40 @@ const TicketsTab = ({
           Назад к списку
         </Button>
 
-        <Card className="p-6">
-          <div className="flex items-start justify-between mb-6">
-            <div className="flex items-start gap-4">
+        <Card className="p-4 md:p-6">
+          <div className="flex flex-col gap-4 mb-6">
+            <div className="flex items-start gap-3">
               {selectedTicket.steam_avatar ? (
-                <img src={selectedTicket.steam_avatar} alt="" className="w-12 h-12 rounded-full" />
+                <img src={selectedTicket.steam_avatar} alt="" className="w-10 h-10 md:w-12 md:h-12 rounded-full flex-shrink-0" />
               ) : (
-                <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-                  <Icon name="User" size={24} className="text-muted-foreground" />
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                  <Icon name="User" size={20} className="text-muted-foreground" />
                 </div>
               )}
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <h2 className="text-2xl font-semibold">{selectedTicket.subject}</h2>
-                  <span className="text-sm text-muted-foreground">#{selectedTicket.id}</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  <h2 className="text-lg md:text-2xl font-semibold break-words">{selectedTicket.subject}</h2>
+                  <span className="text-xs md:text-sm text-muted-foreground">#{selectedTicket.id}</span>
                 </div>
-                <p className="text-muted-foreground">от {selectedTicket.steam_username}</p>
-                <div className="flex items-center gap-2 mt-1">
-                  <p className="text-sm text-muted-foreground">Steam64ID: {selectedTicket.steam_id}</p>
+                <p className="text-sm md:text-base text-muted-foreground truncate">от {selectedTicket.steam_username}</p>
+                <div className="flex items-center gap-1 mt-1 flex-wrap">
+                  <p className="text-xs md:text-sm text-muted-foreground break-all">Steam64ID: {selectedTicket.steam_id}</p>
                   <Button 
                     variant="ghost" 
                     size="sm"
-                    className="h-6 px-2"
+                    className="h-5 w-5 p-0 md:h-6 md:px-2"
                     onClick={() => copySteamId(selectedTicket.steam_id)}
                   >
-                    <Icon name="Copy" size={14} />
+                    <Icon name="Copy" size={12} />
                   </Button>
                 </div>
-                <p className="text-sm text-muted-foreground mt-1">Сервер: {selectedTicket.server}</p>
+                <p className="text-xs md:text-sm text-muted-foreground mt-1">Сервер: {selectedTicket.server}</p>
               </div>
             </div>
             
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <Select value={selectedTicket.status} onValueChange={handleChangeStatus}>
-                <SelectTrigger className="w-40">
+                <SelectTrigger className="w-full md:w-40">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -148,55 +148,57 @@ const TicketsTab = ({
                 </SelectContent>
               </Select>
               
-              {selectedTicket.is_blocked ? (
-                <Button 
-                  variant="outline" 
-                  size="icon"
-                  onClick={() => handleBlockUser(selectedTicket.user_id, false)}
-                  title="Разблокировать пользователя"
-                >
-                  <Icon name="ShieldCheck" />
-                </Button>
-              ) : (
+              <div className="flex gap-2">
+                {selectedTicket.is_blocked ? (
+                  <Button 
+                    variant="outline" 
+                    size="icon"
+                    onClick={() => handleBlockUser(selectedTicket.user_id, false)}
+                    title="Разблокировать пользователя"
+                  >
+                    <Icon name="ShieldCheck" />
+                  </Button>
+                ) : (
+                  <Button 
+                    variant="destructive" 
+                    size="icon"
+                    onClick={() => handleBlockUser(selectedTicket.user_id, true)}
+                    title="Заблокировать пользователя"
+                  >
+                    <Icon name="Ban" />
+                  </Button>
+                )}
+                
                 <Button 
                   variant="destructive" 
                   size="icon"
-                  onClick={() => handleBlockUser(selectedTicket.user_id, true)}
-                  title="Заблокировать пользователя"
+                  onClick={() => {
+                    if (confirm('Вы уверены, что хотите удалить это обращение? Действие нельзя отменить.')) {
+                      handleDeleteTicket(selectedTicket.id);
+                    }
+                  }}
+                  title="Удалить обращение"
                 >
-                  <Icon name="Ban" />
+                  <Icon name="Trash2" />
                 </Button>
-              )}
-              
-              <Button 
-                variant="destructive" 
-                size="icon"
-                onClick={() => {
-                  if (confirm('Вы уверены, что хотите удалить это обращение? Действие нельзя отменить.')) {
-                    handleDeleteTicket(selectedTicket.id);
-                  }
-                }}
-                title="Удалить обращение"
-              >
-                <Icon name="Trash2" />
-              </Button>
+              </div>
             </div>
           </div>
 
-          <div className="space-y-4 mb-6">
+          <div className="space-y-3 md:space-y-4 mb-6">
             {messages.map((msg) => (
-              <div key={msg.id} className={`flex gap-3 ${msg.is_admin_reply ? 'flex-row-reverse' : ''}`}>
+              <div key={msg.id} className={`flex gap-2 ${msg.is_admin_reply ? 'flex-row-reverse' : ''}`}>
                 <div className={`flex-1 ${msg.is_admin_reply ? 'text-right' : ''}`}>
-                  <div className={`inline-block max-w-[80%] p-4 rounded-lg ${
+                  <div className={`inline-block max-w-full md:max-w-[80%] p-3 md:p-4 rounded-lg ${
                     msg.is_admin_reply ? 'bg-primary text-primary-foreground' : 'bg-muted'
                   }`}>
-                    <p className="text-sm font-medium mb-1">
+                    <p className="text-xs md:text-sm font-medium mb-1">
                       {msg.is_admin_reply ? msg.admin_name : msg.user_name}
                     </p>
-                    <p className="whitespace-pre-wrap">{msg.message}</p>
+                    <p className="text-sm md:text-base whitespace-pre-wrap break-words">{msg.message}</p>
                     {msg.file_url && (
                       <a href={msg.file_url} target="_blank" rel="noopener noreferrer" 
-                        className="text-sm underline mt-2 block">
+                        className="text-xs md:text-sm underline mt-2 block">
                         📎 Прикреплённый файл
                       </a>
                     )}
@@ -278,52 +280,51 @@ const TicketsTab = ({
   }
 
   return (
-    <div className="space-y-4">
-      <Card className="p-4">
-        <div className="flex flex-wrap gap-4 items-end mb-4">
-          <div className="flex-1 min-w-[300px]">
-            <Label className="text-sm mb-2 block">Поиск</Label>
+    <div className="space-y-3 md:space-y-4">
+      <Card className="p-3 md:p-4">
+        <div className="flex flex-col gap-3 mb-3 md:mb-4">
+          <div className="w-full">
+            <Label className="text-xs md:text-sm mb-2 block">Поиск</Label>
             <div className="relative">
-              <Icon name="Search" className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+              <Icon name="Search" className="absolute left-2 md:left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
               <Input
-                placeholder="Поиск по теме, имени пользователя или Steam ID..."
+                placeholder="Поиск..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+                className="pl-8 md:pl-10 text-sm"
               />
               {searchQuery && (
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0"
                   onClick={() => setSearchQuery('')}
                 >
-                  <Icon name="X" size={16} />
+                  <Icon name="X" size={14} />
                 </Button>
               )}
             </div>
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-4 items-center">
-          <div className="flex-1 min-w-[200px]">
-            <Label className="text-sm mb-2 block">Статус</Label>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div>
+            <Label className="text-xs md:text-sm mb-2 block">Статус</Label>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger>
+              <SelectTrigger className="text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Все статусы</SelectItem>
                 <SelectItem value="open">Открыт</SelectItem>
-                <SelectItem value="pending">Ожидает</SelectItem>
-                <SelectItem value="answered">Отвечен</SelectItem>
+                <SelectItem value="in_progress">В работе</SelectItem>
                 <SelectItem value="closed">Закрыт</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          <div className="flex-1 min-w-[200px]">
-            <Label className="text-sm mb-2 block">Сервер</Label>
+          <div>
+            <Label className="text-xs md:text-sm mb-2 block">Сервер</Label>
             <Select value={filterServer} onValueChange={setFilterServer}>
               <SelectTrigger>
                 <SelectValue />
@@ -337,10 +338,10 @@ const TicketsTab = ({
             </Select>
           </div>
 
-          <div className="flex-1 min-w-[200px]">
-            <Label className="text-sm mb-2 block">Сортировка</Label>
+          <div>
+            <Label className="text-xs md:text-sm mb-2 block">Сортировка</Label>
             <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger>
+              <SelectTrigger className="text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -353,19 +354,20 @@ const TicketsTab = ({
             </Select>
           </div>
 
-          <div className="flex items-end pb-1">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <Checkbox 
-                checked={filterUnread} 
-                onCheckedChange={(checked) => setFilterUnread(checked === true)}
-              />
-              <span className="text-sm">Только непрочитанные</span>
-            </label>
-          </div>
+        </div>
+        
+        <div className="mt-3 flex items-center">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <Checkbox 
+              checked={filterUnread} 
+              onCheckedChange={(checked) => setFilterUnread(checked === true)}
+            />
+            <span className="text-xs md:text-sm">Только непрочитанные</span>
+          </label>
         </div>
       </Card>
 
-      <div className="grid gap-4">
+      <div className="grid gap-3 md:gap-4">
         {tickets.length === 0 ? (
           <Card className="p-8 text-center">
             <Icon name="Inbox" className="mx-auto mb-4 text-muted-foreground" size={48} />
@@ -373,43 +375,46 @@ const TicketsTab = ({
           </Card>
         ) : (
         tickets.map((ticket) => (
-          <Card key={ticket.id} className="p-4 hover:shadow-lg transition-shadow cursor-pointer"
+          <Card key={ticket.id} className="p-3 md:p-4 hover:shadow-lg transition-shadow cursor-pointer"
             onClick={() => {
               setSelectedTicket(ticket);
               loadTicketDetails(ticket.id.toString(), token);
             }}>
-            <div className="flex items-start justify-between">
-              <div className="flex items-start gap-3 flex-1">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-start gap-2 md:gap-3 flex-1 min-w-0">
                 {ticket.steam_avatar ? (
-                  <img src={ticket.steam_avatar} alt="" className="w-10 h-10 rounded-full" />
+                  <img src={ticket.steam_avatar} alt="" className="w-8 h-8 md:w-10 md:h-10 rounded-full flex-shrink-0" />
                 ) : (
-                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                    <Icon name="User" size={20} className="text-muted-foreground" />
+                  <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                    <Icon name="User" size={16} className="text-muted-foreground md:w-5 md:h-5" />
                   </div>
                 )}
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className={`w-2 h-2 rounded-full ${getStatusColor(ticket.status)}`}></span>
-                    <span className="text-sm font-medium">{getStatusText(ticket.status)}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${getStatusColor(ticket.status)}`}></span>
+                    <span className="text-xs md:text-sm font-medium">{getStatusText(ticket.status)}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-lg font-semibold">{ticket.subject}</h3>
-                    <span className="text-xs text-muted-foreground">#{ticket.id}</span>
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    <h3 className="text-sm md:text-lg font-semibold break-words">{ticket.subject}</h3>
+                    <span className="text-xs text-muted-foreground flex-shrink-0">#{ticket.id}</span>
                     {ticket.unread_count !== undefined && ticket.unread_count > 0 && (
-                      <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                      <span className="bg-red-500 text-white text-xs font-bold px-1.5 md:px-2 py-0.5 rounded-full flex-shrink-0">
                         {ticket.unread_count}
                       </span>
                     )}
                   </div>
-                  <p className="text-sm text-muted-foreground">от {ticket.steam_username}</p>
-                  <p className="text-sm text-muted-foreground">Сервер: {ticket.server}</p>
-                  <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                    <span>Сообщений: {ticket.message_count}</span>
-                    <span>{new Date(ticket.created_at).toLocaleDateString('ru-RU')}</span>
+                  <p className="text-xs md:text-sm text-muted-foreground truncate">от {ticket.steam_username || 'Unknown'}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">
+                    Steam ID: <span className="break-all">{ticket.steam_id || 'N/A'}</span>
+                  </p>
+                  <p className="text-xs md:text-sm text-muted-foreground">Сервер: {ticket.server}</p>
+                  <div className="flex items-center gap-2 md:gap-4 mt-2 text-xs md:text-sm text-muted-foreground flex-wrap">
+                    <span className="whitespace-nowrap">Сообщений: {ticket.message_count}</span>
+                    <span className="whitespace-nowrap">{new Date(ticket.created_at).toLocaleDateString('ru-RU')}</span>
                   </div>
                 </div>
               </div>
-              <Icon name="ChevronRight" className="text-muted-foreground" />
+              <Icon name="ChevronRight" className="text-muted-foreground flex-shrink-0" size={20} />
             </div>
           </Card>
         ))

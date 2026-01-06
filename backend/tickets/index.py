@@ -326,7 +326,12 @@ def get_ticket_details(ticket_id: str, user_data: Dict[str, Any]) -> Dict[str, A
     
     is_admin = user_data.get('is_admin', False)
     
-    cur.execute(f"SELECT * FROM tickets WHERE id = {ticket_id_int}")
+    cur.execute(f"""
+        SELECT t.*, u.steam_username, u.steam_avatar, u.steam_id, u.is_blocked
+        FROM tickets t
+        LEFT JOIN users u ON t.user_id = u.id
+        WHERE t.id = {ticket_id_int}
+    """)
     ticket = cur.fetchone()
     
     if not ticket:
@@ -369,6 +374,9 @@ def get_ticket_details(ticket_id: str, user_data: Dict[str, Any]) -> Dict[str, A
             SET is_read_by_admin = TRUE
             WHERE ticket_id = {ticket_id_int} AND is_admin_reply = FALSE AND is_read_by_admin = FALSE
         """)
+        # Автоматически меняем статус на "в работе" если тикет открыт
+        if ticket['status'] == 'open':
+            cur.execute(f"UPDATE tickets SET status = 'in_progress' WHERE id = {ticket_id_int}")
         conn.commit()
     
     cur.close()
