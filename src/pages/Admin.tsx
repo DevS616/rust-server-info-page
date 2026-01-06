@@ -11,7 +11,7 @@ import ServersTab from '@/components/admin/ServersTab';
 import ManagementTab from '@/components/admin/ManagementTab';
 import PromotionTab from '@/components/admin/PromotionTab';
 import NewsTab from '@/components/admin/NewsTab';
-import PlayersManagementTab from '@/components/admin/PlayersManagementTab';
+
 import { apiCache } from '@/utils/apiCache';
 
 const API_BASE = 'https://functions.poehali.dev';
@@ -544,7 +544,7 @@ const Admin = () => {
           <TabsList className="mb-6 flex-wrap h-auto">
             <TabsTrigger value="tickets">Обращения</TabsTrigger>
             <TabsTrigger value="servers">Серверы</TabsTrigger>
-            <TabsTrigger value="players">Управление игроками</TabsTrigger>
+
             <TabsTrigger value="news">Новости</TabsTrigger>
             <TabsTrigger value="promotions">Акции</TabsTrigger>
             <TabsTrigger value="management">Управление</TabsTrigger>
@@ -599,10 +599,6 @@ const Admin = () => {
               cancelServerForm={cancelServerForm}
               loading={loading}
             />
-          </TabsContent>
-
-          <TabsContent value="players">
-            <PlayersManagementTab token={token!} />
           </TabsContent>
 
           <TabsContent value="news">
