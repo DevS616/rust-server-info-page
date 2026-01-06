@@ -96,7 +96,6 @@ const ServersSection = () => {
 
   useEffect(() => {
     const unsubscribe = monitoringService.subscribe((data) => {
-      console.log('Monitoring data received:', data);
       if (data?.result === 'success' && data.data?.servers) {
         const newStats: Record<string, { players: number; maxPlayers: number }> = {};
         
@@ -105,17 +104,13 @@ const ServersSection = () => {
           const matchedServer = [...pveServers, ...pvpServers].find(s => s.serverIp === serverIp);
           
           if (matchedServer) {
-            console.log(`Matched server: ${matchedServer.name} (${matchedServer.battlemetricsId}) - ${server.players}/${server.playersMax}`);
             newStats[matchedServer.battlemetricsId] = {
               players: server.players,
               maxPlayers: server.playersMax
             };
-          } else {
-            console.log(`No match for server IP: ${serverIp}`);
           }
         });
         
-        console.log('Final stats object:', newStats);
         setServerStats(newStats);
       }
     });
@@ -222,10 +217,8 @@ const ServersSection = () => {
     const stats = serverStats[server.battlemetricsId];
     const online = stats?.players ?? '—';
     const slots = stats?.maxPlayers ?? '—';
-    const isServerOnline = stats !== undefined;
+    const isServerOnline = stats !== undefined && stats.maxPlayers > 0;
     const isVisible = visibleCards.has(server.id);
-    
-    console.log(`Server ${server.name} (${server.battlemetricsId}):`, { stats, isServerOnline });
 
     return (
       <div 
