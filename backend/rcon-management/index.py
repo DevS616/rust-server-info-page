@@ -4,6 +4,7 @@ import socket
 import struct
 import time
 from typing import Dict, List, Optional, Tuple
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 def handler(event: dict, context) -> dict:
     '''Backend для RCON управления игроками на Rust серверах через Oxide плагин'''
@@ -231,8 +232,36 @@ def parse_plugin_response(raw_response: str) -> Optional[dict]:
     return None
 
 
+def query_server_players(server: Dict[str, str], api_key: str) -> List[dict]:
+    '''Запрашивает игроков с одного сервера'''
+    try:
+        print(f'Querying {server["name"]} at {server["ip"]}:{server["port"]}')
+        command = f'playerapi.list {api_key}'
+        response = execute_rcon_command(server, command)
+        
+        if response:
+            data = parse_plugin_response(response)
+            if data and data.get('success'):
+                players = data.get('players', [])
+                for player in players:
+                    player['server'] = server['name']
+                print(f'Found {len(players)} players on {server["name"]}')
+                return players
+            elif data:
+                print(f'API error on {server["name"]}: {data.get("error", "Unknown")}')
+            else:
+                print(f'No parseable response from {server["name"]}')
+                print(f'Raw response: {response[:300]}')
+        else:
+            print(f'No response from {server["name"]}')
+    except Exception as e:
+        print(f'Error querying {server["name"]}: {e}')
+    
+    return []
+
+
 def list_all_players() -> dict:
-    '''Получает список всех игроков со всех серверов через Oxide плагин'''
+    '''Получает список всех игроков со всех серверов через Oxide плагин (параллельно)'''
     servers = get_rcon_credentials()
     api_key = os.environ.get('PLAYER_API_KEY', '')
     
@@ -252,30 +281,16 @@ def list_all_players() -> dict:
     
     all_players = []
     
-    for server in servers:
-        try:
-            print(f'Querying {server["name"]} at {server["ip"]}:{server["port"]}')
-            command = f'playerapi.list {api_key}'
-            response = execute_rcon_command(server, command)
-            
-            if response:
-                data = parse_plugin_response(response)
-                if data and data.get('success'):
-                    players = data.get('players', [])
-                    for player in players:
-                        player['server'] = server['name']
-                    all_players.extend(players)
-                    print(f'Found {len(players)} players on {server["name"]}')
-                elif data:
-                    print(f'API error on {server["name"]}: {data.get("error", "Unknown")}')
-                else:
-                    print(f'No parseable response from {server["name"]}')
-                    print(f'Raw response: {response[:300]}')
-            else:
-                print(f'No response from {server["name"]}')
-        except Exception as e:
-            print(f'Error querying {server["name"]}: {e}')
-            continue
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        future_to_server = {executor.submit(query_server_players, server, api_key): server for server in servers}
+        
+        for future in as_completed(future_to_server, timeout=25):
+            try:
+                players = future.result(timeout=1)
+                all_players.extend(players)
+            except Exception as e:
+                server = future_to_server[future]
+                print(f'Failed to get result from {server["name"]}: {e}')
     
     return {
         'statusCode': 200,
