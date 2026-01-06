@@ -110,7 +110,7 @@ const ChristmasGarland = () => {
   }, []);
 
   return (
-    <div className="absolute top-0 left-0 right-0 pointer-events-none" style={{ zIndex: 1 }}>
+    <div className="fixed top-0 left-0 right-0 pointer-events-none z-[9999]">
       <canvas
         ref={canvasRef}
         className="w-full"

@@ -55,7 +55,7 @@ const HolidayEffects = () => {
 
 const Snowflakes = () => {
   return (
-    <div className="fixed inset-0 pointer-events-none z-40 overflow-hidden">
+    <div className="fixed inset-0 pointer-events-none z-[9999] overflow-hidden">
       {Array.from({ length: 50 }).map((_, i) => (
         <div
           key={i}
@@ -97,7 +97,7 @@ const Snowflakes = () => {
 
 const Ghosts = () => {
   return (
-    <div className="fixed inset-0 pointer-events-none z-40 overflow-hidden">
+    <div className="fixed inset-0 pointer-events-none z-[9999] overflow-hidden">
       {Array.from({ length: 8 }).map((_, i) => (
         <div
           key={i}
@@ -144,7 +144,7 @@ const Ghosts = () => {
 
 const Spiderweb = () => {
   return (
-    <div className="fixed top-0 left-0 right-0 pointer-events-none z-50">
+    <div className="fixed top-0 left-0 right-0 pointer-events-none z-[9999]">
       <svg 
         width="100%" 
         height="150" 
@@ -200,7 +200,7 @@ const FallingLeaves = () => {
   const leaves = ['🍂', '🍁', '🍃'];
   
   return (
-    <div className="fixed inset-0 pointer-events-none z-40 overflow-hidden">
+    <div className="fixed inset-0 pointer-events-none z-[9999] overflow-hidden">
       {Array.from({ length: 30 }).map((_, i) => (
         <div
           key={i}
