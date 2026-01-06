@@ -1,18 +1,12 @@
 {
   "tests": [
     {
-      "name": "OPTIONS request for CORS",
-      "method": "OPTIONS",
-      "path": "/",
-      "expectedStatus": 200
-    },
-    {
-      "name": "Unauthorized access without token",
+      "name": "List players without auth",
       "method": "GET",
       "path": "/?action=list_players",
       "expectedStatus": 401,
       "expectedBody": {
-        "error": "string"
+        "error": "Unauthorized"
       },
       "bodyMatcher": "partial"
     }

@@ -6,7 +6,7 @@ import time
 from typing import Dict, List, Optional, Tuple
 
 def handler(event: dict, context) -> dict:
-    '''Backend для RCON управления игроками на Rust серверах через Oxide плагин (v2)'''
+    '''Backend для RCON управления игроками на Rust серверах через Oxide плагин'''
     
     method = event.get('httpMethod', 'GET')
     
@@ -217,7 +217,6 @@ def parse_plugin_response(raw_response: str) -> Optional[dict]:
     if not raw_response:
         return None
     
-    # Ищем строку с префиксом
     lines = raw_response.split('\n')
     for line in lines:
         if '[PLAYERAPI_RESPONSE]' in line:
@@ -392,12 +391,6 @@ def ban_player(data: dict) -> dict:
                     'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
                     'body': json.dumps({'error': data.get('error', 'Failed to ban player')})
                 }
-        except json.JSONDecodeError:
-            return {
-                'statusCode': 500,
-                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                'body': json.dumps({'error': 'Invalid response from server'})
-            }
     
     return {
         'statusCode': 500,
