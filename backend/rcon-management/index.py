@@ -110,7 +110,7 @@ class RCONClient:
     SERVERDATA_AUTH_RESPONSE = 2
     SERVERDATA_RESPONSE_VALUE = 0
     
-    def __init__(self, host: str, port: int, password: str, timeout: float = 5.0):
+    def __init__(self, host: str, port: int, password: str, timeout: float = 2.0):
         self.host = host
         self.port = port
         self.password = password
@@ -195,14 +195,18 @@ class RCONClient:
 
 def execute_rcon_command(server: Dict[str, str], command: str) -> Optional[str]:
     '''Выполняет RCON команду на сервере'''
-    client = RCONClient(server['ip'], server['port'], server['password'])
-    
-    if client.connect():
-        result = client.execute(command)
-        client.close()
-        return result
-    
-    return None
+    try:
+        client = RCONClient(server['ip'], server['port'], server['password'], timeout=2.0)
+        
+        if client.connect():
+            result = client.execute(command)
+            client.close()
+            return result
+        
+        return None
+    except Exception as e:
+        print(f'RCON command error for {server["name"]}: {e}')
+        return None
 
 
 def list_all_players() -> dict:
@@ -210,17 +214,32 @@ def list_all_players() -> dict:
     servers = get_rcon_credentials()
     all_players = []
     
+    if not servers:
+        return {
+            'statusCode': 200,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'body': json.dumps({'players': [], 'message': 'No RCON servers configured'})
+        }
+    
     for server in servers:
-        response = execute_rcon_command(server, 'status')
-        
-        if response:
-            players = parse_status_response(response, server['name'])
-            all_players.extend(players)
+        try:
+            print(f'Connecting to {server["name"]} at {server["ip"]}:{server["port"]}')
+            response = execute_rcon_command(server, 'status')
+            
+            if response:
+                players = parse_status_response(response, server['name'])
+                print(f'Found {len(players)} players on {server["name"]}')
+                all_players.extend(players)
+            else:
+                print(f'No response from {server["name"]}')
+        except Exception as e:
+            print(f'Error querying {server["name"]}: {e}')
+            continue
     
     return {
         'statusCode': 200,
         'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-        'body': json.dumps({'players': all_players})
+        'body': json.dumps({'players': all_players, 'total_servers': len(servers)})
     }
 
 
