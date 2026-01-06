@@ -61,15 +61,24 @@ const PlayersManagementTab = ({ token }: PlayersManagementTabProps) => {
 
   const loadPlayers = async () => {
     setLoading(true);
+    console.log('[PlayersTab] Loading players from:', `${RCON_API}/?action=list_players`);
+    console.log('[PlayersTab] Token:', token ? `${token.substring(0, 20)}...` : 'NO TOKEN');
+    
     try {
       const res = await fetch(`${RCON_API}/?action=list_players`, {
         headers: { 'X-Auth-Token': token }
       });
       
+      console.log('[PlayersTab] Response status:', res.status);
+      
       if (res.ok) {
         const data = await res.json();
+        console.log('[PlayersTab] Response data:', data);
+        console.log('[PlayersTab] Players count:', data.players?.length || 0);
         setPlayers(data.players || []);
       } else {
+        const errorText = await res.text();
+        console.error('[PlayersTab] Error response:', errorText);
         toast({
           title: 'Ошибка',
           description: 'Не удалось загрузить список игроков',
@@ -77,7 +86,7 @@ const PlayersManagementTab = ({ token }: PlayersManagementTabProps) => {
         });
       }
     } catch (error) {
-      console.error('Failed to load players:', error);
+      console.error('[PlayersTab] Failed to load players:', error);
       toast({
         title: 'Ошибка',
         description: 'Ошибка подключения к серверу',
