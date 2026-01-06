@@ -142,18 +142,27 @@ namespace Oxide.Plugins
                 return;
             }
 
+            // Добавляем в бан-лист
+            ServerUsers.Set(player.userID, ServerUsers.UserGroup.Banned, player.displayName, reason);
+            ServerUsers.Save();
+            
             if (durationMinutes > 0)
             {
-                // Временный бан
+                // Временный бан - планируем разбан
                 var until = DateTime.UtcNow.AddMinutes(durationMinutes);
-                ServerUsers.Set(player.userID, ServerUsers.UserGroup.Banned, player.displayName, reason);
-                ServerUsers.Save();
                 player.Kick($"Banned: {reason} (until {until:yyyy-MM-dd HH:mm} UTC)");
+                
+                timer.Once(durationMinutes * 60f, () =>
+                {
+                    ServerUsers.Remove(player.userID);
+                    ServerUsers.Save();
+                    Puts($"Temporary ban expired for {player.displayName} ({player.userID})");
+                });
             }
             else
             {
                 // Перманентный бан
-                player.Ban(reason);
+                player.Kick($"Permanently banned: {reason}");
             }
 
             arg.ReplyWith(JsonConvert.SerializeObject(new 
