@@ -69,7 +69,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         if method == 'PUT':
             token = event.get('headers', {}).get('X-Auth-Token') or event.get('headers', {}).get('x-auth-token')
             
+            print(f'PUT request received. Headers: {event.get("headers", {})}')
+            print(f'Token: {token}')
+            
             if not token:
+                print('No token provided')
                 return {
                     'statusCode': 401,
                     'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
@@ -79,7 +83,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             cur.execute("SELECT id, role FROM admins WHERE token = %s", (token,))
             admin = cur.fetchone()
             
+            print(f'Admin found: {admin}')
+            
             if not admin:
+                print('Admin not found in database')
                 return {
                     'statusCode': 403,
                     'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
