@@ -6,7 +6,7 @@ import time
 from typing import Dict, List, Optional, Tuple
 
 def handler(event: dict, context) -> dict:
-    '''Backend для RCON управления игроками на Rust серверах'''
+    '''Backend для RCON управления игроками на Rust серверах через Oxide плагин'''
     
     method = event.get('httpMethod', 'GET')
     
@@ -77,8 +77,7 @@ def get_rcon_credentials() -> List[Dict[str, str]]:
     '''Получает список серверов с RCON данными из секретов'''
     servers = []
     
-    # Ожидаем формат: RCON_SERVER_1=ip:port:password, RCON_SERVER_2=ip:port:password и т.д.
-    for i in range(1, 11):  # Поддержка до 10 серверов
+    for i in range(1, 11):
         env_key = f'RCON_SERVER_{i}'
         rcon_data = os.environ.get(env_key, '')
         
@@ -88,7 +87,7 @@ def get_rcon_credentials() -> List[Dict[str, str]]:
                 if len(parts) >= 3:
                     ip = parts[0]
                     port = int(parts[1])
-                    password = ':'.join(parts[2:])  # На случай если в пароле есть :
+                    password = ':'.join(parts[2:])
                     
                     servers.append({
                         'name': f'Сервер {i}',
@@ -110,7 +109,7 @@ class RCONClient:
     SERVERDATA_AUTH_RESPONSE = 2
     SERVERDATA_RESPONSE_VALUE = 0
     
-    def __init__(self, host: str, port: int, password: str, timeout: float = 2.0):
+    def __init__(self, host: str, port: int, password: str, timeout: float = 3.0):
         self.host = host
         self.port = port
         self.password = password
@@ -125,7 +124,7 @@ class RCONClient:
             self.socket.connect((self.host, self.port))
             return self._authenticate()
         except Exception as e:
-            print(f'RCON connection error: {e}')
+            print(f'RCON connection error to {self.host}:{self.port}: {e}')
             return False
     
     def _authenticate(self) -> bool:
@@ -133,7 +132,6 @@ class RCONClient:
         packet = self._build_packet(self.request_id, self.SERVERDATA_AUTH, self.password)
         self.socket.send(packet)
         
-        # Ждем ответ аутентификации
         time.sleep(0.1)
         response = self._read_packet()
         
@@ -178,7 +176,7 @@ class RCONClient:
             packet = self._build_packet(self.request_id, self.SERVERDATA_EXECCOMMAND, command)
             self.socket.send(packet)
             
-            time.sleep(0.1)
+            time.sleep(0.15)
             response = self._read_packet()
             
             if response:
@@ -190,18 +188,23 @@ class RCONClient:
     
     def close(self):
         if self.socket:
-            self.socket.close()
+            try:
+                self.socket.close()
+            except:
+                pass
 
 
 def execute_rcon_command(server: Dict[str, str], command: str) -> Optional[str]:
     '''Выполняет RCON команду на сервере'''
     try:
-        client = RCONClient(server['ip'], server['port'], server['password'], timeout=2.0)
+        client = RCONClient(server['ip'], server['port'], server['password'], timeout=3.0)
         
         if client.connect():
             result = client.execute(command)
             client.close()
             return result
+        else:
+            print(f'Failed to connect to {server["name"]} ({server["ip"]}:{server["port"]})')
         
         return None
     except Exception as e:
@@ -210,9 +213,9 @@ def execute_rcon_command(server: Dict[str, str], command: str) -> Optional[str]:
 
 
 def list_all_players() -> dict:
-    '''Получает список всех игроков со всех серверов'''
+    '''Получает список всех игроков со всех серверов через Oxide плагин'''
     servers = get_rcon_credentials()
-    all_players = []
+    api_key = os.environ.get('PLAYER_API_KEY', '')
     
     if not servers:
         return {
@@ -221,15 +224,35 @@ def list_all_players() -> dict:
             'body': json.dumps({'players': [], 'message': 'No RCON servers configured'})
         }
     
+    if not api_key:
+        return {
+            'statusCode': 500,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'body': json.dumps({'error': 'PLAYER_API_KEY not configured'})
+        }
+    
+    all_players = []
+    
     for server in servers:
         try:
-            print(f'Connecting to {server["name"]} at {server["ip"]}:{server["port"]}')
-            response = execute_rcon_command(server, 'status')
+            print(f'Querying {server["name"]} at {server["ip"]}:{server["port"]}')
+            command = f'playerapi.list {api_key}'
+            response = execute_rcon_command(server, command)
             
             if response:
-                players = parse_status_response(response, server['name'])
-                print(f'Found {len(players)} players on {server["name"]}')
-                all_players.extend(players)
+                try:
+                    data = json.loads(response)
+                    if data.get('success'):
+                        players = data.get('players', [])
+                        for player in players:
+                            player['server'] = server['name']
+                        all_players.extend(players)
+                        print(f'Found {len(players)} players on {server["name"]}')
+                    else:
+                        print(f'API error on {server["name"]}: {data.get("error", "Unknown")}')
+                except json.JSONDecodeError as e:
+                    print(f'JSON parse error for {server["name"]}: {e}')
+                    print(f'Response: {response[:200]}')
             else:
                 print(f'No response from {server["name"]}')
         except Exception as e:
@@ -243,57 +266,25 @@ def list_all_players() -> dict:
     }
 
 
-def parse_status_response(response: str, server_name: str) -> List[Dict]:
-    '''Парсит вывод команды status и извлекает информацию об игроках'''
-    players = []
-    lines = response.split('\n')
-    
-    # Формат: "hostname: Server Name"
-    # "players : 5 (100 max) (0 queued) (0 joining)"
-    # Затем список игроков в формате: "playerid name ping connected address"
-    
-    parsing_players = False
-    for line in lines:
-        line = line.strip()
-        
-        if 'playerid' in line.lower() and 'name' in line.lower():
-            parsing_players = True
-            continue
-        
-        if parsing_players and line:
-            parts = line.split()
-            if len(parts) >= 4:
-                try:
-                    player_id = parts[0]
-                    # Имя может содержать пробелы, берем все до предпоследних 3 полей
-                    name = ' '.join(parts[1:-3])
-                    ping = parts[-3]
-                    connected_time = parts[-2]
-                    
-                    players.append({
-                        'server': server_name,
-                        'player_id': player_id,
-                        'name': name,
-                        'ping': ping,
-                        'connected_time': connected_time
-                    })
-                except:
-                    continue
-    
-    return players
-
-
 def kick_player(data: dict) -> dict:
-    '''Кикает игрока с сервера'''
+    '''Кикает игрока с сервера через Oxide плагин'''
     player_id = data.get('player_id')
     reason = data.get('reason', 'Kicked by admin')
     server_name = data.get('server')
+    api_key = os.environ.get('PLAYER_API_KEY', '')
     
     if not player_id or not server_name:
         return {
             'statusCode': 400,
             'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
             'body': json.dumps({'error': 'Missing player_id or server'})
+        }
+    
+    if not api_key:
+        return {
+            'statusCode': 500,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'body': json.dumps({'error': 'PLAYER_API_KEY not configured'})
         }
     
     servers = get_rcon_credentials()
@@ -306,28 +297,58 @@ def kick_player(data: dict) -> dict:
             'body': json.dumps({'error': 'Server not found'})
         }
     
-    command = f'kick {player_id} "{reason}"'
+    command = f'playerapi.kick {player_id} "{reason}" {api_key}'
     result = execute_rcon_command(target_server, command)
     
+    if result:
+        try:
+            data = json.loads(result)
+            if data.get('success'):
+                return {
+                    'statusCode': 200,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'success': True, 'message': data.get('message', 'Player kicked')})
+                }
+            else:
+                return {
+                    'statusCode': 400,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'error': data.get('error', 'Failed to kick player')})
+                }
+        except json.JSONDecodeError:
+            return {
+                'statusCode': 500,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'error': 'Invalid response from server'})
+            }
+    
     return {
-        'statusCode': 200,
+        'statusCode': 500,
         'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-        'body': json.dumps({'success': True, 'message': f'Player kicked: {result}'})
+        'body': json.dumps({'error': 'No response from server'})
     }
 
 
 def ban_player(data: dict) -> dict:
-    '''Банит игрока'''
+    '''Банит игрока через Oxide плагин'''
     player_id = data.get('player_id')
     reason = data.get('reason', 'Banned by admin')
-    duration = data.get('duration', 0)  # 0 = permanent
+    duration = data.get('duration', 0)
     server_name = data.get('server')
+    api_key = os.environ.get('PLAYER_API_KEY', '')
     
     if not player_id or not server_name:
         return {
             'statusCode': 400,
             'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
             'body': json.dumps({'error': 'Missing player_id or server'})
+        }
+    
+    if not api_key:
+        return {
+            'statusCode': 500,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'body': json.dumps({'error': 'PLAYER_API_KEY not configured'})
         }
     
     servers = get_rcon_credentials()
@@ -340,33 +361,57 @@ def ban_player(data: dict) -> dict:
             'body': json.dumps({'error': 'Server not found'})
         }
     
-    # Rust ban format: ban playerid "reason" duration(minutes, 0=permanent)
-    if duration > 0:
-        command = f'ban {player_id} "{reason}" {duration}'
-    else:
-        command = f'ban {player_id} "{reason}"'
-    
+    command = f'playerapi.ban {player_id} "{reason}" {duration} {api_key}'
     result = execute_rcon_command(target_server, command)
     
+    if result:
+        try:
+            data = json.loads(result)
+            if data.get('success'):
+                return {
+                    'statusCode': 200,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'success': True, 'message': data.get('message', 'Player banned')})
+                }
+            else:
+                return {
+                    'statusCode': 400,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'error': data.get('error', 'Failed to ban player')})
+                }
+        except json.JSONDecodeError:
+            return {
+                'statusCode': 500,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'error': 'Invalid response from server'})
+            }
+    
     return {
-        'statusCode': 200,
+        'statusCode': 500,
         'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-        'body': json.dumps({'success': True, 'message': f'Player banned: {result}'})
+        'body': json.dumps({'error': 'No response from server'})
     }
 
 
 def mute_player(data: dict) -> dict:
-    '''Блокирует чат игроку'''
+    '''Блокирует чат игроку через Oxide плагин'''
     player_id = data.get('player_id')
-    reason = data.get('reason', 'Muted by admin')
-    duration = data.get('duration', 60)  # В минутах
+    duration = data.get('duration', 60)
     server_name = data.get('server')
+    api_key = os.environ.get('PLAYER_API_KEY', '')
     
     if not player_id or not server_name:
         return {
             'statusCode': 400,
             'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
             'body': json.dumps({'error': 'Missing player_id or server'})
+        }
+    
+    if not api_key:
+        return {
+            'statusCode': 500,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'body': json.dumps({'error': 'PLAYER_API_KEY not configured'})
         }
     
     servers = get_rcon_credentials()
@@ -379,13 +424,33 @@ def mute_player(data: dict) -> dict:
             'body': json.dumps({'error': 'Server not found'})
         }
     
-    # Rust mute format: mute playerid duration(seconds)
-    duration_seconds = duration * 60
-    command = f'mute {player_id} {duration_seconds}'
+    command = f'playerapi.mute {player_id} {duration} {api_key}'
     result = execute_rcon_command(target_server, command)
     
+    if result:
+        try:
+            data = json.loads(result)
+            if data.get('success'):
+                return {
+                    'statusCode': 200,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'success': True, 'message': data.get('message', 'Player muted')})
+                }
+            else:
+                return {
+                    'statusCode': 400,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'error': data.get('error', 'Failed to mute player')})
+                }
+        except json.JSONDecodeError:
+            return {
+                'statusCode': 500,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'error': 'Invalid response from server'})
+            }
+    
     return {
-        'statusCode': 200,
+        'statusCode': 500,
         'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-        'body': json.dumps({'success': True, 'message': f'Player muted: {result}'})
+        'body': json.dumps({'error': 'No response from server'})
     }
