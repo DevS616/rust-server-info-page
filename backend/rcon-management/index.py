@@ -227,8 +227,11 @@ def execute_rcon_command(server: Dict[str, str], command: str) -> Optional[str]:
         return None
 
 
-def parse_status_output(raw_response: str, server_name: str) -> List[dict]:
-    '''Парсит вывод команды status и возвращает список игроков'''
+def parse_players_output(raw_response: str, server_name: str) -> List[dict]:
+    '''Парсит вывод команды players и возвращает список игроков
+    Формат: id name ping updt dist enId
+    Пример: 76561199246510231 mari333 3 168 0 14334312
+    '''
     players = []
     if not raw_response:
         return players
@@ -236,40 +239,41 @@ def parse_status_output(raw_response: str, server_name: str) -> List[dict]:
     lines = raw_response.split('\n')
     for line in lines:
         line = line.strip()
-        # Ищем строки с игроками: обычно формат "id name ping connected address"
-        # Пример: "76561198012345678 "PlayerName" 50 1h 127.0.0.1:28015"
-        if line and not line.startswith('hostname') and not line.startswith('version') and '"' in line:
-            try:
-                parts = line.split('"')
-                if len(parts) >= 3:
-                    steam_id = parts[0].strip()
-                    player_name = parts[1].strip()
-                    
-                    if steam_id.isdigit() and len(steam_id) == 17:  # SteamID64
-                        players.append({
-                            'player_id': steam_id,
-                            'name': player_name,
-                            'steam_id': steam_id,
-                            'server': server_name,
-                            'ping': 0,
-                            'connected_time': '0m',
-                            'health': 100,
-                            'position': '0, 0, 0'
-                        })
-            except Exception as e:
-                print(f'Failed to parse line: {line}, error: {e}')
+        # Пропускаем заголовок и пустые строки
+        if not line or 'id' in line and 'name' in line and 'ping' in line:
+            continue
+        
+        # Парсим строку с игроком
+        parts = line.split()
+        if len(parts) >= 2:
+            steam_id = parts[0]
+            player_name = parts[1]
+            ping = int(parts[2]) if len(parts) > 2 and parts[2].isdigit() else 0
+            
+            # Проверяем что это похоже на SteamID64 (17 цифр)
+            if steam_id.isdigit() and len(steam_id) == 17:
+                players.append({
+                    'player_id': steam_id,
+                    'name': player_name,
+                    'steam_id': steam_id,
+                    'server': server_name,
+                    'ping': ping,
+                    'connected_time': '0m',
+                    'health': 100,
+                    'position': '0, 0, 0'
+                })
     
     return players
 
 
 def query_server_players(server: Dict[str, str], api_key: str) -> List[dict]:
-    '''Запрашивает игроков с одного сервера через команду status'''
+    '''Запрашивает игроков с одного сервера через команду players'''
     try:
         print(f'Querying {server["name"]} at {server["ip"]}:{server["port"]}')
-        response = execute_rcon_command(server, 'status')
+        response = execute_rcon_command(server, 'players')
         
         if response:
-            players = parse_status_output(response, server['name'])
+            players = parse_players_output(response, server['name'])
             print(f'Found {len(players)} players on {server["name"]}')
             return players
         else:
