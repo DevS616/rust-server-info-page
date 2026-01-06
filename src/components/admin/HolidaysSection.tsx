@@ -37,6 +37,8 @@ const HolidaysSection = ({ token }: HolidaysSectionProps) => {
     setLoading(true);
     try {
       const newValue = activeHoliday === holiday ? null : holiday;
+      console.log('Toggling holiday:', { holiday, activeHoliday, newValue, token: token ? 'present' : 'missing' });
+      
       const res = await fetch(`${API_BASE}/1ad77753-040f-405c-8e61-7230f64e30e9/`, {
         method: 'PUT',
         headers: {
@@ -46,8 +48,11 @@ const HolidaysSection = ({ token }: HolidaysSectionProps) => {
         body: JSON.stringify({ active_holiday: newValue })
       });
 
+      console.log('Response status:', res.status);
+      
       if (res.ok) {
         const data = await res.json();
+        console.log('Response data:', data);
         setActiveHoliday(data.active_holiday || null);
         
         const holidayNames: Record<string, string> = {
