@@ -72,6 +72,10 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
           }
         );
 
+        if (response.status === 404 || response.status === 429) {
+          return;
+        }
+
         if (!response.ok) {
           const data = await response.json();
           alert(data.error || 'Не удалось начать прокрутку');
@@ -161,6 +165,10 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
           })
         }
       );
+
+      if (response.status === 404 || response.status === 429) {
+        return;
+      }
 
       if (response.ok) {
         setIsRewarded(true);

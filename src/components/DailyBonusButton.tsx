@@ -57,6 +57,10 @@ const DailyBonusButton = () => {
           `https://functions.poehali.dev/2f8f1aed-8299-4c7c-b041-cfe28a3aa7f3/?steam_id=${steamId}`
         );
         
+        if (response.status === 404 || response.status === 429) {
+          return;
+        }
+        
         if (response.ok) {
           const data = await response.json();
           setCanClaim(data.can_claim);
