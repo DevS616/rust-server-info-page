@@ -147,28 +147,9 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
   }, []);
 
   const handleAuth = () => {
-    const authWindow = window.open(
-      'https://devilrust.ru/api/v1/player.login?login',
-      'steam_auth',
-      'width=800,height=600'
-    );
-    
-    const handleMessage = (event: MessageEvent) => {
-      if (event.origin !== 'https://devilrust.ru') return;
-      
-      if (event.data.type === 'steam_auth_success' && event.data.token) {
-        window.location.href = `${window.location.origin}?auth_token=${event.data.token}`;
-      }
-    };
-    
-    window.addEventListener('message', handleMessage);
-    
-    const checkWindow = setInterval(() => {
-      if (authWindow?.closed) {
-        clearInterval(checkWindow);
-        window.removeEventListener('message', handleMessage);
-      }
-    }, 500);
+    const currentUrl = encodeURIComponent(window.location.href);
+    const authUrl = `https://functions.poehali.dev/560196bb-a6d4-41dc-9b1c-0008c13bece3/?base_url=${currentUrl}`;
+    window.location.href = authUrl;
   };
 
   const handleClaim = async () => {

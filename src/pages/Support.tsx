@@ -46,6 +46,18 @@ const Support = () => {
       localStorage.setItem('support_token', urlToken);
       setToken(urlToken);
       
+      // Декодируем JWT и сохраняем данные пользователя для бонуса
+      try {
+        const payload = JSON.parse(atob(urlToken.split('.')[1]));
+        localStorage.setItem('steam_user', JSON.stringify({
+          steamId: payload.steam_id,
+          username: payload.username,
+          userId: payload.user_id
+        }));
+      } catch (e) {
+        console.error('Failed to decode token:', e);
+      }
+      
       if (redirectTicket) {
         localStorage.removeItem('redirect_to_ticket');
         navigate(`/support/ticket/${redirectTicket}`, { replace: true });
@@ -54,6 +66,20 @@ const Support = () => {
       }
     } else if (storedToken) {
       setToken(storedToken);
+      
+      // Декодируем JWT если еще не сохранен пользователь
+      if (!localStorage.getItem('steam_user')) {
+        try {
+          const payload = JSON.parse(atob(storedToken.split('.')[1]));
+          localStorage.setItem('steam_user', JSON.stringify({
+            steamId: payload.steam_id,
+            username: payload.username,
+            userId: payload.user_id
+          }));
+        } catch (e) {
+          console.error('Failed to decode token:', e);
+        }
+      }
       
       if (redirectTicket) {
         localStorage.removeItem('redirect_to_ticket');
@@ -151,6 +177,7 @@ const Support = () => {
 
   const handleLogout = () => {
     localStorage.removeItem('support_token');
+    localStorage.removeItem('steam_user');
     setToken(null);
     setUser(null);
     setTickets([]);

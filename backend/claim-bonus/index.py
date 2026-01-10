@@ -50,12 +50,15 @@ def handler(event: dict, context) -> dict:
             f'?type=plus&amount={amount}&message={message}'
         )
         
+        print(f'Calling API: {api_url}')
         req = Request(api_url)
         with urlopen(req, timeout=10) as res:
+            result_text = res.read().decode('utf-8')
+            print(f'API response [{res.status}]: {result_text}')
             if res.status == 200:
-                return response(200, {'success': True})
+                return response(200, {'success': True, 'api_response': result_text})
             else:
-                return response(res.status, {'error': 'Failed to credit bonus'})
+                return response(res.status, {'error': 'Failed to credit bonus', 'details': result_text})
                 
     except (URLError, HTTPError) as e:
         return response(500, {'error': f'API request failed: {str(e)}'})

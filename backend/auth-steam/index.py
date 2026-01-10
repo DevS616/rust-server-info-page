@@ -33,7 +33,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     params = event.get('queryStringParameters') or {}
     path = event.get('path', '')
     
-    base_url = params.get('base_url', os.environ.get('BASE_URL', 'https://play.devilrust.ru'))
+    base_url = urllib.parse.unquote(params.get('base_url', os.environ.get('BASE_URL', 'https://play.devilrust.ru')))
     api_url = params.get('api_url', '')
     
     if 'openid.mode' in params:
@@ -46,13 +46,18 @@ def handle_login(api_url: str, base_url: str) -> Dict[str, Any]:
     if not base_url:
         base_url = 'https://play.devilrust.ru'
     
-    return_url = f"{base_url}/steam-callback"
+    # Извлекаем origin из полного URL если передан
+    from urllib.parse import urlparse
+    parsed = urlparse(base_url)
+    origin = f"{parsed.scheme}://{parsed.netloc}"
+    
+    return_url = f"{origin}/steam-callback"
     
     steam_params = {
         'openid.ns': 'http://specs.openid.net/auth/2.0',
         'openid.mode': 'checkid_setup',
         'openid.return_to': return_url,
-        'openid.realm': base_url,
+        'openid.realm': origin,
         'openid.identity': 'http://specs.openid.net/auth/2.0/identifier_select',
         'openid.claimed_id': 'http://specs.openid.net/auth/2.0/identifier_select'
     }
@@ -74,6 +79,11 @@ def handle_login(api_url: str, base_url: str) -> Dict[str, Any]:
 def handle_callback(params: Dict[str, Any], api_url: str, base_url: str) -> Dict[str, Any]:
     if not base_url:
         base_url = 'https://play.devilrust.ru'
+    
+    # Извлекаем origin из полного URL если передан
+    from urllib.parse import urlparse
+    parsed = urlparse(base_url)
+    origin = f"{parsed.scheme}://{parsed.netloc}"
     
     if params.get('openid.mode') != 'id_res':
         return error_response('Invalid OpenID mode')
@@ -108,7 +118,7 @@ def handle_callback(params: Dict[str, Any], api_url: str, base_url: str) -> Dict
         
         token = generate_jwt_token(user)
         
-        redirect_url = f"{base_url}/support?token={token}"
+        redirect_url = f"{origin}/support?token={token}"
         
         return {
             'statusCode': 302,
