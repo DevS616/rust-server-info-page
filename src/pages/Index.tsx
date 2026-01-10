@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
 import Header from '@/components/Header';
@@ -10,7 +11,31 @@ import Footer from '@/components/Footer';
 import DailyBonusButton from '@/components/DailyBonusButton';
 
 const Index = () => {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [showScrollTop, setShowScrollTop] = useState(false);
+
+  useEffect(() => {
+    const urlToken = searchParams.get('token');
+    
+    if (urlToken) {
+      // Декодируем JWT и сохраняем пользователя
+      try {
+        const payload = JSON.parse(atob(urlToken.split('.')[1]));
+        localStorage.setItem('steam_user', JSON.stringify({
+          steamId: payload.steam_id,
+          username: payload.username,
+          userId: payload.user_id
+        }));
+        localStorage.setItem('bonus_after_auth', 'true');
+      } catch (e) {
+        console.error('Failed to decode token:', e);
+      }
+      
+      // Убираем токен из URL
+      navigate('/', { replace: true });
+    }
+  }, [searchParams, navigate]);
 
   useEffect(() => {
     let ticking = false;

@@ -15,6 +15,13 @@ const DailyBonusButton = () => {
       const userData = JSON.parse(user);
       setSteamId(userData.steamId);
     }
+
+    // Проверяем флаг после авторизации
+    const shouldOpenBonus = localStorage.getItem('bonus_after_auth');
+    if (shouldOpenBonus === 'true') {
+      localStorage.removeItem('bonus_after_auth');
+      setIsOpen(true);
+    }
   }, []);
 
   useEffect(() => {

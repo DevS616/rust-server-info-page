@@ -27,6 +27,7 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [steamId, setSteamId] = useState<string | null>(null);
   const [isRewarded, setIsRewarded] = useState(false);
+  const [isClaiming, setIsClaiming] = useState(false);
   const wheelRef = useRef<HTMLImageElement>(null);
   const startTimeRef = useRef<number>(0);
   const animationFrameRef = useRef<number>(0);
@@ -67,33 +68,6 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
   const handleSpin = async () => {
     if (isSpinning || result !== null) return;
 
-    if (steamId) {
-      try {
-        const response = await fetch(
-          `https://functions.poehali.dev/2f8f1aed-8299-4c7c-b041-cfe28a3aa7f3/`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ steam_id: steamId })
-          }
-        );
-
-        if (response.status === 404 || response.status === 429) {
-          return;
-        }
-
-        if (!response.ok) {
-          const data = await response.json();
-          alert(data.error || 'Не удалось начать прокрутку');
-          return;
-        }
-      } catch (error) {
-        console.error('Failed to record spin:', error);
-      }
-    }
-
-    localStorage.setItem('lastBonusSpin', new Date().toISOString());
-    
     setIsSpinning(true);
     setShowResult(false);
     
@@ -147,16 +121,52 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
   }, []);
 
   const handleAuth = () => {
-    const currentUrl = encodeURIComponent(window.location.href);
+    localStorage.setItem('bonus_after_auth', 'true');
+    const currentUrl = encodeURIComponent(window.location.origin);
     const authUrl = `https://functions.poehali.dev/560196bb-a6d4-41dc-9b1c-0008c13bece3/?base_url=${currentUrl}`;
     window.location.href = authUrl;
   };
 
   const handleClaim = async () => {
-    if (!steamId || !result) return;
+    if (!steamId || !result || isClaiming) return;
+
+    setIsClaiming(true);
 
     try {
-      const response = await fetch(
+      // Проверяем таймер в базе данных
+      const checkResponse = await fetch(
+        `https://functions.poehali.dev/2f8f1aed-8299-4c7c-b041-cfe28a3aa7f3/?steam_id=${steamId}`,
+        { method: 'GET' }
+      );
+
+      if (checkResponse.ok) {
+        const checkData = await checkResponse.json();
+        if (!checkData.can_claim) {
+          alert(`Вы уже получали бонус сегодня. Попробуйте через ${Math.ceil(checkData.time_left / 3600)} часов`);
+          setIsClaiming(false);
+          return;
+        }
+      }
+
+      // Записываем время получения бонуса в базу данных
+      const recordResponse = await fetch(
+        'https://functions.poehali.dev/2f8f1aed-8299-4c7c-b041-cfe28a3aa7f3/',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ steam_id: steamId })
+        }
+      );
+
+      if (!recordResponse.ok) {
+        const data = await recordResponse.json();
+        alert(data.error || 'Не удалось зафиксировать получение бонуса');
+        setIsClaiming(false);
+        return;
+      }
+
+      // Выдаём бонус через API
+      const claimResponse = await fetch(
         'https://functions.poehali.dev/f417ccf5-cc33-4765-9f67-ff481ae7cf82/',
         {
           method: 'POST',
@@ -168,22 +178,19 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
         }
       );
 
-      if (response.status === 404 || response.status === 429) {
-        console.log('Backend limit reached, marking as rewarded locally');
-        setIsRewarded(true);
-        return;
-      }
-
-      if (response.ok) {
+      if (claimResponse.ok) {
+        localStorage.setItem('lastBonusSpin', new Date().toISOString());
         setIsRewarded(true);
       } else {
-        const data = await response.json();
+        const data = await claimResponse.json();
         console.error('Claim error:', data);
-        alert(data.error || 'Не удалось получить бонус');
+        alert(data.error || 'Не удалось выдать бонус на баланс');
       }
     } catch (error) {
       console.error('Failed to claim bonus:', error);
-      setIsRewarded(true);
+      alert('Произошла ошибка при получении бонуса');
+    } finally {
+      setIsClaiming(false);
     }
   };
 
@@ -207,7 +214,54 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
         {showConfetti && <Confetti recycle={false} numberOfPieces={200} />}
 
         <div className="space-y-6 py-4">
-          {!showResult ? (
+          {!isAuthenticated ? (
+            <div className="flex flex-col items-center gap-6 py-8">
+              <div className="text-center space-y-4">
+                <div className="text-6xl">🎁</div>
+                <h2 className="text-2xl font-bold">Авторизуйтесь для участия</h2>
+                <p className="text-muted-foreground">
+                  Войдите через Steam, чтобы получить ежедневный бонус
+                </p>
+              </div>
+              
+              <Button
+                onClick={handleAuth}
+                size="lg"
+                className="text-lg px-8 py-6"
+              >
+                <Icon name="LogIn" className="mr-2 h-5 w-5" />
+                Войти через Steam
+              </Button>
+
+              <Card className="p-4 w-full bg-muted/50 space-y-3">
+                <div>
+                  <h3 className="font-semibold mb-2 text-center">Возможные призы:</h3>
+                  <div className="grid grid-cols-5 gap-2 text-center text-sm">
+                    <div>
+                      <div className="font-bold text-lg">1₽</div>
+                      <div className="text-muted-foreground">50%</div>
+                    </div>
+                    <div>
+                      <div className="font-bold text-lg">3₽</div>
+                      <div className="text-muted-foreground">30%</div>
+                    </div>
+                    <div>
+                      <div className="font-bold text-lg">5₽</div>
+                      <div className="text-muted-foreground">15%</div>
+                    </div>
+                    <div>
+                      <div className="font-bold text-lg">10₽</div>
+                      <div className="text-muted-foreground">3%</div>
+                    </div>
+                    <div>
+                      <div className="font-bold text-lg">20₽</div>
+                      <div className="text-muted-foreground">2%</div>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          ) : !showResult ? (
             <div className="flex flex-col items-center gap-6">
               <div className="relative w-full max-w-md aspect-square">
                 <img
@@ -334,9 +388,23 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
                   </Button>
                 </Card>
               ) : (
-                <Button onClick={handleClaim} size="lg" className="w-full">
-                  <Icon name="Gift" className="mr-2 h-5 w-5" />
-                  Получить награду
+                <Button 
+                  onClick={handleClaim} 
+                  size="lg" 
+                  className="w-full"
+                  disabled={isClaiming}
+                >
+                  {isClaiming ? (
+                    <>
+                      <Icon name="Loader2" className="mr-2 h-5 w-5 animate-spin" />
+                      Получение...
+                    </>
+                  ) : (
+                    <>
+                      <Icon name="Gift" className="mr-2 h-5 w-5" />
+                      Получить награду
+                    </>
+                  )}
                 </Button>
               )}
             </div>

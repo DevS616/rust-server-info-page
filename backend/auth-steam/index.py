@@ -118,7 +118,11 @@ def handle_callback(params: Dict[str, Any], api_url: str, base_url: str) -> Dict
         
         token = generate_jwt_token(user)
         
-        redirect_url = f"{origin}/support?token={token}"
+        # Определяем куда редиректить - если пришли с главной, то туда же
+        if 'support' in base_url or 'ticket' in base_url:
+            redirect_url = f"{origin}/support?token={token}"
+        else:
+            redirect_url = f"{origin}/?token={token}"
         
         return {
             'statusCode': 302,
