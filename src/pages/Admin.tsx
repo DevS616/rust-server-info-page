@@ -334,30 +334,30 @@ const Admin = () => {
         </Card>
 
         <Tabs defaultValue="tickets" className="w-full">
-          <TabsList className="grid w-full grid-cols-6 h-auto">
-            <TabsTrigger value="tickets" className="text-xs md:text-sm px-2 py-2 md:py-2.5">
-              <Icon name="MessageSquare" className="h-4 w-4 md:mr-2" />
-              <span className="hidden sm:inline">Обращения</span>
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 h-auto gap-1">
+            <TabsTrigger value="tickets" className="text-xs md:text-sm px-1.5 py-2 md:py-2.5 flex-col sm:flex-row gap-0.5 sm:gap-2">
+              <Icon name="MessageSquare" className="h-4 w-4" />
+              <span className="text-[10px] sm:text-xs md:text-sm">Тикеты</span>
             </TabsTrigger>
-            <TabsTrigger value="servers" className="text-xs md:text-sm px-2 py-2 md:py-2.5">
-              <Icon name="Database" className="h-4 w-4 md:mr-2" />
-              <span className="hidden sm:inline">Серверы</span>
+            <TabsTrigger value="servers" className="text-xs md:text-sm px-1.5 py-2 md:py-2.5 flex-col sm:flex-row gap-0.5 sm:gap-2">
+              <Icon name="Database" className="h-4 w-4" />
+              <span className="text-[10px] sm:text-xs md:text-sm">Серверы</span>
             </TabsTrigger>
-            <TabsTrigger value="management" className="text-xs md:text-sm px-2 py-2 md:py-2.5">
-              <Icon name="Settings" className="h-4 w-4 md:mr-2" />
-              <span className="hidden sm:inline">Управление</span>
+            <TabsTrigger value="management" className="text-xs md:text-sm px-1.5 py-2 md:py-2.5 flex-col sm:flex-row gap-0.5 sm:gap-2">
+              <Icon name="Settings" className="h-4 w-4" />
+              <span className="text-[10px] sm:text-xs md:text-sm">Управление</span>
             </TabsTrigger>
-            <TabsTrigger value="promotion" className="text-xs md:text-sm px-2 py-2 md:py-2.5">
-              <Icon name="Gift" className="h-4 w-4 md:mr-2" />
-              <span className="hidden sm:inline">Акция</span>
+            <TabsTrigger value="promotion" className="text-xs md:text-sm px-1.5 py-2 md:py-2.5 flex-col sm:flex-row gap-0.5 sm:gap-2">
+              <Icon name="Gift" className="h-4 w-4" />
+              <span className="text-[10px] sm:text-xs md:text-sm">Акция</span>
             </TabsTrigger>
-            <TabsTrigger value="news" className="text-xs md:text-sm px-2 py-2 md:py-2.5">
-              <Icon name="Newspaper" className="h-4 w-4 md:mr-2" />
-              <span className="hidden sm:inline">Новости</span>
+            <TabsTrigger value="news" className="text-xs md:text-sm px-1.5 py-2 md:py-2.5 flex-col sm:flex-row gap-0.5 sm:gap-2">
+              <Icon name="Newspaper" className="h-4 w-4" />
+              <span className="text-[10px] sm:text-xs md:text-sm">Новости</span>
             </TabsTrigger>
-            <TabsTrigger value="pricing" className="text-xs md:text-sm px-2 py-2 md:py-2.5">
-              <Icon name="DollarSign" className="h-4 w-4 md:mr-2" />
-              <span className="hidden sm:inline">Прайс и сборы</span>
+            <TabsTrigger value="pricing" className="text-xs md:text-sm px-1.5 py-2 md:py-2.5 flex-col sm:flex-row gap-0.5 sm:gap-2">
+              <Icon name="DollarSign" className="h-4 w-4" />
+              <span className="text-[10px] sm:text-xs md:text-sm">Прайс</span>
             </TabsTrigger>
           </TabsList>
 
