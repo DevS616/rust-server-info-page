@@ -85,7 +85,7 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
     
     const targetAngle = prizePositions[targetIndex] * segmentAngle;
     const finalRotation = baseRotation + (360 - targetAngle) + (segmentAngle / 2);
-    const duration = 80000;
+    const duration = 3000 + Math.random() * 7000;
 
     startTimeRef.current = Date.now();
 
