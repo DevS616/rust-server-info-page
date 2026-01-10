@@ -7,6 +7,7 @@ import ServersSection from '@/components/ServersSection';
 import NewsSection from '@/components/NewsSection';
 import HowToStartSection from '@/components/HowToStartSection';
 import Footer from '@/components/Footer';
+import DailyBonusButton from '@/components/DailyBonusButton';
 
 const Index = () => {
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -40,6 +41,8 @@ const Index = () => {
       <NewsSection />
       <HowToStartSection />
       <Footer />
+
+      <DailyBonusButton />
 
       {showScrollTop && (
         <Button
