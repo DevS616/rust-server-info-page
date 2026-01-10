@@ -31,6 +31,25 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
   const wheelRef = useRef<HTMLImageElement>(null);
   const startTimeRef = useRef<number>(0);
   const animationFrameRef = useRef<number>(0);
+  const spinSoundRef = useRef<HTMLAudioElement | null>(null);
+  const winSoundRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    spinSoundRef.current = new Audio('https://cdn.poehali.dev/files/spin-sound.mp3');
+    spinSoundRef.current.loop = true;
+    winSoundRef.current = new Audio('https://cdn.poehali.dev/files/win-sound.mp3');
+    
+    return () => {
+      if (spinSoundRef.current) {
+        spinSoundRef.current.pause();
+        spinSoundRef.current = null;
+      }
+      if (winSoundRef.current) {
+        winSoundRef.current.pause();
+        winSoundRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const user = localStorage.getItem('steam_user');
@@ -95,6 +114,11 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
     setIsSpinning(true);
     setShowResult(false);
     
+    if (spinSoundRef.current) {
+      spinSoundRef.current.currentTime = 0;
+      spinSoundRef.current.play().catch(e => console.log('Sound play failed:', e));
+    }
+    
     const selectedPrize = selectPrize();
     const baseRotation = 360 * 50;
     const segments = 25;
@@ -125,6 +149,13 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
       if (progress < 1) {
         animationFrameRef.current = requestAnimationFrame(animate);
       } else {
+        if (spinSoundRef.current) {
+          spinSoundRef.current.pause();
+        }
+        if (winSoundRef.current) {
+          winSoundRef.current.play().catch(e => console.log('Win sound play failed:', e));
+        }
+        
         setResult(selectedPrize);
         setIsSpinning(false);
         setShowResult(true);
@@ -222,6 +253,9 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
   };
 
   const resetWheel = () => {
+    if (spinSoundRef.current) {
+      spinSoundRef.current.pause();
+    }
     setResult(null);
     setShowResult(false);
     setRotation(0);
