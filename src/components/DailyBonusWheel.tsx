@@ -138,10 +138,11 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
                 <img
                   src="https://cdn.poehali.dev/files/WuV2sgnWGuHLkImX8YlCHAqXY2aJjrLLSBw8FdhEDoVFNpvMW1528yP13UKYGgCZ8ahTnvHtU3Y-WsbHahp8IpNB.png"
                   alt="Колесо фортуны"
-                  className="w-full h-full object-contain transition-transform duration-[80000ms] ease-out"
+                  className="w-full h-full object-contain transition-transform duration-[80000ms]"
                   style={{ 
                     transform: `rotate(${rotation}deg)`,
-                    filter: 'drop-shadow(0 10px 30px rgba(0,0,0,0.3))'
+                    filter: 'drop-shadow(0 10px 30px rgba(0,0,0,0.3))',
+                    transitionTimingFunction: 'cubic-bezier(0.17, 0.67, 0.35, 0.96)'
                   }}
                 />
                 
