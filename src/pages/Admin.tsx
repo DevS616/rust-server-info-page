@@ -11,6 +11,7 @@ import ServersTab from '@/components/admin/ServersTab';
 import ManagementTab from '@/components/admin/ManagementTab';
 import PromotionTab from '@/components/admin/PromotionTab';
 import NewsTab from '@/components/admin/NewsTab';
+import PricingTab from '@/components/admin/PricingTab';
 
 import { useAdminAuth } from '@/components/admin/AdminAuth';
 import { useAdminDataLoader, Ticket, Message, Server } from '@/components/admin/AdminDataLoader';
@@ -333,7 +334,7 @@ const Admin = () => {
         </Card>
 
         <Tabs defaultValue="tickets" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 h-auto">
+          <TabsList className="grid w-full grid-cols-6 h-auto">
             <TabsTrigger value="tickets" className="text-xs md:text-sm px-2 py-2 md:py-2.5">
               <Icon name="MessageSquare" className="h-4 w-4 md:mr-2" />
               <span className="hidden sm:inline">Обращения</span>
@@ -353,6 +354,10 @@ const Admin = () => {
             <TabsTrigger value="news" className="text-xs md:text-sm px-2 py-2 md:py-2.5">
               <Icon name="Newspaper" className="h-4 w-4 md:mr-2" />
               <span className="hidden sm:inline">Новости</span>
+            </TabsTrigger>
+            <TabsTrigger value="pricing" className="text-xs md:text-sm px-2 py-2 md:py-2.5">
+              <Icon name="DollarSign" className="h-4 w-4 md:mr-2" />
+              <span className="hidden sm:inline">Прайс и сборы</span>
             </TabsTrigger>
           </TabsList>
 
@@ -416,6 +421,10 @@ const Admin = () => {
 
           <TabsContent value="news">
             <NewsTab token={token!} />
+          </TabsContent>
+
+          <TabsContent value="pricing">
+            <PricingTab />
           </TabsContent>
         </Tabs>
       </div>

@@ -1,0 +1,24 @@
+{
+  "tests": [
+    {
+      "name": "Get all price items",
+      "method": "GET",
+      "path": "/?action=get_prices",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "items": []
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Get all fundraisers",
+      "method": "GET",
+      "path": "/?action=get_fundraisers",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "fundraisers": []
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}
