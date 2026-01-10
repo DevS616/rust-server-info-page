@@ -8,13 +8,13 @@ const DailyBonusButton = () => {
   const [canClaim, setCanClaim] = useState(true);
 
   useEffect(() => {
-    const lastClaim = localStorage.getItem('lastBonusClaim');
-    if (lastClaim) {
-      const lastClaimDate = new Date(lastClaim);
+    const lastSpin = localStorage.getItem('lastBonusSpin');
+    if (lastSpin) {
+      const lastSpinDate = new Date(lastSpin);
       const now = new Date();
-      const hoursSinceLastClaim = (now.getTime() - lastClaimDate.getTime()) / (1000 * 60 * 60);
+      const hoursSinceLastSpin = (now.getTime() - lastSpinDate.getTime()) / (1000 * 60 * 60);
       
-      if (hoursSinceLastClaim < 24) {
+      if (hoursSinceLastSpin < 24) {
         setCanClaim(false);
       }
     }

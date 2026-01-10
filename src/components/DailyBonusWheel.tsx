@@ -61,6 +61,8 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
   const handleSpin = () => {
     if (isSpinning || result !== null) return;
 
+    localStorage.setItem('lastBonusSpin', new Date().toISOString());
+    
     setIsSpinning(true);
     setShowResult(false);
     
@@ -133,7 +135,6 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
 
       if (response.ok) {
         setIsRewarded(true);
-        localStorage.setItem('lastBonusClaim', new Date().toISOString());
       }
     } catch (error) {
       console.error('Failed to claim bonus:', error);
@@ -198,29 +199,45 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
                 )}
               </Button>
 
-              <Card className="p-4 w-full bg-muted/50">
-                <h3 className="font-semibold mb-2 text-center">Призы:</h3>
-                <div className="grid grid-cols-5 gap-2 text-center text-sm">
-                  <div>
-                    <div className="font-bold text-lg">1₽</div>
-                    <div className="text-muted-foreground">50%</div>
+              <Card className="p-4 w-full bg-muted/50 space-y-3">
+                <div>
+                  <h3 className="font-semibold mb-2 text-center">Призы:</h3>
+                  <div className="grid grid-cols-5 gap-2 text-center text-sm">
+                    <div>
+                      <div className="font-bold text-lg">1₽</div>
+                      <div className="text-muted-foreground">50%</div>
+                    </div>
+                    <div>
+                      <div className="font-bold text-lg">3₽</div>
+                      <div className="text-muted-foreground">30%</div>
+                    </div>
+                    <div>
+                      <div className="font-bold text-lg">5₽</div>
+                      <div className="text-muted-foreground">15%</div>
+                    </div>
+                    <div>
+                      <div className="font-bold text-lg">10₽</div>
+                      <div className="text-muted-foreground">3%</div>
+                    </div>
+                    <div>
+                      <div className="font-bold text-lg">20₽</div>
+                      <div className="text-muted-foreground">2%</div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="font-bold text-lg">3₽</div>
-                    <div className="text-muted-foreground">30%</div>
-                  </div>
-                  <div>
-                    <div className="font-bold text-lg">5₽</div>
-                    <div className="text-muted-foreground">15%</div>
-                  </div>
-                  <div>
-                    <div className="font-bold text-lg">10₽</div>
-                    <div className="text-muted-foreground">3%</div>
-                  </div>
-                  <div>
-                    <div className="font-bold text-lg">20₽</div>
-                    <div className="text-muted-foreground">2%</div>
-                  </div>
+                </div>
+                <div className="pt-2 border-t border-border">
+                  <p className="text-xs text-muted-foreground text-center">
+                    ⚠️ Бонус нельзя вывести в реальные деньги<br/>
+                    Можно потратить только в донат-магазине{' '}
+                    <a 
+                      href="https://devilrust.ru" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                    >
+                      devilrust.ru
+                    </a>
+                  </p>
                 </div>
               </Card>
             </div>
@@ -234,6 +251,17 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
                 </p>
                 <p className="text-muted-foreground">
                   Вы выиграли {result} рублей на баланс!
+                </p>
+                <p className="text-xs text-muted-foreground pt-2">
+                  Бонус можно потратить только в{' '}
+                  <a 
+                    href="https://devilrust.ru" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                  >
+                    донат-магазине
+                  </a>
                 </p>
               </div>
 
