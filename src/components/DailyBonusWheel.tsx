@@ -151,14 +151,26 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
 
     try {
       const response = await fetch(
-        `https://api.devilrust.ru/public/service/gamestores/GetBalance/${steamId}/9084dd333711c247c919e5eab195510f/31299?type=plus&amount=${result}&message=Ежедневный бонус.`
+        'https://functions.poehali.dev/f417ccf5-cc33-4765-9f67-ff481ae7cf82/',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            steam_id: steamId,
+            amount: result
+          })
+        }
       );
 
       if (response.ok) {
         setIsRewarded(true);
+      } else {
+        const data = await response.json();
+        alert(data.error || 'Не удалось получить бонус');
       }
     } catch (error) {
       console.error('Failed to claim bonus:', error);
+      alert('Ошибка при получении бонуса');
     }
   };
 

@@ -1,0 +1,31 @@
+{
+  "tests": [
+    {
+      "name": "Claim bonus with valid data",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "steam_id": "76561198000000001",
+        "amount": 5
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "success": true
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Missing steam_id",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "amount": 5
+      },
+      "expectedStatus": 400,
+      "expectedBody": {
+        "error": "steam_id and amount required"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}
