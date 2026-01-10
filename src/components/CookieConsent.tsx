@@ -115,7 +115,7 @@ const CookieConsent = () => {
                 Мы не передаем ваши персональные данные третьим лицам, за исключением:
               </p>
               <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                <li>Steam API для авторизации</li>
+                <li></li>
                 <li>Случаев, предусмотренных законодательством РФ</li>
               </ul>
             </section>
