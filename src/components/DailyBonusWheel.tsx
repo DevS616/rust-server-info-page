@@ -34,7 +34,7 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
 
   useEffect(() => {
     const user = localStorage.getItem('steam_user');
-    console.log('DailyBonusWheel: checking auth', { hasUser: !!user });
+    console.log('DailyBonusWheel: checking auth', { hasUser: !!user, isOpen });
     if (user) {
       try {
         const userData = JSON.parse(user);
@@ -44,8 +44,11 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
       } catch (e) {
         console.error('DailyBonusWheel: failed to parse user', e);
       }
+    } else {
+      setIsAuthenticated(false);
+      setSteamId(null);
     }
-  }, []);
+  }, [isOpen]);
 
   const selectPrize = (): number => {
     const random = Math.random() * 100;
@@ -166,7 +169,15 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
 
       if (!recordResponse.ok) {
         const data = await recordResponse.json();
-        alert(data.error || 'Не удалось зафиксировать получение бонуса');
+        
+        // Если это ошибка таймера, показываем понятное сообщение
+        if (recordResponse.status === 429 && data.time_left) {
+          const hours = Math.ceil(data.time_left / 3600);
+          alert(`Вы уже получали бонус сегодня. Попробуйте через ${hours} ${hours === 1 ? 'час' : hours < 5 ? 'часа' : 'часов'}`);
+        } else {
+          alert(data.error || 'Не удалось зафиксировать получение бонуса');
+        }
+        
         setIsClaiming(false);
         return;
       }

@@ -12,15 +12,20 @@ const DailyBonusButton = () => {
   useEffect(() => {
     const user = localStorage.getItem('steam_user');
     if (user) {
-      const userData = JSON.parse(user);
-      setSteamId(userData.steamId);
+      try {
+        const userData = JSON.parse(user);
+        setSteamId(userData.steamId);
+      } catch (e) {
+        console.error('Failed to parse steam_user:', e);
+      }
     }
 
     // Проверяем флаг после авторизации
     const shouldOpenBonus = localStorage.getItem('bonus_after_auth');
     if (shouldOpenBonus === 'true') {
       localStorage.removeItem('bonus_after_auth');
-      setIsOpen(true);
+      // Даём время на загрузку данных
+      setTimeout(() => setIsOpen(true), 100);
     }
   }, []);
 
