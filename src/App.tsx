@@ -8,6 +8,7 @@ import TelegramWidget from "./components/TelegramWidget";
 import PromotionModal from "./components/PromotionModal";
 import HolidayEffects from "./components/HolidayEffects";
 import MaintenancePage from "./components/MaintenancePage";
+import CookieConsent from "./components/CookieConsent";
 import Index from "./pages/Index";
 import BanList from "./pages/BanList";
 import Support from "./pages/Support";
@@ -116,6 +117,7 @@ const App = () => (
       <TelegramWidget />
       <PromotionModal />
       <HolidayEffects />
+      <CookieConsent />
       <BrowserRouter>
         <AppContent />
       </BrowserRouter>
