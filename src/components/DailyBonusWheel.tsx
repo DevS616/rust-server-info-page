@@ -228,7 +228,7 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
               <div className="relative w-full max-w-md aspect-square">
                 <img
                   ref={wheelRef}
-                  src="https://cdn.poehali.dev/files/WuV2sgnWGuHLkImX8YlCHAqXY2aJjrLLSBw8FdhEDoVFNpvMW1528yP13UKYGgCZ8ahTnvHtU3Y-WsbHahp8IpNB.png"
+                  src="https://cdn.poehali.dev/projects/14cc16e7-6bfa-466f-b030-aa09db74a13a/files/191b78d8-1bea-4d4f-9b31-84bf4f2888e3.jpg"
                   alt="Колесо фортуны"
                   className="w-full h-full object-contain"
                   style={{ 
