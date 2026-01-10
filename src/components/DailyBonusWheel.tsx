@@ -58,7 +58,7 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
     setShowResult(false);
     
     const selectedPrize = selectPrize();
-    const baseRotation = 360 * 5;
+    const baseRotation = 360 * 50;
     const segments = 24;
     const segmentAngle = 360 / segments;
     
@@ -88,7 +88,7 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
       setShowConfetti(true);
       
       setTimeout(() => setShowConfetti(false), 5000);
-    }, 8000);
+    }, 80000);
   };
 
   const handleAuth = () => {
@@ -138,7 +138,7 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
                 <img
                   src="https://cdn.poehali.dev/files/WuV2sgnWGuHLkImX8YlCHAqXY2aJjrLLSBw8FdhEDoVFNpvMW1528yP13UKYGgCZ8ahTnvHtU3Y-WsbHahp8IpNB.png"
                   alt="Колесо фортуны"
-                  className="w-full h-full object-contain transition-transform duration-[8000ms] ease-out"
+                  className="w-full h-full object-contain transition-transform duration-[80000ms] ease-out"
                   style={{ 
                     transform: `rotate(${rotation}deg)`,
                     filter: 'drop-shadow(0 10px 30px rgba(0,0,0,0.3))'
