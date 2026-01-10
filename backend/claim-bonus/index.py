@@ -45,7 +45,7 @@ def handler(event: dict, context) -> dict:
         
         message = quote('Ежедневный бонус')
         api_url = (
-            f'https://api.devilrust.ru/public/service/gamestores/GetBalance/'
+            f'https://api.yrsproject.ru/public/service/gamestores/GetBalance/'
             f'{steam_id}/{secret_key}/{store_id}'
             f'?type=plus&amount={amount}&message={message}'
         )
