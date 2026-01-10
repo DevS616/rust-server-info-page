@@ -110,31 +110,7 @@ const CookieConsent = () => {
             </section>
 
             <section>
-              <h3 className="font-semibold mb-2">5. Передача данных третьим лицам</h3>
-              <p className="text-muted-foreground">
-                Мы не передаем ваши персональные данные третьим лицам, за исключением:
-              </p>
-              <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                <li></li>
-                <li>Случаев, предусмотренных законодательством РФ</li>
-              </ul>
-            </section>
-
-            <section>
-              <h3 className="font-semibold mb-2">6. Ваши права</h3>
-              <p className="text-muted-foreground mb-2">
-                Вы имеете право:
-              </p>
-              <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                <li>Запросить доступ к своим персональным данным</li>
-                <li>Потребовать исправления неточных данных</li>
-                <li>Удалить свои данные (за исключением необходимых для работы сервиса)</li>
-                <li>Отозвать согласие на обработку данных</li>
-              </ul>
-            </section>
-
-            <section>
-              <h3 className="font-semibold mb-2">7. Безопасность данных</h3>
+              <h3 className="font-semibold mb-2">5. Безопасность данных</h3>
               <p className="text-muted-foreground">
                 Мы применяем технические и организационные меры для защиты ваших данных от 
                 несанкционированного доступа, изменения, раскрытия или уничтожения.
@@ -142,7 +118,7 @@ const CookieConsent = () => {
             </section>
 
             <section>
-              <h3 className="font-semibold mb-2">8. Изменения в политике</h3>
+              <h3 className="font-semibold mb-2">6. Изменения в политике</h3>
               <p className="text-muted-foreground">
                 Мы можем обновлять данную Политику. Продолжая использовать сайт после внесения изменений, 
                 вы соглашаетесь с новой версией Политики.
@@ -150,7 +126,7 @@ const CookieConsent = () => {
             </section>
 
             <section>
-              <h3 className="font-semibold mb-2">9. Контакты</h3>
+              <h3 className="font-semibold mb-2">7. Контакты</h3>
               <p className="text-muted-foreground">
                 По вопросам обработки персональных данных обращайтесь через раздел "Поддержка" на сайте.
               </p>
