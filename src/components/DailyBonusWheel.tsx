@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -27,6 +27,9 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [steamId, setSteamId] = useState<string | null>(null);
   const [isRewarded, setIsRewarded] = useState(false);
+  const wheelRef = useRef<HTMLImageElement>(null);
+  const startTimeRef = useRef<number>(0);
+  const animationFrameRef = useRef<number>(0);
 
   useEffect(() => {
     const user = localStorage.getItem('steamUser');
@@ -51,12 +54,15 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
     return PRIZES[0].value;
   };
 
+  const easeOutCubic = (t: number): number => {
+    return 1 - Math.pow(1 - t, 3);
+  };
+
   const handleSpin = () => {
     if (isSpinning || result !== null) return;
 
     setIsSpinning(true);
     setShowResult(false);
-    setRotation(0);
     
     const selectedPrize = selectPrize();
     const baseRotation = 360 * 50;
@@ -79,20 +85,39 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
     
     const targetAngle = prizePositions[targetIndex] * segmentAngle;
     const finalRotation = baseRotation + (360 - targetAngle) + (segmentAngle / 2);
-    
-    setTimeout(() => {
-      setRotation(finalRotation);
-    }, 100);
+    const duration = 80000;
 
-    setTimeout(() => {
-      setResult(selectedPrize);
-      setIsSpinning(false);
-      setShowResult(true);
-      setShowConfetti(true);
+    startTimeRef.current = Date.now();
+
+    const animate = () => {
+      const elapsed = Date.now() - startTimeRef.current;
+      const progress = Math.min(elapsed / duration, 1);
+      const easedProgress = easeOutCubic(progress);
       
-      setTimeout(() => setShowConfetti(false), 5000);
-    }, 80000);
+      const currentRotation = finalRotation * easedProgress;
+      setRotation(currentRotation);
+
+      if (progress < 1) {
+        animationFrameRef.current = requestAnimationFrame(animate);
+      } else {
+        setResult(selectedPrize);
+        setIsSpinning(false);
+        setShowResult(true);
+        setShowConfetti(true);
+        setTimeout(() => setShowConfetti(false), 5000);
+      }
+    };
+
+    animationFrameRef.current = requestAnimationFrame(animate);
   };
+
+  useEffect(() => {
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, []);
 
   const handleAuth = () => {
     window.location.href = 'https://functions.poehali.dev/b4dd1eaf-a0eb-4a8d-a509-fe5f0f47f0ba/';
@@ -139,13 +164,13 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
             <div className="flex flex-col items-center gap-6">
               <div className="relative w-full max-w-md aspect-square">
                 <img
+                  ref={wheelRef}
                   src="https://cdn.poehali.dev/files/WuV2sgnWGuHLkImX8YlCHAqXY2aJjrLLSBw8FdhEDoVFNpvMW1528yP13UKYGgCZ8ahTnvHtU3Y-WsbHahp8IpNB.png"
                   alt="Колесо фортуны"
-                  className="w-full h-full object-contain transition-transform duration-[80000ms]"
+                  className="w-full h-full object-contain"
                   style={{ 
                     transform: `rotate(${rotation}deg)`,
-                    filter: 'drop-shadow(0 10px 30px rgba(0,0,0,0.3))',
-                    transitionTimingFunction: 'cubic-bezier(0.17, 0.67, 0.35, 0.96)'
+                    filter: 'drop-shadow(0 10px 30px rgba(0,0,0,0.3))'
                   }}
                 />
                 
