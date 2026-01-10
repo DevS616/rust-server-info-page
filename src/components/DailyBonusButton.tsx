@@ -10,7 +10,7 @@ const DailyBonusButton = () => {
   const [steamId, setSteamId] = useState<string | null>(null);
 
   useEffect(() => {
-    const user = localStorage.getItem('steamUser');
+    const user = localStorage.getItem('steam_user');
     if (user) {
       const userData = JSON.parse(user);
       setSteamId(userData.steamId);

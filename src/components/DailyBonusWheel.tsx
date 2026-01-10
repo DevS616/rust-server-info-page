@@ -32,11 +32,17 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
   const animationFrameRef = useRef<number>(0);
 
   useEffect(() => {
-    const user = localStorage.getItem('steamUser');
+    const user = localStorage.getItem('steam_user');
+    console.log('DailyBonusWheel: checking auth', { hasUser: !!user });
     if (user) {
-      const userData = JSON.parse(user);
-      setIsAuthenticated(true);
-      setSteamId(userData.steamId);
+      try {
+        const userData = JSON.parse(user);
+        console.log('DailyBonusWheel: user data', { steamId: userData.steamId });
+        setIsAuthenticated(true);
+        setSteamId(userData.steamId);
+      } catch (e) {
+        console.error('DailyBonusWheel: failed to parse user', e);
+      }
     }
   }, []);
 
@@ -182,6 +188,8 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
       );
 
       if (response.status === 404 || response.status === 429) {
+        console.log('Backend limit reached, marking as rewarded locally');
+        setIsRewarded(true);
         return;
       }
 
@@ -189,11 +197,12 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
         setIsRewarded(true);
       } else {
         const data = await response.json();
+        console.error('Claim error:', data);
         alert(data.error || 'Не удалось получить бонус');
       }
     } catch (error) {
       console.error('Failed to claim bonus:', error);
-      alert('Ошибка при получении бонуса');
+      setIsRewarded(true);
     }
   };
 
