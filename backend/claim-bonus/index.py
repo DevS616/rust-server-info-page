@@ -8,6 +8,7 @@ import os
 from urllib.parse import quote
 from urllib.request import urlopen, Request
 from urllib.error import URLError, HTTPError
+import psycopg2
 
 
 def handler(event: dict, context) -> dict:
@@ -56,6 +57,7 @@ def handler(event: dict, context) -> dict:
             result_text = res.read().decode('utf-8')
             print(f'API response [{res.status}]: {result_text}')
             if res.status == 200:
+                save_bonus_history(steam_id, amount)
                 return response(200, {'success': True, 'api_response': result_text})
             else:
                 return response(res.status, {'error': 'Failed to credit bonus', 'details': result_text})
@@ -64,6 +66,27 @@ def handler(event: dict, context) -> dict:
         return response(500, {'error': f'API request failed: {str(e)}'})
     except Exception as e:
         return response(500, {'error': str(e)})
+
+
+def save_bonus_history(steam_id: str, amount: int):
+    conn = None
+    cur = None
+    try:
+        conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        cur = conn.cursor()
+        
+        cur.execute(
+            f"INSERT INTO bonus_history (steam_id, amount) VALUES ('{steam_id.replace(\"'\", \"''\")}', {amount})"
+        )
+        
+        conn.commit()
+    except Exception as e:
+        print(f'Failed to save bonus history: {str(e)}')
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
 
 
 def response(status: int, data: dict) -> dict:

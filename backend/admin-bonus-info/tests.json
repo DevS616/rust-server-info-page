@@ -1,0 +1,27 @@
+{
+  "tests": [
+    {
+      "name": "Test GET without auth token",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 403,
+      "expectedBody": {
+        "error": "Access denied"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Test POST without auth token",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "steam_id": "76561198000000000"
+      },
+      "expectedStatus": 403,
+      "expectedBody": {
+        "error": "Access denied"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}
