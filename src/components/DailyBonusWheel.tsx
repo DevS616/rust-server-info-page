@@ -56,6 +56,7 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
 
     setIsSpinning(true);
     setShowResult(false);
+    setRotation(0);
     
     const selectedPrize = selectPrize();
     const baseRotation = 360 * 50;
@@ -79,7 +80,9 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
     const targetAngle = prizePositions[targetIndex] * segmentAngle;
     const finalRotation = baseRotation + (360 - targetAngle) + (segmentAngle / 2);
     
-    setRotation(finalRotation);
+    setTimeout(() => {
+      setRotation(finalRotation);
+    }, 100);
 
     setTimeout(() => {
       setResult(selectedPrize);
