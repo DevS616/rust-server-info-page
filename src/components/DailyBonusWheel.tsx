@@ -93,24 +93,18 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
     
     const selectedPrize = selectPrize();
     const baseRotation = 360 * 50;
-    const segments = 24;
+    const segments = 25;
     const segmentAngle = 360 / segments;
     
-    const prizePositions = [
-      0, 3, 6, 9, 12, 15, 18, 21,
-      1, 4, 7, 10, 13, 16, 19, 22,
-      2, 5, 8, 11, 14, 17, 20, 23
-    ];
+    const wheelLayout = [20, 1, 3, 1, 5, 1, 3, 1, 10, 1, 3, 1, 5, 1, 5, 3, 1, 10, 1, 3, 1, 5, 1, 3, 1];
     
-    const targetIndex = prizePositions.findIndex((_, i) => {
-      if (selectedPrize === 1) return i < 8;
-      if (selectedPrize === 3) return i >= 8 && i < 16;
-      if (selectedPrize === 5) return i >= 16 && i < 20;
-      if (selectedPrize === 10) return i >= 20 && i < 22;
-      return i >= 22;
-    });
+    const possibleIndices = wheelLayout
+      .map((prize, index) => prize === selectedPrize ? index : -1)
+      .filter(index => index !== -1);
     
-    const targetAngle = prizePositions[targetIndex] * segmentAngle;
+    const targetIndex = possibleIndices[Math.floor(Math.random() * possibleIndices.length)];
+    
+    const targetAngle = targetIndex * segmentAngle;
     const finalRotation = baseRotation + (360 - targetAngle) + (segmentAngle / 2);
     const duration = 3000 + Math.random() * 7000;
 
@@ -228,7 +222,7 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
               <div className="relative w-full max-w-md aspect-square">
                 <img
                   ref={wheelRef}
-                  src="https://cdn.poehali.dev/projects/14cc16e7-6bfa-466f-b030-aa09db74a13a/files/191b78d8-1bea-4d4f-9b31-84bf4f2888e3.jpg"
+                  src="https://cdn.poehali.dev/files/WuV2sgnWGuHLkImX8YlCHAqXY2aJjrLLSBw8FdhEDoVFNpvMW1528yP13UKYGgCZ8ahTnvHtU3Y-WsbHahp8IpNB.png"
                   alt="Колесо фортуны"
                   className="w-full h-full object-contain"
                   style={{ 
