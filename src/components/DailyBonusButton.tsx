@@ -33,6 +33,25 @@ const DailyBonusButton = () => {
         return;
       }
 
+      const cachedData = localStorage.getItem(`bonus_check_${steamId}`);
+      if (cachedData) {
+        const { can_claim, time_left, cached_at } = JSON.parse(cachedData);
+        const cacheAge = Date.now() - cached_at;
+        
+        if (cacheAge < 5 * 60 * 1000) {
+          setCanClaim(can_claim);
+          if (!can_claim && time_left) {
+            const remainingTime = time_left - Math.floor(cacheAge / 1000);
+            if (remainingTime > 0) {
+              const hours = Math.floor(remainingTime / 3600);
+              const minutes = Math.floor((remainingTime % 3600) / 60);
+              setTimeLeft(`${hours}ч ${minutes}м`);
+              return;
+            }
+          }
+        }
+      }
+
       try {
         const response = await fetch(
           `https://functions.poehali.dev/2f8f1aed-8299-4c7c-b041-cfe28a3aa7f3/?steam_id=${steamId}`
@@ -41,6 +60,18 @@ const DailyBonusButton = () => {
         if (response.ok) {
           const data = await response.json();
           setCanClaim(data.can_claim);
+          
+          localStorage.setItem(`bonus_check_${steamId}`, JSON.stringify({
+            can_claim: data.can_claim,
+            time_left: data.time_left,
+            cached_at: Date.now()
+          }));
+          
+          if (!data.can_claim && data.time_left) {
+            const hours = Math.floor(data.time_left / 3600);
+            const minutes = Math.floor((data.time_left % 3600) / 60);
+            setTimeLeft(`${hours}ч ${minutes}м`);
+          }
         }
       } catch (error) {
         console.error('Failed to check availability:', error);
@@ -56,27 +87,24 @@ const DailyBonusButton = () => {
       return;
     }
 
-    const updateTimer = async () => {
+    const updateTimer = () => {
       if (steamId) {
-        try {
-          const response = await fetch(
-            `https://functions.poehali.dev/2f8f1aed-8299-4c7c-b041-cfe28a3aa7f3/?steam_id=${steamId}`
-          );
+        const cachedData = localStorage.getItem(`bonus_check_${steamId}`);
+        if (cachedData) {
+          const { can_claim, time_left, cached_at } = JSON.parse(cachedData);
+          const cacheAge = Date.now() - cached_at;
+          const remainingTime = time_left - Math.floor(cacheAge / 1000);
           
-          if (response.ok) {
-            const data = await response.json();
-            if (data.can_claim) {
-              setTimeLeft('');
-              setCanClaim(true);
-              return;
-            }
-            
-            const hours = Math.floor(data.time_left / 3600);
-            const minutes = Math.floor((data.time_left % 3600) / 60);
-            setTimeLeft(`${hours}ч ${minutes}м`);
+          if (remainingTime <= 0) {
+            setTimeLeft('');
+            setCanClaim(true);
+            localStorage.removeItem(`bonus_check_${steamId}`);
+            return;
           }
-        } catch (error) {
-          console.error('Failed to update timer:', error);
+          
+          const hours = Math.floor(remainingTime / 3600);
+          const minutes = Math.floor((remainingTime % 3600) / 60);
+          setTimeLeft(`${hours}ч ${minutes}м`);
         }
       } else {
         const lastSpin = localStorage.getItem('lastBonusSpin');
