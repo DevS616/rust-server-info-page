@@ -68,6 +68,27 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
   const handleSpin = async () => {
     if (isSpinning || result !== null) return;
 
+    // Проверяем можно ли получить бонус перед прокруткой
+    if (steamId) {
+      try {
+        const checkResponse = await fetch(
+          `https://functions.poehali.dev/2f8f1aed-8299-4c7c-b041-cfe28a3aa7f3/?steam_id=${steamId}`,
+          { method: 'GET' }
+        );
+
+        if (checkResponse.ok) {
+          const checkData = await checkResponse.json();
+          if (!checkData.can_claim) {
+            const hours = Math.ceil(checkData.time_left / 3600);
+            alert(`Вы уже получали бонус сегодня. Попробуйте через ${hours} ${hours === 1 ? 'час' : hours < 5 ? 'часа' : 'часов'}`);
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('Failed to check bonus availability:', error);
+      }
+    }
+
     setIsSpinning(true);
     setShowResult(false);
     
@@ -133,21 +154,6 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
     setIsClaiming(true);
 
     try {
-      // Проверяем таймер в базе данных
-      const checkResponse = await fetch(
-        `https://functions.poehali.dev/2f8f1aed-8299-4c7c-b041-cfe28a3aa7f3/?steam_id=${steamId}`,
-        { method: 'GET' }
-      );
-
-      if (checkResponse.ok) {
-        const checkData = await checkResponse.json();
-        if (!checkData.can_claim) {
-          alert(`Вы уже получали бонус сегодня. Попробуйте через ${Math.ceil(checkData.time_left / 3600)} часов`);
-          setIsClaiming(false);
-          return;
-        }
-      }
-
       // Записываем время получения бонуса в базу данных
       const recordResponse = await fetch(
         'https://functions.poehali.dev/2f8f1aed-8299-4c7c-b041-cfe28a3aa7f3/',
@@ -180,6 +186,16 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
 
       if (claimResponse.ok) {
         localStorage.setItem('lastBonusSpin', new Date().toISOString());
+        
+        // Обновляем кэш для кнопки
+        if (steamId) {
+          localStorage.setItem(`bonus_check_${steamId}`, JSON.stringify({
+            can_claim: false,
+            time_left: 24 * 3600,
+            cached_at: Date.now()
+          }));
+        }
+        
         setIsRewarded(true);
       } else {
         const data = await claimResponse.json();
