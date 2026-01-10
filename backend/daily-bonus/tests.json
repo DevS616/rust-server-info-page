@@ -1,0 +1,25 @@
+{
+  "tests": [
+    {
+      "name": "Check bonus availability - new user",
+      "method": "GET",
+      "path": "/?steam_id=76561198000000001",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "can_claim": true
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Record bonus spin",
+      "method": "POST",
+      "path": "/",
+      "body": {"steam_id": "76561198000000001"},
+      "expectedStatus": 200,
+      "expectedBody": {
+        "success": true
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

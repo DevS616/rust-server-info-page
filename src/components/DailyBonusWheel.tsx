@@ -58,8 +58,29 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
     return 1 - Math.pow(1 - t, 3);
   };
 
-  const handleSpin = () => {
+  const handleSpin = async () => {
     if (isSpinning || result !== null) return;
+
+    if (steamId) {
+      try {
+        const response = await fetch(
+          `https://functions.poehali.dev/2f8f1aed-8299-4c7c-b041-cfe28a3aa7f3/`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ steam_id: steamId })
+          }
+        );
+
+        if (!response.ok) {
+          const data = await response.json();
+          alert(data.error || 'Не удалось начать прокрутку');
+          return;
+        }
+      } catch (error) {
+        console.error('Failed to record spin:', error);
+      }
+    }
 
     localStorage.setItem('lastBonusSpin', new Date().toISOString());
     
