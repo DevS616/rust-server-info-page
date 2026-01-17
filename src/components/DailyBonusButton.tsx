@@ -19,14 +19,6 @@ const DailyBonusButton = () => {
         console.error('Failed to parse steam_user:', e);
       }
     }
-
-    // Проверяем флаг после авторизации
-    const shouldOpenBonus = localStorage.getItem('bonus_after_auth');
-    if (shouldOpenBonus === 'true') {
-      localStorage.removeItem('bonus_after_auth');
-      // Даём время на загрузку данных
-      setTimeout(() => setIsOpen(true), 100);
-    }
   }, []);
 
   useEffect(() => {
@@ -35,13 +27,28 @@ const DailyBonusButton = () => {
         const lastSpin = localStorage.getItem('lastBonusSpin');
         if (!lastSpin) {
           setCanClaim(true);
+          
+          const shouldOpenBonus = localStorage.getItem('bonus_after_auth');
+          if (shouldOpenBonus === 'true') {
+            localStorage.removeItem('bonus_after_auth');
+            setTimeout(() => setIsOpen(true), 100);
+          }
           return;
         }
         
         const lastSpinDate = new Date(lastSpin);
         const now = new Date();
         const hoursSinceLastSpin = (now.getTime() - lastSpinDate.getTime()) / (1000 * 60 * 60);
-        setCanClaim(hoursSinceLastSpin >= 24);
+        const available = hoursSinceLastSpin >= 24;
+        setCanClaim(available);
+        
+        if (available) {
+          const shouldOpenBonus = localStorage.getItem('bonus_after_auth');
+          if (shouldOpenBonus === 'true') {
+            localStorage.removeItem('bonus_after_auth');
+            setTimeout(() => setIsOpen(true), 100);
+          }
+        }
         return;
       }
 
@@ -87,6 +94,12 @@ const DailyBonusButton = () => {
             const hours = Math.floor(data.time_left / 3600);
             const minutes = Math.floor((data.time_left % 3600) / 60);
             setTimeLeft(`${hours}ч ${minutes}м`);
+          } else if (data.can_claim) {
+            const shouldOpenBonus = localStorage.getItem('bonus_after_auth');
+            if (shouldOpenBonus === 'true') {
+              localStorage.removeItem('bonus_after_auth');
+              setTimeout(() => setIsOpen(true), 100);
+            }
           }
         }
       } catch (error) {
