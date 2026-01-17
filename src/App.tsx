@@ -42,15 +42,34 @@ const AppContent = () => {
     }
 
     let lastCheckTime = 0;
-    const MIN_CHECK_INTERVAL = 60000;
+    const MIN_CHECK_INTERVAL = 30 * 60 * 1000;
+    const CACHE_KEY = 'maintenance_cache';
+    const CACHE_DURATION = 30 * 60 * 1000;
 
-    const checkMaintenance = async () => {
+    const checkMaintenance = async (skipCache = false) => {
       if (document.hidden) return;
       
       const now = Date.now();
-      if (now - lastCheckTime < MIN_CHECK_INTERVAL) {
+      if (!skipCache && now - lastCheckTime < MIN_CHECK_INTERVAL) {
         return;
       }
+      
+      const cached = localStorage.getItem(CACHE_KEY);
+      if (!skipCache && cached) {
+        try {
+          const { data, timestamp } = JSON.parse(cached);
+          if (now - timestamp < CACHE_DURATION) {
+            setIsMaintenance(data.is_maintenance);
+            setMaintenanceTitle(data.maintenance_title);
+            setMaintenanceSubtitle(data.maintenance_subtitle);
+            setLoading(false);
+            return;
+          }
+        } catch (e) {
+          console.error('Failed to parse maintenance cache:', e);
+        }
+      }
+      
       lastCheckTime = now;
       
       try {
@@ -60,6 +79,13 @@ const AppContent = () => {
           setIsMaintenance(data.is_maintenance);
           setMaintenanceTitle(data.maintenance_title);
           setMaintenanceSubtitle(data.maintenance_subtitle);
+          
+          localStorage.setItem(CACHE_KEY, JSON.stringify({
+            data,
+            timestamp: now
+          }));
+          
+          window.dispatchEvent(new CustomEvent('holidayChanged', { detail: data.active_holiday || null }));
         }
       } catch (error) {
         console.error('Failed to check maintenance:', error);
@@ -69,11 +95,14 @@ const AppContent = () => {
     };
 
     checkMaintenance();
-    const interval = setInterval(checkMaintenance, 600000);
+    const interval = setInterval(() => checkMaintenance(true), 30 * 60 * 1000);
     
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-        checkMaintenance();
+        const now = Date.now();
+        if (now - lastCheckTime >= 10 * 60 * 1000) {
+          checkMaintenance();
+        }
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);

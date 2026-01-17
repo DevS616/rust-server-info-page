@@ -50,13 +50,38 @@ const BanListSection = () => {
     }
   }, [searchQuery, bans]);
 
-  const fetchBans = async () => {
+  const fetchBans = async (skipCache = false) => {
+    const CACHE_KEY = 'banlist_cache';
+    const CACHE_DURATION = 30 * 60 * 1000;
+    
+    if (!skipCache) {
+      const cached = localStorage.getItem(CACHE_KEY);
+      if (cached) {
+        try {
+          const { data, timestamp } = JSON.parse(cached);
+          if (Date.now() - timestamp < CACHE_DURATION) {
+            setBans(data.bans || []);
+            setFilteredBans(data.bans || []);
+            setLoading(false);
+            return;
+          }
+        } catch (e) {
+          console.error('Failed to parse banlist cache:', e);
+        }
+      }
+    }
+    
     try {
       setLoading(true);
       const response = await fetch('https://functions.poehali.dev/00e6cb95-28f5-49b7-b342-db4f9ae8ffd1');
       const data = await response.json();
       setBans(data.bans || []);
       setFilteredBans(data.bans || []);
+      
+      localStorage.setItem(CACHE_KEY, JSON.stringify({
+        data,
+        timestamp: Date.now()
+      }));
     } catch (error) {
       console.error('Failed to fetch bans:', error);
       setBans([]);
@@ -121,15 +146,25 @@ const BanListSection = () => {
         </div>
 
         <div className="mb-8 max-w-2xl mx-auto">
-          <div className="relative">
-            <Icon name="Search" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
-            <Input
-              type="text"
-              placeholder="Поиск по никнейму или Steam ID..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 h-12 text-lg border-primary/30 focus:border-primary bg-card/50 backdrop-blur-sm"
-            />
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Icon name="Search" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
+              <Input
+                type="text"
+                placeholder="Поиск по никнейму или Steam ID..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 h-12 text-lg border-primary/30 focus:border-primary bg-card/50 backdrop-blur-sm"
+              />
+            </div>
+            <Button
+              onClick={() => fetchBans(true)}
+              disabled={loading}
+              variant="outline"
+              className="h-12 px-4"
+            >
+              <Icon name="RefreshCw" className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
+            </Button>
           </div>
         </div>
 

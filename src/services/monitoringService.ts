@@ -69,6 +69,24 @@ class MonitoringService {
   private async fetchData(): Promise<void> {
     if (this.isFetching) return;
 
+    const CACHE_KEY = 'monitoring_cache';
+    const CACHE_DURATION = 5 * 60 * 1000;
+    
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (cached) {
+      try {
+        const { data, timestamp } = JSON.parse(cached);
+        if (Date.now() - timestamp < CACHE_DURATION) {
+          this.data = data;
+          this.useFallback = false;
+          this.notify();
+          return;
+        }
+      } catch (e) {
+        console.error('Failed to parse monitoring cache:', e);
+      }
+    }
+
     this.isFetching = true;
     try {
       const response = await fetch(
@@ -84,6 +102,12 @@ class MonitoringService {
       if (data.result === 'success' && data.data) {
         this.data = data;
         this.useFallback = false;
+        
+        localStorage.setItem(CACHE_KEY, JSON.stringify({
+          data,
+          timestamp: Date.now()
+        }));
+        
         this.notify();
       }
     } catch (error) {
@@ -98,7 +122,7 @@ class MonitoringService {
 
   private startAutoFetch(): void {
     let lastFetchTime = Date.now();
-    const MIN_FETCH_INTERVAL = 600000;
+    const MIN_FETCH_INTERVAL = 15 * 60 * 1000;
 
     this.fetchData();
     this.fetchInterval = window.setInterval(() => {
@@ -106,12 +130,12 @@ class MonitoringService {
         this.fetchData();
         lastFetchTime = Date.now();
       }
-    }, 600000);
+    }, 15 * 60 * 1000);
 
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible' && !this.isFetching) {
         const now = Date.now();
-        if (now - lastFetchTime >= MIN_FETCH_INTERVAL) {
+        if (now - lastFetchTime >= 10 * 60 * 1000) {
           this.fetchData();
           lastFetchTime = now;
         }

@@ -28,7 +28,7 @@ const NewsSection = () => {
   useEffect(() => {
     const fetchNews = async () => {
       const CACHE_KEY = 'news_cache';
-      const CACHE_DURATION = 10 * 60 * 1000;
+      const CACHE_DURATION = 60 * 60 * 1000;
       
       const cached = localStorage.getItem(CACHE_KEY);
       if (cached) {

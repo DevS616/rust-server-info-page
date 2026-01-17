@@ -64,7 +64,7 @@ const DailyBonusButton = () => {
         const { can_claim, time_left, cached_at } = JSON.parse(cachedData);
         const cacheAge = Date.now() - cached_at;
         
-        if (cacheAge < 10 * 60 * 1000) {
+        if (cacheAge < 30 * 60 * 1000) {
           setCanClaim(can_claim);
           setIsChecking(false);
           

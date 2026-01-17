@@ -36,8 +36,9 @@ class PublicDataService {
   private data: PublicData | null = null;
   private intervalId: number | null = null;
   private lastFetch: number = 0;
-  private readonly CACHE_TIME = 300000; // 5 минут
-  private readonly FETCH_INTERVAL = 600000; // 10 минут
+  private readonly CACHE_TIME = 10 * 60 * 1000;
+  private readonly FETCH_INTERVAL = 15 * 60 * 1000;
+  private readonly CACHE_KEY = 'public_data_cache';
   private readonly API_URL = 'https://functions.poehali.dev/89653c3a-fd42-474b-b49e-2c8be04ed475/';
 
   private constructor() {
@@ -63,7 +64,7 @@ class PublicDataService {
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
         const timeSinceLastFetch = Date.now() - this.lastFetch;
-        if (timeSinceLastFetch > this.CACHE_TIME) {
+        if (timeSinceLastFetch > 10 * 60 * 1000) {
           this.fetchData();
         }
       }
@@ -71,6 +72,21 @@ class PublicDataService {
   }
 
   private async fetchData() {
+    const cached = localStorage.getItem(this.CACHE_KEY);
+    if (cached) {
+      try {
+        const { data, timestamp } = JSON.parse(cached);
+        if (Date.now() - timestamp < this.CACHE_TIME) {
+          this.data = data;
+          this.lastFetch = timestamp;
+          this.notifyListeners(data);
+          return;
+        }
+      } catch (e) {
+        console.error('Failed to parse public data cache:', e);
+      }
+    }
+    
     try {
       const userId = localStorage.getItem('user_id');
       const headers: HeadersInit = {
@@ -87,6 +103,12 @@ class PublicDataService {
         const data: PublicData = await response.json();
         this.data = data;
         this.lastFetch = Date.now();
+        
+        localStorage.setItem(this.CACHE_KEY, JSON.stringify({
+          data,
+          timestamp: this.lastFetch
+        }));
+        
         this.notifyListeners(data);
       }
     } catch (error) {
