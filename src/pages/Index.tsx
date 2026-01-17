@@ -29,13 +29,15 @@ const Index = () => {
         }));
         localStorage.setItem('support_token', urlToken);
         localStorage.setItem('bonus_after_auth', 'true');
+        
+        window.dispatchEvent(new Event('storage'));
+        
+        window.location.href = '/';
       } catch (e) {
         console.error('Failed to decode token:', e);
       }
-      
-      navigate('/', { replace: true });
     }
-  }, [searchParams, navigate]);
+  }, [searchParams]);
 
   useEffect(() => {
     let ticking = false;
