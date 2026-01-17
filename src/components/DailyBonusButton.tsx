@@ -6,8 +6,9 @@ import DailyBonusWheel from './DailyBonusWheel';
 const DailyBonusButton = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [timeLeft, setTimeLeft] = useState<string>('');
-  const [canClaim, setCanClaim] = useState(true);
+  const [canClaim, setCanClaim] = useState(false);
   const [steamId, setSteamId] = useState<string | null>(null);
+  const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
     const user = localStorage.getItem('steam_user');
@@ -23,10 +24,13 @@ const DailyBonusButton = () => {
 
   useEffect(() => {
     const checkAvailability = async () => {
+      setIsChecking(true);
+      
       if (!steamId) {
         const lastSpin = localStorage.getItem('lastBonusSpin');
         if (!lastSpin) {
           setCanClaim(true);
+          setIsChecking(false);
           
           const shouldOpenBonus = localStorage.getItem('bonus_after_auth');
           if (shouldOpenBonus === 'true') {
@@ -41,6 +45,7 @@ const DailyBonusButton = () => {
         const hoursSinceLastSpin = (now.getTime() - lastSpinDate.getTime()) / (1000 * 60 * 60);
         const available = hoursSinceLastSpin >= 24;
         setCanClaim(available);
+        setIsChecking(false);
         
         if (available) {
           const shouldOpenBonus = localStorage.getItem('bonus_after_auth');
@@ -48,6 +53,8 @@ const DailyBonusButton = () => {
             localStorage.removeItem('bonus_after_auth');
             setTimeout(() => setIsOpen(true), 100);
           }
+        } else {
+          localStorage.removeItem('bonus_after_auth');
         }
         return;
       }
@@ -59,12 +66,15 @@ const DailyBonusButton = () => {
         
         if (cacheAge < 5 * 60 * 1000) {
           setCanClaim(can_claim);
+          setIsChecking(false);
+          
           if (!can_claim && time_left) {
             const remainingTime = time_left - Math.floor(cacheAge / 1000);
             if (remainingTime > 0) {
               const hours = Math.floor(remainingTime / 3600);
               const minutes = Math.floor((remainingTime % 3600) / 60);
               setTimeLeft(`${hours}ч ${minutes}м`);
+              localStorage.removeItem('bonus_after_auth');
               return;
             }
           }
@@ -77,12 +87,15 @@ const DailyBonusButton = () => {
         );
         
         if (response.status === 404 || response.status === 429) {
+          setIsChecking(false);
+          localStorage.removeItem('bonus_after_auth');
           return;
         }
         
         if (response.ok) {
           const data = await response.json();
           setCanClaim(data.can_claim);
+          setIsChecking(false);
           
           localStorage.setItem(`bonus_check_${steamId}`, JSON.stringify({
             can_claim: data.can_claim,
@@ -94,6 +107,7 @@ const DailyBonusButton = () => {
             const hours = Math.floor(data.time_left / 3600);
             const minutes = Math.floor((data.time_left % 3600) / 60);
             setTimeLeft(`${hours}ч ${minutes}м`);
+            localStorage.removeItem('bonus_after_auth');
           } else if (data.can_claim) {
             const shouldOpenBonus = localStorage.getItem('bonus_after_auth');
             if (shouldOpenBonus === 'true') {
@@ -104,6 +118,8 @@ const DailyBonusButton = () => {
         }
       } catch (error) {
         console.error('Failed to check availability:', error);
+        setIsChecking(false);
+        localStorage.removeItem('bonus_after_auth');
       }
     };
 
