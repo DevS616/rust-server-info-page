@@ -208,7 +208,7 @@ def generate_jwt_token(user: Dict[str, Any]) -> str:
         'steam_id': user['steam_id'],
         'username': user['steam_username'],
         'avatar': user.get('steam_avatar', ''),
-        'exp': datetime.utcnow() + timedelta(days=7)
+        'exp': datetime.utcnow() + timedelta(days=30)
     }
     return jwt.encode(payload, secret, algorithm='HS256')
 

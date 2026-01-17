@@ -9,6 +9,7 @@ import PromotionModal from "./components/PromotionModal";
 import HolidayEffects from "./components/HolidayEffects";
 import MaintenancePage from "./components/MaintenancePage";
 import CookieConsent from "./components/CookieConsent";
+import { refreshTokenIfNeeded } from "./utils/authToken";
 import Index from "./pages/Index";
 import BanList from "./pages/BanList";
 import Support from "./pages/Support";
@@ -29,6 +30,10 @@ const AppContent = () => {
     return localStorage.getItem('maintenanceCheckEnabled') !== 'false';
   });
   const isAdminPath = location.pathname.startsWith('/admin');
+
+  useEffect(() => {
+    refreshTokenIfNeeded();
+  }, []);
 
   useEffect(() => {
     if (!maintenanceCheckEnabled) {

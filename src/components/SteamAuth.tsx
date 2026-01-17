@@ -8,6 +8,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import Icon from '@/components/ui/icon';
+import { isTokenExpired, decodeToken } from '@/utils/authToken';
 
 interface SteamUser {
   steamId: string;
@@ -22,9 +23,34 @@ const SteamAuth = () => {
   useEffect(() => {
     const updateUser = () => {
       const storedUser = localStorage.getItem('steam_user');
+      const token = localStorage.getItem('support_token');
+      
+      if (token && isTokenExpired(token)) {
+        console.log('Token expired, clearing user data');
+        localStorage.removeItem('steam_user');
+        localStorage.removeItem('support_token');
+        setUser(null);
+        return;
+      }
+      
       if (storedUser) {
         try {
           const userData = JSON.parse(storedUser);
+          
+          if (token) {
+            const tokenData = decodeToken(token);
+            if (tokenData && tokenData.avatar !== userData.avatar) {
+              const updatedUser = {
+                ...userData,
+                avatar: tokenData.avatar,
+                username: tokenData.username
+              };
+              localStorage.setItem('steam_user', JSON.stringify(updatedUser));
+              setUser(updatedUser);
+              return;
+            }
+          }
+          
           setUser(userData);
         } catch (e) {
           console.error('Failed to parse steam_user:', e);
