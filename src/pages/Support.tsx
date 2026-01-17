@@ -67,20 +67,6 @@ const Support = () => {
     } else if (storedToken) {
       setToken(storedToken);
       
-      if (!localStorage.getItem('steam_user')) {
-        try {
-          const payload = JSON.parse(atob(storedToken.split('.')[1]));
-          localStorage.setItem('steam_user', JSON.stringify({
-            steamId: payload.steam_id,
-            username: payload.username,
-            userId: payload.user_id,
-            avatar: payload.avatar || ''
-          }));
-        } catch (e) {
-          console.error('Failed to decode token:', e);
-        }
-      }
-      
       if (redirectTicket) {
         localStorage.removeItem('redirect_to_ticket');
         navigate(`/support/ticket/${redirectTicket}`, { replace: true });

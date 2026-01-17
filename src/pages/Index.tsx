@@ -27,6 +27,7 @@ const Index = () => {
           userId: payload.user_id,
           avatar: payload.avatar || ''
         }));
+        localStorage.setItem('support_token', urlToken);
         localStorage.setItem('bonus_after_auth', 'true');
       } catch (e) {
         console.error('Failed to decode token:', e);

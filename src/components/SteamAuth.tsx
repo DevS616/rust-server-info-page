@@ -53,6 +53,7 @@ const SteamAuth = () => {
 
   const handleLogout = () => {
     localStorage.removeItem('steam_user');
+    localStorage.removeItem('support_token');
     localStorage.removeItem('bonus_after_auth');
     setUser(null);
     window.location.reload();
