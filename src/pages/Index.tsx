@@ -19,20 +19,19 @@ const Index = () => {
     const urlToken = searchParams.get('token');
     
     if (urlToken) {
-      // Декодируем JWT и сохраняем пользователя
       try {
         const payload = JSON.parse(atob(urlToken.split('.')[1]));
         localStorage.setItem('steam_user', JSON.stringify({
           steamId: payload.steam_id,
           username: payload.username,
-          userId: payload.user_id
+          userId: payload.user_id,
+          avatar: payload.avatar || ''
         }));
         localStorage.setItem('bonus_after_auth', 'true');
       } catch (e) {
         console.error('Failed to decode token:', e);
       }
       
-      // Убираем токен из URL
       navigate('/', { replace: true });
     }
   }, [searchParams, navigate]);

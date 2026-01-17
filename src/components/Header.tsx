@@ -1,9 +1,8 @@
 import { Button } from '@/components/ui/button';
-import SteamIcon from '@/components/ui/icons/steam';
 import Icon from '@/components/ui/icon';
 import { useEffect, useState } from 'react';
-import authConfig from '@/data/authorization.json';
 import RulesModal from '@/components/RulesModal';
+import SteamAuth from '@/components/SteamAuth';
 import {
   Sheet,
   SheetContent,
@@ -13,7 +12,6 @@ import {
 } from '@/components/ui/sheet';
 
 const Header = () => {
-  const [user, setUser] = useState<{ nickname: string } | null>(null);
   const [isRulesOpen, setIsRulesOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -62,77 +60,9 @@ const Header = () => {
     };
   }, []);
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const authToken = urlParams.get('auth_token');
-      
-      if (authToken) {
-        try {
-          const response = await fetch('https://functions.poehali.dev/1209b0b2-d734-418e-8549-797b75d1f0db', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ token: authToken })
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            if (data.authenticated) {
-              const userInfo = { 
-                nickname: data.nickname,
-                steamId: data.steamId
-              };
-              localStorage.setItem('steam_user', JSON.stringify(userInfo));
-              setUser(userInfo);
-              window.history.replaceState({}, '', window.location.pathname);
-            }
-          }
-        } catch (error) {
-          console.error('Auth check failed:', error);
-        }
-      }
 
-      const userData = localStorage.getItem('steam_user');
-      if (userData) {
-        try {
-          setUser(JSON.parse(userData));
-        } catch (e) {
-          localStorage.removeItem('steam_user');
-        }
-      }
-    };
 
-    const handleMessage = (event: MessageEvent) => {
-      if (event.origin !== 'https://devilrust.ru') return;
-      
-      if (event.data.type === 'steam_auth_success' && event.data.token) {
-        window.location.href = `${window.location.origin}?auth_token=${event.data.token}`;
-      }
-    };
 
-    checkAuth();
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
-
-  const handleAuthClick = (e: React.MouseEvent) => {
-    if (!user) {
-      e.preventDefault();
-      const authWindow = window.open(
-        'https://devilrust.ru/api/v1/player.login?login',
-        'steam_auth',
-        'width=800,height=600'
-      );
-      
-      const checkWindow = setInterval(() => {
-        if (authWindow?.closed) {
-          clearInterval(checkWindow);
-        }
-      }, 500);
-    }
-  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-primary/20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 shadow-lg shadow-primary/5 relative">
@@ -173,44 +103,9 @@ const Header = () => {
           </a>
         </nav>
 
-{user ? (
-          <Button variant="default" size="lg" asChild className="hidden md:flex shadow-lg transition-all px-8 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white border-0">
-            <a 
-              href="https://devilrust.ru/profile" 
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center"
-            >
-              <Icon name="User" className="mr-2 h-5 w-5" />
-              Профиль
-            </a>
-          </Button>
-        ) : (
-          <div className="hidden md:flex flex-col items-center gap-2">
-            {authConfig.showAuthButton && (
-              <Button variant="default" size="lg" asChild className="shadow-lg transition-all px-8 bg-gradient-to-r from-[#06BFFF] via-[#2A3F5F] to-[#06BFFF] steam-animate text-white border-0">
-                <a 
-                  href="https://devilrust.ru/api/v1/player.login?login" 
-                  onClick={handleAuthClick}
-                  className="flex items-center"
-                >
-                  <SteamIcon className="mr-3 h-28 w-28" />
-                  Авторизоваться
-                </a>
-              </Button>
-            )}
-            {authConfig.showAlreadyAuthorizedLink && (
-              <a 
-                href="https://devilrust.ru/profile" 
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs text-muted-foreground hover:text-primary transition-colors"
-              >
-                Уже авторизованы?
-              </a>
-            )}
-          </div>
-        )}
+<div className="hidden md:flex">
+          <SteamAuth />
+        </div>
 
         <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
           <SheetTrigger asChild className="md:hidden">
@@ -273,49 +168,7 @@ const Header = () => {
               </a>
               
               <div className="pt-4 border-t border-primary/20">
-                {user ? (
-                  <Button variant="default" size="lg" asChild className="w-full shadow-lg bg-gradient-to-r from-primary to-primary/80 text-white border-0">
-                    <a 
-                      href="https://devilrust.ru/profile" 
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-center"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      <Icon name="User" className="mr-2 h-5 w-5" />
-                      Профиль
-                    </a>
-                  </Button>
-                ) : (
-                  <div className="flex flex-col gap-3">
-                    {authConfig.showAuthButton && (
-                      <Button variant="default" size="lg" asChild className="w-full shadow-lg bg-gradient-to-r from-[#06BFFF] via-[#2A3F5F] to-[#06BFFF] steam-animate text-white border-0">
-                        <a 
-                          href="https://devilrust.ru/api/v1/player.login?login" 
-                          onClick={(e) => {
-                            handleAuthClick(e);
-                            setIsMobileMenuOpen(false);
-                          }}
-                          className="flex items-center justify-center"
-                        >
-                          <SteamIcon className="mr-2 h-6 w-6" />
-                          Авторизоваться
-                        </a>
-                      </Button>
-                    )}
-                    {authConfig.showAlreadyAuthorizedLink && (
-                      <a 
-                        href="https://devilrust.ru/profile" 
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={() => setIsMobileMenuOpen(false)}
-                        className="text-center text-sm text-muted-foreground hover:text-primary transition-colors"
-                      >
-                        Уже авторизованы?
-                      </a>
-                    )}
-                  </div>
-                )}
+                <SteamAuth />
               </div>
             </nav>
           </SheetContent>
