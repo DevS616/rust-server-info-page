@@ -35,11 +35,31 @@ const PromotionModal = () => {
 
   useEffect(() => {
     const loadPromotion = async () => {
+      const CACHE_KEY = 'promotion_cache';
+      const CACHE_DURATION = 10 * 60 * 1000;
+      
+      const cached = localStorage.getItem(CACHE_KEY);
+      if (cached) {
+        try {
+          const { data, timestamp } = JSON.parse(cached);
+          if (Date.now() - timestamp < CACHE_DURATION) {
+            setPromotionData(data);
+            return;
+          }
+        } catch (e) {
+          console.error('Failed to parse promotion cache:', e);
+        }
+      }
+      
       try {
         const response = await fetch('https://functions.poehali.dev/6bf5dace-312e-443f-8666-9af4a8112d1c/');
         if (response.ok) {
           const data = await response.json();
           setPromotionData(data);
+          localStorage.setItem(CACHE_KEY, JSON.stringify({
+            data,
+            timestamp: Date.now()
+          }));
         }
       } catch (error) {
         console.error('Failed to load promotion:', error);

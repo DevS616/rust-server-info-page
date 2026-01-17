@@ -7,22 +7,11 @@ const HolidayEffects = () => {
   const [activeHoliday, setActiveHoliday] = useState<HolidayType>(null);
 
   useEffect(() => {
-    const loadHoliday = () => {
-      fetch('https://functions.poehali.dev/1ad77753-040f-405c-8e61-7230f64e30e9/')
-        .then(res => res.json())
-        .then(data => {
-          console.log('HolidayEffects: loaded from API:', data.active_holiday);
-          setActiveHoliday(data.active_holiday || null);
-        })
-        .catch(() => setActiveHoliday(null));
-    };
-
     const handleHolidayChange = (e: CustomEvent<HolidayType>) => {
       console.log('HolidayEffects: received event:', e.detail);
       setActiveHoliday(e.detail);
     };
 
-    loadHoliday();
     window.addEventListener('holidayChanged', handleHolidayChange as EventListener);
     
     return () => {
