@@ -411,8 +411,17 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
                   {result}₽
                 </p>
                 <p className="text-muted-foreground">
-                  Вы выиграли {result} рублей на баланс!
+                  {isAuthenticated 
+                    ? `${result}₽ автоматически зачислены на ваш баланс!` 
+                    : `Вы выиграли ${result} рублей на баланс!`
+                  }
                 </p>
+                {isAuthenticated && !isRewarded && (
+                  <div className="flex items-center justify-center gap-2 text-sm text-amber-600 dark:text-amber-500">
+                    <Icon name="Loader2" className="h-4 w-4 animate-spin" />
+                    <span>Зачисление...</span>
+                  </div>
+                )}
                 <p className="text-xs text-muted-foreground pt-2">
                   Бонус можно потратить только в{' '}
                   <a 
