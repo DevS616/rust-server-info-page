@@ -161,6 +161,9 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
         setShowResult(true);
         setShowConfetti(true);
         setTimeout(() => setShowConfetti(false), 5000);
+        
+        // Сразу фиксируем получение бонуса
+        claimBonusImmediately(selectedPrize);
       }
     };
 
@@ -182,8 +185,13 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
     window.location.href = authUrl;
   };
 
-  const handleClaim = async () => {
-    if (!steamId || !result || isClaiming) return;
+  const claimBonusImmediately = async (prizeAmount: number) => {
+    // Для неавторизованных - просто фиксируем локально
+    if (!steamId) {
+      localStorage.setItem('lastBonusSpin', new Date().toISOString());
+      setIsRewarded(true);
+      return;
+    }
 
     setIsClaiming(true);
 
@@ -200,17 +208,8 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
 
       if (!recordResponse.ok) {
         const data = await recordResponse.json();
-        
-        // Если это ошибка таймера, показываем понятное сообщение
-        if (recordResponse.status === 429 && data.time_left) {
-          const hours = Math.ceil(data.time_left / 3600);
-          alert(`Вы уже получали бонус сегодня. Попробуйте через ${hours} ${hours === 1 ? 'час' : hours < 5 ? 'часа' : 'часов'}`);
-        } else {
-          alert(data.error || 'Не удалось зафиксировать получение бонуса');
-        }
-        
-        setIsClaiming(false);
-        return;
+        console.error('Record bonus error:', data);
+        // Продолжаем даже при ошибке записи
       }
 
       // Выдаём бонус через API
@@ -221,7 +220,7 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             steam_id: steamId,
-            amount: result
+            amount: prizeAmount
           })
         }
       );
@@ -230,26 +229,27 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
         localStorage.setItem('lastBonusSpin', new Date().toISOString());
         
         // Обновляем кэш для кнопки
-        if (steamId) {
-          localStorage.setItem(`bonus_check_${steamId}`, JSON.stringify({
-            can_claim: false,
-            time_left: 24 * 3600,
-            cached_at: Date.now()
-          }));
-        }
+        localStorage.setItem(`bonus_check_${steamId}`, JSON.stringify({
+          can_claim: false,
+          time_left: 24 * 3600,
+          cached_at: Date.now()
+        }));
         
         setIsRewarded(true);
       } else {
         const data = await claimResponse.json();
         console.error('Claim error:', data);
-        alert(data.error || 'Не удалось выдать бонус на баланс');
       }
     } catch (error) {
-      console.error('Failed to claim bonus:', error);
-      alert('Произошла ошибка при получении бонуса');
+      console.error('Failed to claim bonus immediately:', error);
     } finally {
       setIsClaiming(false);
     }
+  };
+
+  const handleClaim = () => {
+    // Теперь эта кнопка просто закрывает окно, бонус уже получен
+    onClose();
   };
 
   const resetWheel = () => {
@@ -462,8 +462,7 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
                     </>
                   ) : (
                     <>
-                      <Icon name="Gift" className="mr-2 h-5 w-5" />
-                      Получить награду
+                      Закрыть
                     </>
                   )}
                 </Button>
