@@ -185,17 +185,49 @@ const DailyBonusButton = () => {
 
   return (
     <>
-      <Button
+      <button
         onClick={() => setIsOpen(true)}
         disabled={!canClaim}
-        className="fixed bottom-24 right-8 z-40 shadow-lg animate-pulse hover:animate-none whitespace-nowrap"
-        size="lg"
+        className={`
+          fixed bottom-24 right-8 z-40 
+          px-6 py-4 rounded-2xl
+          font-bold text-lg
+          transition-all duration-300
+          ${canClaim 
+            ? 'bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 bg-[length:200%_100%] animate-gradient text-white shadow-[0_0_30px_rgba(245,158,11,0.6)] hover:shadow-[0_0_50px_rgba(245,158,11,0.8)] hover:scale-110 cursor-pointer' 
+            : 'bg-gray-600 text-gray-300 cursor-not-allowed opacity-60'
+          }
+        `}
+        style={canClaim ? {
+          animation: 'gradient 3s ease infinite, pulse 2s ease-in-out infinite'
+        } : undefined}
       >
-        <Icon name="Gift" className="mr-2 h-5 w-5 flex-shrink-0" />
-        {canClaim ? 'Бонус' : `Через ${timeLeft}`}
-      </Button>
+        <div className="flex items-center gap-3">
+          <div className={canClaim ? 'animate-bounce' : ''}>
+            <Icon name="Gift" className="h-6 w-6 flex-shrink-0" />
+          </div>
+          <div className="flex flex-col items-start leading-tight">
+            <span className="text-sm opacity-90">Ежедневный</span>
+            <span className="text-xl font-black">
+              {canClaim ? 'БОНУС' : timeLeft}
+            </span>
+          </div>
+          {canClaim && (
+            <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full animate-pulse">
+              ПОЛУЧИ
+            </div>
+          )}
+        </div>
+      </button>
 
       <DailyBonusWheel isOpen={isOpen} onClose={() => setIsOpen(false)} />
+      
+      <style>{`
+        @keyframes gradient {
+          0%, 100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+        }
+      `}</style>
     </>
   );
 };
