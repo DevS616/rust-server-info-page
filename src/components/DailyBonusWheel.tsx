@@ -212,13 +212,33 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
     setIsClaiming(true);
 
     try {
+      // Получаем данные пользователя
+      const userStr = localStorage.getItem('steam_user');
+      let username = null;
+      let avatar = null;
+      
+      if (userStr) {
+        try {
+          const userData = JSON.parse(userStr);
+          username = userData.personaname || userData.username;
+          avatar = userData.avatarfull || userData.avatar;
+        } catch (e) {
+          console.error('Failed to parse user data:', e);
+        }
+      }
+
       // Записываем время получения бонуса в базу данных
       const recordResponse = await fetch(
         'https://functions.poehali.dev/2f8f1aed-8299-4c7c-b041-cfe28a3aa7f3/',
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ steam_id: steamId })
+          body: JSON.stringify({ 
+            steam_id: steamId,
+            amount: prizeAmount,
+            username,
+            avatar
+          })
         }
       );
 

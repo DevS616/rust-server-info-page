@@ -64,6 +64,9 @@ def handler(event: dict, context) -> dict:
             try:
                 body = json.loads(body_str) if isinstance(body_str, str) else body_str
                 steam_id = body.get('steam_id') if isinstance(body, dict) else None
+                amount = body.get('amount', 0) if isinstance(body, dict) else 0
+                username = body.get('username') if isinstance(body, dict) else None
+                avatar = body.get('avatar') if isinstance(body, dict) else None
             except (json.JSONDecodeError, AttributeError):
                 return response(400, {'error': 'Invalid request body'})
             
@@ -90,13 +93,13 @@ def handler(event: dict, context) -> dict:
                     })
                 
                 cur.execute(
-                    "UPDATE daily_bonus_claims SET last_spin_time = %s WHERE steam_id = %s",
-                    (now, steam_id)
+                    "UPDATE daily_bonus_claims SET last_spin_time = %s, total_spins = total_spins + 1, total_winnings = total_winnings + %s, steam_username = %s, steam_avatar = %s WHERE steam_id = %s",
+                    (now, amount, username, avatar, steam_id)
                 )
             else:
                 cur.execute(
-                    "INSERT INTO daily_bonus_claims (steam_id, last_spin_time) VALUES (%s, %s)",
-                    (steam_id, now)
+                    "INSERT INTO daily_bonus_claims (steam_id, last_spin_time, total_spins, total_winnings, steam_username, steam_avatar) VALUES (%s, %s, 1, %s, %s, %s)",
+                    (steam_id, now, amount, username, avatar)
                 )
             
             conn.commit()
