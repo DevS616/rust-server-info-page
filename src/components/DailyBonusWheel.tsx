@@ -141,6 +141,15 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
     
     // Финальный угол = много оборотов + угол до нужного сектора + центрирование
     const finalRotation = baseRotation + (360 - targetAngle);
+    
+    console.log('🎰 Wheel spin details:', {
+      selectedPrize,
+      targetIndex,
+      targetAngle: targetAngle.toFixed(2),
+      segmentAngle: segmentAngle.toFixed(2),
+      finalRotation: finalRotation.toFixed(2),
+      wheelLayout: wheelLayout.join(', ')
+    });
     const duration = 3000 + Math.random() * 7000;
 
     startTimeRef.current = Date.now();
