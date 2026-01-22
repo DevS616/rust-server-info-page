@@ -178,6 +178,11 @@ const DailyBonusButton = () => {
     return () => clearInterval(interval);
   }, [canClaim, steamId]);
 
+  // Скрываем кнопку если колесо открыто или идет проверка
+  if (isOpen || isChecking) {
+    return <DailyBonusWheel isOpen={isOpen} onClose={() => setIsOpen(false)} />;
+  }
+
   return (
     <>
       <Button
