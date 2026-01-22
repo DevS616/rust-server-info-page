@@ -22,7 +22,8 @@ def handler(event: dict, context) -> dict:
                 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
                 'Access-Control-Allow-Headers': 'Content-Type, X-Auth-Token'
             },
-            'body': ''
+            'body': '',
+            'isBase64Encoded': False
         }
     
     headers = event.get('headers', {})
@@ -49,18 +50,15 @@ def handle_get_records() -> dict:
         
         cur.execute("""
             SELECT 
-                dbc.id,
-                dbc.steam_id,
-                u.steam_username,
-                u.steam_avatar,
-                dbc.last_spin_time,
-                COUNT(bh.id) as total_spins,
-                COALESCE(SUM(bh.amount), 0) as total_winnings
-            FROM daily_bonus_claims dbc
-            LEFT JOIN users u ON u.steam_id = dbc.steam_id
-            LEFT JOIN bonus_history bh ON bh.steam_id = dbc.steam_id
-            GROUP BY dbc.id, dbc.steam_id, u.steam_username, u.steam_avatar, dbc.last_spin_time
-            ORDER BY dbc.last_spin_time DESC
+                id,
+                steam_id,
+                steam_username,
+                steam_avatar,
+                last_spin_time,
+                total_spins,
+                total_winnings
+            FROM daily_bonus_claims
+            ORDER BY last_spin_time DESC
         """)
         
         records = cur.fetchall()
@@ -80,6 +78,9 @@ def handle_get_records() -> dict:
 
 
 def handle_reset_limit(event: dict) -> dict:
+    conn = None
+    cur = None
+    
     try:
         body_str = event.get('body', '{}')
         body = json.loads(body_str) if isinstance(body_str, str) else body_str
@@ -95,22 +96,25 @@ def handle_reset_limit(event: dict) -> dict:
         past_time = datetime.utcnow() - timedelta(hours=24)
         
         cur.execute(
-            f"UPDATE daily_bonus_claims SET last_spin_time = %s WHERE steam_id = '{steam_id.replace(\"'\", \"''\")}'"
-            , (past_time,)
+            "UPDATE daily_bonus_claims SET last_spin_time = %s WHERE steam_id = %s",
+            (past_time, steam_id)
         )
         
         if cur.rowcount == 0:
             return response(404, {'error': 'Player not found'})
         
         conn.commit()
-        cur.close()
-        conn.close()
         
         return response(200, {'success': True, 'message': 'Limit reset successfully'})
         
     except Exception as e:
         print(f'Error: {str(e)}')
         return response(500, {'error': str(e)})
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
 
 
 def verify_admin_token(token: str) -> bool:
@@ -120,7 +124,7 @@ def verify_admin_token(token: str) -> bool:
         conn = psycopg2.connect(os.environ['DATABASE_URL'])
         cur = conn.cursor()
         
-        cur.execute(f"SELECT id FROM admins WHERE token = '{token.replace(\"'\", \"''\")}'")
+        cur.execute("SELECT id FROM admins WHERE token = %s", (token,))
         return cur.fetchone() is not None
     except:
         return False
@@ -138,5 +142,6 @@ def response(status: int, data: dict) -> dict:
             'Content-Type': 'application/json',
             'Access-Control-Allow-Origin': '*'
         },
-        'body': json.dumps(data, default=str)
+        'body': json.dumps(data, default=str),
+        'isBase64Encoded': False
     }

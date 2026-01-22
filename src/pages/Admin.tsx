@@ -349,8 +349,8 @@ const Admin = () => {
               <span className="text-[10px] sm:text-xs md:text-sm">Управление</span>
             </TabsTrigger>
             <TabsTrigger value="bonus" className="text-xs md:text-sm px-1.5 py-2 md:py-2.5 flex-col sm:flex-row gap-0.5 sm:gap-2">
-              <Icon name="Info" className="h-4 w-4" />
-              <span className="text-[10px] sm:text-xs md:text-sm">Информация</span>
+              <Icon name="Gift" className="h-4 w-4" />
+              <span className="text-[10px] sm:text-xs md:text-sm">Ежедневный бонус</span>
             </TabsTrigger>
             <TabsTrigger value="promotion" className="text-xs md:text-sm px-1.5 py-2 md:py-2.5 flex-col sm:flex-row gap-0.5 sm:gap-2">
               <Icon name="Gift" className="h-4 w-4" />

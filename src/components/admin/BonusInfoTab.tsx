@@ -33,7 +33,7 @@ const BonusInfoTab = ({ token }: BonusInfoTabProps) => {
   const loadBonusRecords = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/admin-bonus-info/`, {
+      const res = await fetch(`${API_BASE}/f39e2f41-ff45-4800-8907-0ee09e17d8c6/`, {
         headers: { 'X-Auth-Token': token }
       });
       
@@ -62,7 +62,7 @@ const BonusInfoTab = ({ token }: BonusInfoTabProps) => {
   const handleResetLimit = async (steamId: string) => {
     setResetting(steamId);
     try {
-      const res = await fetch(`${API_BASE}/admin-bonus-info/`, {
+      const res = await fetch(`${API_BASE}/f39e2f41-ff45-4800-8907-0ee09e17d8c6/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
