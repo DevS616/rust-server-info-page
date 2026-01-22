@@ -189,12 +189,12 @@ const DailyBonusButton = () => {
         onClick={() => setIsOpen(true)}
         disabled={!canClaim}
         className={`
-          fixed bottom-24 right-8 z-40 
-          px-6 py-4 rounded-2xl
-          font-bold text-lg
+          fixed bottom-20 md:bottom-24 right-4 md:right-8 z-40 
+          px-4 md:px-6 py-3 md:py-4 rounded-xl md:rounded-2xl
+          font-bold text-base md:text-lg
           transition-all duration-300
           ${canClaim 
-            ? 'bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 bg-[length:200%_100%] animate-gradient text-white shadow-[0_0_30px_rgba(245,158,11,0.6)] hover:shadow-[0_0_50px_rgba(245,158,11,0.8)] hover:scale-110 cursor-pointer' 
+            ? 'bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 bg-[length:200%_100%] animate-gradient text-white shadow-[0_0_20px_rgba(245,158,11,0.6)] md:shadow-[0_0_30px_rgba(245,158,11,0.6)] hover:shadow-[0_0_40px_rgba(245,158,11,0.8)] md:hover:shadow-[0_0_50px_rgba(245,158,11,0.8)] hover:scale-105 md:hover:scale-110 cursor-pointer' 
             : 'bg-gray-600 text-gray-300 cursor-not-allowed opacity-60'
           }
         `}
@@ -202,18 +202,18 @@ const DailyBonusButton = () => {
           animation: 'gradient 3s ease infinite, pulse 2s ease-in-out infinite'
         } : undefined}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 md:gap-3">
           <div className={canClaim ? 'animate-bounce' : ''}>
-            <Icon name="Gift" className="h-6 w-6 flex-shrink-0" />
+            <Icon name="Gift" className="h-5 md:h-6 w-5 md:w-6 flex-shrink-0" />
           </div>
           <div className="flex flex-col items-start leading-tight">
-            <span className="text-sm opacity-90">Ежедневный</span>
-            <span className="text-xl font-black">
+            <span className="text-xs md:text-sm opacity-90">Ежедневный</span>
+            <span className="text-lg md:text-xl font-black">
               {canClaim ? 'БОНУС' : timeLeft}
             </span>
           </div>
           {canClaim && (
-            <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full animate-pulse">
+            <div className="absolute -top-1.5 md:-top-2 -right-1.5 md:-right-2 bg-red-500 text-white text-[10px] md:text-xs font-bold px-1.5 md:px-2 py-0.5 md:py-1 rounded-full animate-pulse">
               ПОЛУЧИ
             </div>
           )}

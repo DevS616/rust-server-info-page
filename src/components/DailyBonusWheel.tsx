@@ -281,22 +281,22 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={resetWheel}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl w-[95vw] md:w-full p-4 md:p-6">
         <DialogHeader>
-          <DialogTitle className="text-2xl text-center">
+          <DialogTitle className="text-xl md:text-2xl text-center">
             🎁 Ежедневный бонус
           </DialogTitle>
         </DialogHeader>
 
         {showConfetti && <Confetti recycle={false} numberOfPieces={200} />}
 
-        <div className="space-y-6 py-4">
+        <div className="space-y-4 md:space-y-6 py-2 md:py-4">
           {!isAuthenticated ? (
             <div className="flex flex-col items-center gap-6 py-8">
-              <div className="text-center space-y-4">
-                <div className="text-6xl">🎁</div>
-                <h2 className="text-2xl font-bold">Авторизуйтесь для участия</h2>
-                <p className="text-muted-foreground">
+              <div className="text-center space-y-3 md:space-y-4">
+                <div className="text-5xl md:text-6xl">🎁</div>
+                <h2 className="text-xl md:text-2xl font-bold">Авторизуйтесь для участия</h2>
+                <p className="text-sm md:text-base text-muted-foreground">
                   Войдите через Steam, чтобы получить ежедневный бонус
                 </p>
               </div>
@@ -304,16 +304,16 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
               <Button
                 onClick={handleAuth}
                 size="lg"
-                className="text-lg px-8 py-6"
+                className="text-base md:text-lg px-6 md:px-8 py-5 md:py-6 w-full md:w-auto"
               >
-                <Icon name="LogIn" className="mr-2 h-5 w-5" />
+                <Icon name="LogIn" className="mr-2 h-4 md:h-5 w-4 md:w-5" />
                 Войти через Steam
               </Button>
 
-              <Card className="p-4 w-full bg-muted/50 space-y-3">
+              <Card className="p-3 md:p-4 w-full bg-muted/50 space-y-2 md:space-y-3">
                 <div>
-                  <h3 className="font-semibold mb-2 text-center">Возможные призы:</h3>
-                  <div className="grid grid-cols-5 gap-2 text-center text-sm">
+                  <h3 className="font-semibold mb-2 text-center text-sm md:text-base">Возможные призы:</h3>
+                  <div className="grid grid-cols-5 gap-1.5 md:gap-2 text-center text-xs md:text-sm">
                     <div>
                       <div className="font-bold text-lg">1₽</div>
                       <div className="text-muted-foreground">50%</div>
@@ -339,7 +339,7 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
               </Card>
             </div>
           ) : !showResult ? (
-            <div className="flex flex-col items-center gap-6">
+            <div className="flex flex-col items-center gap-4 md:gap-6">
               <div className="relative w-full max-w-md aspect-square">
                 <img
                   ref={wheelRef}
@@ -361,7 +361,7 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
                 onClick={handleSpin}
                 disabled={isSpinning}
                 size="lg"
-                className="text-lg px-8 py-6"
+                className="text-base md:text-lg px-6 md:px-8 py-5 md:py-6 w-full md:w-auto"
               >
                 {isSpinning ? (
                   <>
@@ -370,35 +370,35 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
                   </>
                 ) : (
                   <>
-                    <Icon name="Gift" className="mr-2 h-5 w-5" />
+                    <Icon name="Gift" className="mr-2 h-4 md:h-5 w-4 md:w-5" />
                     Крутить колесо!
                   </>
                 )}
               </Button>
 
-              <Card className="p-4 w-full bg-muted/50 space-y-3">
+              <Card className="p-3 md:p-4 w-full bg-muted/50 space-y-2 md:space-y-3">
                 <div>
-                  <h3 className="font-semibold mb-2 text-center">Призы:</h3>
-                  <div className="grid grid-cols-5 gap-2 text-center text-sm">
+                  <h3 className="font-semibold mb-2 text-center text-sm md:text-base">Призы:</h3>
+                  <div className="grid grid-cols-5 gap-1.5 md:gap-2 text-center text-xs md:text-sm">
                     <div>
-                      <div className="font-bold text-lg">1₽</div>
-                      <div className="text-muted-foreground">50%</div>
+                      <div className="font-bold text-base md:text-lg">1₽</div>
+                      <div className="text-muted-foreground text-xs">50%</div>
                     </div>
                     <div>
-                      <div className="font-bold text-lg">3₽</div>
-                      <div className="text-muted-foreground">30%</div>
+                      <div className="font-bold text-base md:text-lg">3₽</div>
+                      <div className="text-muted-foreground text-xs">30%</div>
                     </div>
                     <div>
-                      <div className="font-bold text-lg">5₽</div>
-                      <div className="text-muted-foreground">15%</div>
+                      <div className="font-bold text-base md:text-lg">5₽</div>
+                      <div className="text-muted-foreground text-xs">15%</div>
                     </div>
                     <div>
-                      <div className="font-bold text-lg">10₽</div>
-                      <div className="text-muted-foreground">3%</div>
+                      <div className="font-bold text-base md:text-lg">10₽</div>
+                      <div className="text-muted-foreground text-xs">3%</div>
                     </div>
                     <div>
-                      <div className="font-bold text-lg">20₽</div>
-                      <div className="text-muted-foreground">2%</div>
+                      <div className="font-bold text-base md:text-lg">20₽</div>
+                      <div className="text-muted-foreground text-xs">2%</div>
                     </div>
                   </div>
                 </div>
@@ -419,14 +419,14 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
               </Card>
             </div>
           ) : (
-            <div className="flex flex-col items-center gap-6 py-8">
-              <div className="text-center space-y-4">
-                <div className="text-6xl animate-bounce">🎉</div>
-                <h2 className="text-3xl font-bold">Поздравляем!</h2>
-                <p className="text-5xl font-bold text-primary animate-pulse">
+            <div className="flex flex-col items-center gap-4 md:gap-6 py-4 md:py-8">
+              <div className="text-center space-y-3 md:space-y-4">
+                <div className="text-5xl md:text-6xl animate-bounce">🎉</div>
+                <h2 className="text-2xl md:text-3xl font-bold">Поздравляем!</h2>
+                <p className="text-4xl md:text-5xl font-bold text-primary animate-pulse">
                   {result}₽
                 </p>
-                <p className="text-muted-foreground">
+                <p className="text-sm md:text-base text-muted-foreground">
                   {isAuthenticated 
                     ? `${result}₽ автоматически зачислены на ваш баланс!` 
                     : `Вы выиграли ${result} рублей на баланс!`
