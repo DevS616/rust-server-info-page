@@ -49,6 +49,10 @@ const Footer = () => {
               <a href="/support" className="block text-muted-foreground hover:text-primary transition-colors hover:translate-x-1 transform">
                 Поддержка
               </a>
+
+              <a href="/privacy" className="block text-muted-foreground hover:text-primary transition-colors hover:translate-x-1 transform">
+                Политика конфиденциальности
+              </a>
             </div>
           </div>
 

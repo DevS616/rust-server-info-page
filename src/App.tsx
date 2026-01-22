@@ -16,6 +16,7 @@ import Support from "./pages/Support";
 import TicketDetails from "./pages/TicketDetails";
 import Admin from "./pages/Admin";
 import SteamCallback from "./pages/SteamCallback";
+import Privacy from "./pages/Privacy";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -137,6 +138,7 @@ const AppContent = () => {
         <Route path="/support/ticket/:ticketId" element={<TicketDetails />} />
         <Route path="/steam-callback" element={<SteamCallback />} />
         <Route path="/admin" element={<Admin />} />
+        <Route path="/privacy" element={<Privacy />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </>
