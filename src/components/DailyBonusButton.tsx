@@ -191,7 +191,7 @@ const DailyBonusButton = () => {
         className="fixed bottom-24 right-8 z-40 shadow-lg animate-pulse hover:animate-none whitespace-nowrap"
         size="lg"
       >
-        <Icon name="CircleDot" className="mr-2 h-5 w-5 flex-shrink-0" />
+        <Icon name="Gift" className="mr-2 h-5 w-5 flex-shrink-0" />
         {canClaim ? 'Бонус' : `Через ${timeLeft}`}
       </Button>
 
