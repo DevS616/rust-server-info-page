@@ -120,20 +120,27 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
     }
     
     const selectedPrize = selectPrize();
-    const baseRotation = 360 * 50;
+    const baseRotation = 360 * 5; // 5 полных оборотов для эффектности
     const segments = 25;
-    const segmentAngle = 360 / segments;
+    const segmentAngle = 360 / segments; // 14.4 градуса на сектор
     
+    // Расположение призов на колесе (по часовой стрелке, начиная с верха где указатель)
     const wheelLayout = [20, 1, 3, 1, 5, 1, 3, 1, 10, 1, 3, 1, 5, 1, 5, 3, 1, 10, 1, 3, 1, 5, 1, 3, 1];
     
+    // Находим все индексы с выпавшим призом
     const possibleIndices = wheelLayout
       .map((prize, index) => prize === selectedPrize ? index : -1)
       .filter(index => index !== -1);
     
+    // Выбираем случайный индекс из возможных
     const targetIndex = possibleIndices[Math.floor(Math.random() * possibleIndices.length)];
     
+    // Рассчитываем угол для остановки (по часовой стрелке от верха)
+    // Указатель вверху = 0°, поворачиваем колесо ПРОТИВ часовой для попадания
     const targetAngle = targetIndex * segmentAngle;
-    const finalRotation = baseRotation + (360 - targetAngle) + (segmentAngle / 2);
+    
+    // Финальный угол = много оборотов + угол до нужного сектора + центрирование
+    const finalRotation = baseRotation + (360 - targetAngle);
     const duration = 3000 + Math.random() * 7000;
 
     startTimeRef.current = Date.now();
