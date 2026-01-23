@@ -93,11 +93,11 @@ def handle_reset_limit(event: dict) -> dict:
         conn = psycopg2.connect(os.environ['DATABASE_URL'])
         cur = conn.cursor()
         
-        past_time = datetime.utcnow() - timedelta(hours=24)
+        past_time = datetime.utcnow() - timedelta(days=8)
         
         cur.execute(
-            "UPDATE daily_bonus_claims SET last_spin_time = %s WHERE steam_id = %s",
-            (past_time, steam_id)
+            "UPDATE daily_bonus_claims SET last_spin_time = %s, last_weekly_bonus = %s WHERE steam_id = %s",
+            (past_time, past_time, steam_id)
         )
         
         if cur.rowcount == 0:

@@ -1,6 +1,7 @@
 """
 Выдача ежедневного бонуса игроку через API devilrust.ru.
 Использует секретные ключи для защиты от несанкционированного доступа.
+Обновляет счетчики total_spins и total_winnings в daily_bonus_claims.
 """
 
 import json
@@ -12,6 +13,7 @@ import psycopg2
 
 
 def handler(event: dict, context) -> dict:
+    """Обработчик выдачи бонуса с обновлением статистики"""
     method = event.get('httpMethod', 'GET')
     
     if method == 'OPTIONS':
@@ -77,6 +79,11 @@ def save_bonus_history(steam_id: str, amount: int):
         
         cur.execute(
             f"INSERT INTO bonus_history (steam_id, amount) VALUES ('{steam_id.replace(\"'\", \"''\")}', {amount})"
+        )
+        
+        # Обновляем счетчики в daily_bonus_claims
+        cur.execute(
+            f"UPDATE daily_bonus_claims SET total_spins = total_spins + 1, total_winnings = total_winnings + {amount} WHERE steam_id = '{steam_id.replace(\"'\", \"''\")}'"
         )
         
         conn.commit()

@@ -158,15 +158,17 @@ const BonusInfoTab = ({ token }: BonusInfoTabProps) => {
           <Card key={record.id} className="p-4">
             <div className="flex items-start gap-4">
               <img
-                src={record.steam_avatar || 'https://via.placeholder.com/64'}
-                alt={record.steam_username}
-                className="w-16 h-16 rounded-full"
+                src={record.steam_avatar || 'https://via.placeholder.com/64?text=No+Avatar'}
+                alt={record.steam_username || 'Unknown'}
+                className="w-16 h-16 rounded-full bg-muted"
               />
               
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-4 mb-2">
                   <div>
-                    <h3 className="font-semibold text-lg">{record.steam_username}</h3>
+                    <h3 className="font-semibold text-lg">
+                      {record.steam_username || `Игрок ${record.steam_id.slice(-4)}`}
+                    </h3>
                     <p className="text-sm text-muted-foreground">
                       Steam ID: {record.steam_id}
                     </p>
