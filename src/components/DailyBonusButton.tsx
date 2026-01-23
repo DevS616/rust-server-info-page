@@ -216,7 +216,13 @@ const DailyBonusButton = () => {
 
   // Для неавторизованных показываем как доступный
   const isAvailable = !steamId || canClaimAny;
-  const displayText = (!steamId || canClaimAny) ? 'БОНУС' : dailyTimeLeft || weeklyTimeLeft || 'БОНУС';
+  
+  // Определяем текст: "Открыть" для доступных, таймер для кулдауна
+  let displayText = 'Открыть';
+  if (steamId && !canClaimAny) {
+    // Показываем ближайший доступный таймер
+    displayText = dailyTimeLeft || weeklyTimeLeft || 'Открыть';
+  }
 
   const handleButtonClick = () => {
     if (!steamId) {
