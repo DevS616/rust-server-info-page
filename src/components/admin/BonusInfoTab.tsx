@@ -36,6 +36,7 @@ const BonusInfoTab = ({ token }: BonusInfoTabProps) => {
   const loadBonusRecords = async () => {
     setLoading(true);
     try {
+      console.log('Loading bonus records with token:', token ? 'present' : 'missing');
       const res = await fetch(`${API_BASE}/f39e2f41-ff45-4800-8907-0ee09e17d8c6/?t=${Date.now()}`, {
         headers: { 
           'X-Auth-Token': token,
@@ -44,14 +45,18 @@ const BonusInfoTab = ({ token }: BonusInfoTabProps) => {
         }
       });
       
+      console.log('Response status:', res.status, res.statusText);
+      
       if (res.ok) {
         const data = await res.json();
         console.log('Loaded bonus records:', data.records);
         setRecords(data.records || []);
       } else {
+        const errorText = await res.text();
+        console.error('Failed to load bonus records:', res.status, errorText);
         toast({ 
           title: 'Ошибка', 
-          description: 'Не удалось загрузить данные', 
+          description: `Не удалось загрузить данные: ${res.status}`, 
           variant: 'destructive' 
         });
       }
