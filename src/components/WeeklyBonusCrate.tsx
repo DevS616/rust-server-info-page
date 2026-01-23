@@ -189,7 +189,7 @@ const WeeklyBonusCrate = ({ isOpen, onClose }: WeeklyBonusCrateProps) => {
             {/* Крейт изображение */}
             <div className="relative">
               <img
-                src="https://cdn.poehali.dev/projects/14cc16e7-6bfa-466f-b030-aa09db74a13a/bucket/6334e238-a105-469a-8eb7-3085f1c54f14.png"
+                src="https://cdn.poehali.dev/projects/14cc16e7-6bfa-466f-b030-aa09db74a13a/bucket/6f5700c1-cece-4c29-b20d-2f0db0ba1703.png"
                 alt="Locked Crate"
                 className="w-64 h-auto drop-shadow-[0_0_30px_rgba(255,68,0,0.5)]"
               />
