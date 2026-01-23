@@ -218,10 +218,23 @@ const DailyBonusButton = () => {
   const isAvailable = !steamId || canClaimAny;
   const displayText = (!steamId || canClaimAny) ? 'БОНУС' : dailyTimeLeft || weeklyTimeLeft || 'БОНУС';
 
+  const handleButtonClick = () => {
+    if (!steamId) {
+      // Если не авторизован - сразу перенаправляем на авторизацию
+      const currentUrl = encodeURIComponent(window.location.origin);
+      const authUrl = `https://functions.poehali.dev/560196bb-a6d4-41dc-9b1c-0008c13bece3/?base_url=${currentUrl}`;
+      localStorage.setItem('bonus_after_auth', 'true');
+      window.location.href = authUrl;
+    } else {
+      // Если авторизован - показываем выбор бонусов
+      setShowSelection(true);
+    }
+  };
+
   return (
     <>
       <button
-        onClick={() => setShowSelection(true)}
+        onClick={handleButtonClick}
         className={`
           fixed bottom-20 md:bottom-24 right-4 md:right-8 z-40 
           px-4 md:px-6 py-3 md:py-4 rounded-xl md:rounded-2xl
