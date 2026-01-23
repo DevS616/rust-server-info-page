@@ -57,8 +57,12 @@ const BonusSelectionModal = ({
             )}
             
             <div className="flex flex-col items-center gap-4">
-              <div className={`p-4 rounded-full ${dailyAvailable ? 'bg-amber-500/30' : 'bg-gray-700/30'}`}>
-                <Icon name="Sparkles" className="h-12 w-12" />
+              <div className="relative w-24 h-24">
+                <img 
+                  src="https://cdn.poehali.dev/projects/14cc16e7-6bfa-466f-b030-aa09db74a13a/files/25ae3d4a-6c5c-4c0a-94dc-d0c5d941d0f7.jpg"
+                  alt="Колесо фортуны"
+                  className={`w-full h-full object-contain rounded-full ${dailyAvailable ? 'drop-shadow-[0_0_15px_rgba(245,158,11,0.6)]' : 'opacity-50 grayscale'}`}
+                />
               </div>
               
               <div className="text-center">
@@ -106,8 +110,12 @@ const BonusSelectionModal = ({
             )}
             
             <div className="flex flex-col items-center gap-4">
-              <div className={`p-4 rounded-full ${weeklyAvailable ? 'bg-purple-500/30' : 'bg-gray-700/30'}`}>
-                <Icon name="Package" className="h-12 w-12" />
+              <div className="relative w-24 h-24">
+                <img 
+                  src="https://cdn.poehali.dev/projects/14cc16e7-6bfa-466f-b030-aa09db74a13a/bucket/6334e238-a105-469a-8eb7-3085f1c54f14.png"
+                  alt="Крейт"
+                  className={`w-full h-full object-contain ${weeklyAvailable ? 'drop-shadow-[0_0_15px_rgba(168,85,247,0.6)]' : 'opacity-50 grayscale'}`}
+                />
               </div>
               
               <div className="text-center">
