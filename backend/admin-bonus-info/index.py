@@ -55,6 +55,7 @@ def handle_get_records() -> dict:
                 steam_username,
                 steam_avatar,
                 last_spin_time,
+                last_weekly_bonus,
                 total_spins,
                 total_winnings
             FROM daily_bonus_claims
@@ -86,6 +87,7 @@ def handle_reset_limit(event: dict) -> dict:
         body = json.loads(body_str) if isinstance(body_str, str) else body_str
         
         steam_id = body.get('steam_id')
+        bonus_type = body.get('bonus_type', 'daily')
         
         if not steam_id:
             return response(400, {'error': 'steam_id required'})
@@ -95,17 +97,25 @@ def handle_reset_limit(event: dict) -> dict:
         
         past_time = datetime.utcnow() - timedelta(days=8)
         
-        cur.execute(
-            "UPDATE daily_bonus_claims SET last_spin_time = %s, last_weekly_bonus = %s WHERE steam_id = %s",
-            (past_time, past_time, steam_id)
-        )
+        if bonus_type == 'weekly':
+            cur.execute(
+                "UPDATE daily_bonus_claims SET last_weekly_bonus = %s WHERE steam_id = %s",
+                (past_time, steam_id)
+            )
+        elif bonus_type == 'daily':
+            cur.execute(
+                "UPDATE daily_bonus_claims SET last_spin_time = %s WHERE steam_id = %s",
+                (past_time, steam_id)
+            )
+        else:
+            return response(400, {'error': 'Invalid bonus_type'})
         
         if cur.rowcount == 0:
             return response(404, {'error': 'Player not found'})
         
         conn.commit()
         
-        return response(200, {'success': True, 'message': 'Limit reset successfully'})
+        return response(200, {'success': True, 'message': f'{bonus_type.capitalize()} limit reset successfully'})
         
     except Exception as e:
         print(f'Error: {str(e)}')

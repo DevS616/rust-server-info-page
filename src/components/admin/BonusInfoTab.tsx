@@ -10,6 +10,7 @@ interface BonusRecord {
   steam_username: string;
   steam_avatar: string;
   last_spin_time: string;
+  last_weekly_bonus: string | null;
   total_spins: number;
   total_winnings: number;
 }
@@ -23,7 +24,8 @@ const API_BASE = 'https://functions.poehali.dev';
 const BonusInfoTab = ({ token }: BonusInfoTabProps) => {
   const [records, setRecords] = useState<BonusRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [resetting, setResetting] = useState<string | null>(null);
+  const [resettingDaily, setResettingDaily] = useState<string | null>(null);
+  const [resettingWeekly, setResettingWeekly] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -59,8 +61,13 @@ const BonusInfoTab = ({ token }: BonusInfoTabProps) => {
     }
   };
 
-  const handleResetLimit = async (steamId: string) => {
-    setResetting(steamId);
+  const handleResetLimit = async (steamId: string, bonusType: 'daily' | 'weekly') => {
+    if (bonusType === 'daily') {
+      setResettingDaily(steamId);
+    } else {
+      setResettingWeekly(steamId);
+    }
+
     try {
       const res = await fetch(`${API_BASE}/f39e2f41-ff45-4800-8907-0ee09e17d8c6/`, {
         method: 'POST',
@@ -68,13 +75,13 @@ const BonusInfoTab = ({ token }: BonusInfoTabProps) => {
           'Content-Type': 'application/json',
           'X-Auth-Token': token
         },
-        body: JSON.stringify({ steam_id: steamId })
+        body: JSON.stringify({ steam_id: steamId, bonus_type: bonusType })
       });
       
       if (res.ok) {
         toast({ 
           title: 'Успешно', 
-          description: 'Лимит сброшен' 
+          description: `${bonusType === 'daily' ? 'Ежедневный' : 'Еженедельный'} лимит сброшен` 
         });
         loadBonusRecords();
       } else {
@@ -93,7 +100,11 @@ const BonusInfoTab = ({ token }: BonusInfoTabProps) => {
         variant: 'destructive' 
       });
     } finally {
-      setResetting(null);
+      if (bonusType === 'daily') {
+        setResettingDaily(null);
+      } else {
+        setResettingWeekly(null);
+      }
     }
   };
 
@@ -119,6 +130,21 @@ const BonusInfoTab = ({ token }: BonusInfoTabProps) => {
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
     return `${hours}ч ${minutes}м`;
+  };
+
+  const getTimeUntilWeekly = (lastWeeklyTime: string | null) => {
+    if (!lastWeeklyTime) return 'Доступно';
+    
+    const last = new Date(lastWeeklyTime);
+    const next = new Date(last.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const now = new Date();
+    const diff = next.getTime() - now.getTime();
+    
+    if (diff <= 0) return 'Доступно';
+    
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    return `${days}д ${hours}ч`;
   };
 
   if (loading) {
@@ -165,36 +191,59 @@ const BonusInfoTab = ({ token }: BonusInfoTabProps) => {
               
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-4 mb-2">
-                  <div>
+                  <div className="flex-1">
                     <h3 className="font-semibold text-lg">
-                      {record.steam_username || `Steam ${record.steam_id.slice(-8)}`}
+                      {record.steam_username || 'Без никнейма'}
                     </h3>
                     <p className="text-sm text-muted-foreground">
                       Steam ID: {record.steam_id}
                     </p>
                   </div>
                   
-                  <Button
-                    onClick={() => handleResetLimit(record.steam_id)}
-                    disabled={resetting === record.steam_id}
-                    size="sm"
-                    variant="outline"
-                  >
-                    {resetting === record.steam_id ? (
-                      <>
-                        <Icon name="Loader2" className="mr-2 h-4 w-4 animate-spin" />
-                        Сброс...
-                      </>
-                    ) : (
-                      <>
-                        <Icon name="RotateCcw" className="mr-2 h-4 w-4" />
-                        Сбросить лимит
-                      </>
-                    )}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => handleResetLimit(record.steam_id, 'daily')}
+                      disabled={resettingDaily === record.steam_id}
+                      size="sm"
+                      variant="outline"
+                      title="Сбросить ежедневный бонус"
+                    >
+                      {resettingDaily === record.steam_id ? (
+                        <>
+                          <Icon name="Loader2" className="mr-2 h-4 w-4 animate-spin" />
+                          Сброс...
+                        </>
+                      ) : (
+                        <>
+                          <Icon name="RotateCcw" className="mr-2 h-4 w-4" />
+                          Ежедневный
+                        </>
+                      )}
+                    </Button>
+                    
+                    <Button
+                      onClick={() => handleResetLimit(record.steam_id, 'weekly')}
+                      disabled={resettingWeekly === record.steam_id}
+                      size="sm"
+                      variant="outline"
+                      title="Сбросить еженедельный бонус"
+                    >
+                      {resettingWeekly === record.steam_id ? (
+                        <>
+                          <Icon name="Loader2" className="mr-2 h-4 w-4 animate-spin" />
+                          Сброс...
+                        </>
+                      ) : (
+                        <>
+                          <Icon name="RotateCcw" className="mr-2 h-4 w-4" />
+                          Еженедельный
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-3">
                   <div>
                     <p className="text-xs text-muted-foreground">Всего прокруток</p>
                     <p className="text-lg font-semibold">{record.total_spins}</p>
@@ -215,9 +264,16 @@ const BonusInfoTab = ({ token }: BonusInfoTabProps) => {
                   </div>
                   
                   <div>
-                    <p className="text-xs text-muted-foreground">Следующий бонус</p>
+                    <p className="text-xs text-muted-foreground">След. ежедневный</p>
                     <p className="text-sm font-medium">
                       {getTimeUntilNext(record.last_spin_time)}
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <p className="text-xs text-muted-foreground">След. еженедельный</p>
+                    <p className="text-sm font-medium">
+                      {getTimeUntilWeekly(record.last_weekly_bonus)}
                     </p>
                   </div>
                 </div>
