@@ -313,50 +313,18 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
         <div className="space-y-4 md:space-y-6 py-2 md:py-4">
           {!isAuthenticated ? (
             <div className="flex flex-col items-center gap-6 py-8">
-              <div className="text-center space-y-3 md:space-y-4">
-                <div className="text-5xl md:text-6xl">🎁</div>
-                <h2 className="text-xl md:text-2xl font-bold">Авторизуйтесь для участия</h2>
-                <p className="text-sm md:text-base text-muted-foreground">
-                  Войдите через Steam, чтобы получить ежедневный бонус
-                </p>
-              </div>
-              
+              <Icon name="Lock" className="h-16 w-16 text-amber-500" />
+              <p className="text-center text-lg">
+                Авторизуйтесь через Steam, чтобы получить ежедневный бонус
+              </p>
               <Button
                 onClick={handleAuth}
                 size="lg"
-                className="text-base md:text-lg px-6 md:px-8 py-5 md:py-6 w-full md:w-auto"
+                className="font-semibold"
               >
-                <Icon name="LogIn" className="mr-2 h-4 md:h-5 w-4 md:w-5" />
+                <Icon name="LogIn" className="mr-2 h-5 w-5" />
                 Войти через Steam
               </Button>
-
-              <Card className="p-3 md:p-4 w-full bg-muted/50 space-y-2 md:space-y-3">
-                <div>
-                  <h3 className="font-semibold mb-2 text-center text-sm md:text-base">Возможные призы:</h3>
-                  <div className="grid grid-cols-5 gap-1.5 md:gap-2 text-center text-xs md:text-sm">
-                    <div>
-                      <div className="font-bold text-lg">1₽</div>
-                      <div className="text-muted-foreground">50%</div>
-                    </div>
-                    <div>
-                      <div className="font-bold text-lg">3₽</div>
-                      <div className="text-muted-foreground">30%</div>
-                    </div>
-                    <div>
-                      <div className="font-bold text-lg">5₽</div>
-                      <div className="text-muted-foreground">15%</div>
-                    </div>
-                    <div>
-                      <div className="font-bold text-lg">10₽</div>
-                      <div className="text-muted-foreground">3%</div>
-                    </div>
-                    <div>
-                      <div className="font-bold text-lg">20₽</div>
-                      <div className="text-muted-foreground">2%</div>
-                    </div>
-                  </div>
-                </div>
-              </Card>
             </div>
           ) : !showResult ? (
             <div className="flex flex-col items-center gap-4 md:gap-6">
