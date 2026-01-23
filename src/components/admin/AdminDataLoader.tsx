@@ -60,7 +60,7 @@ export const useAdminDataLoader = () => {
         console.log('Tickets array:', data.tickets);
         console.log('Tickets count:', data.tickets?.length || 0);
         const ticketsArray = data.tickets || [];
-        apiCache.set('admin_tickets', ticketsArray, 60000);
+        apiCache.set('admin_tickets', ticketsArray, 300000);
         return ticketsArray;
       } else {
         console.error('Failed to load admin tickets, status:', res.status);
@@ -90,7 +90,7 @@ export const useAdminDataLoader = () => {
       if (res.ok) {
         const data = await res.json();
         const serversArray = data.servers || [];
-        apiCache.set('admin_servers', serversArray, 300000);
+        apiCache.set('admin_servers', serversArray, 3600000);
         return serversArray;
       }
       return [];

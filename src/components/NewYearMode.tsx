@@ -11,15 +11,36 @@ const NewYearMode = () => {
   const [config, setConfig] = useState<NewYearConfig | null>(null);
 
   useEffect(() => {
+    const CACHE_KEY = 'newyear_cache';
+    const CACHE_DURATION = 6 * 60 * 60 * 1000;
+    
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (cached) {
+      try {
+        const { data, timestamp } = JSON.parse(cached);
+        if (Date.now() - timestamp < CACHE_DURATION) {
+          setConfig(data);
+          return;
+        }
+      } catch (e) {
+        console.error('Failed to parse newyear cache:', e);
+      }
+    }
+    
     fetch('https://functions.poehali.dev/1ad77753-040f-405c-8e61-7230f64e30e9/')
       .then(res => res.json())
       .then(data => {
-        setConfig({
+        const configData = {
           enabled: true,
           snowflakes: data.newyear_snow_enabled ?? true,
           lights: data.newyear_lights_enabled ?? true,
           santa: false
-        });
+        };
+        setConfig(configData);
+        localStorage.setItem(CACHE_KEY, JSON.stringify({
+          data: configData,
+          timestamp: Date.now()
+        }));
       })
       .catch(() => setConfig(null));
   }, []);

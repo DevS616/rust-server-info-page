@@ -43,9 +43,9 @@ const AppContent = () => {
     }
 
     let lastCheckTime = 0;
-    const MIN_CHECK_INTERVAL = 30 * 60 * 1000;
+    const MIN_CHECK_INTERVAL = 2 * 60 * 60 * 1000;
     const CACHE_KEY = 'maintenance_cache';
-    const CACHE_DURATION = 30 * 60 * 1000;
+    const CACHE_DURATION = 2 * 60 * 60 * 1000;
 
     const checkMaintenance = async (skipCache = false) => {
       if (document.hidden) return;

@@ -36,7 +36,7 @@ const PromotionModal = () => {
   useEffect(() => {
     const loadPromotion = async () => {
       const CACHE_KEY = 'promotion_cache';
-      const CACHE_DURATION = 30 * 60 * 1000;
+      const CACHE_DURATION = 6 * 60 * 60 * 1000;
       
       const cached = localStorage.getItem(CACHE_KEY);
       if (cached) {
