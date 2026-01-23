@@ -284,7 +284,8 @@ const Admin = () => {
       if (res.ok) {
         toast({ title: 'Успешно', description: 'Обращение удалено' });
         setSelectedTicket(null);
-        loadTickets(token!);
+        apiCache.invalidate('admin_tickets');
+        await loadTickets(token!, false);
       } else {
         toast({ title: 'Ошибка', description: 'Не удалось удалить обращение', variant: 'destructive' });
       }
