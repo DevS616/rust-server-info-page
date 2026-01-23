@@ -148,8 +148,9 @@ const WeeklyBonusCrate = ({ isOpen, onClose }: WeeklyBonusCrateProps) => {
   };
 
   const handleAuth = () => {
-    const authUrl = 'https://functions.poehali.dev/c850f577-a59f-4ea7-aede-fb9f65e3bf14/';
     localStorage.setItem('bonus_after_auth', 'true');
+    const currentUrl = encodeURIComponent(window.location.origin);
+    const authUrl = `https://functions.poehali.dev/560196bb-a6d4-41dc-9b1c-0008c13bece3/?base_url=${currentUrl}`;
     window.location.href = authUrl;
   };
 

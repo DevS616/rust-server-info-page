@@ -26,6 +26,14 @@ const DailyBonusButton = () => {
       } catch (e) {
         console.error('Failed to parse steam_user:', e);
       }
+    } else {
+      // Если пользователь не авторизован, сбрасываем steamId
+      setSteamId(null);
+      // Сбрасываем состояния бонусов для неавторизованных
+      setDailyCanClaim(false);
+      setWeeklyCanClaim(false);
+      setDailyTimeLeft('');
+      setWeeklyTimeLeft('');
     }
   }, []);
 
@@ -33,16 +41,8 @@ const DailyBonusButton = () => {
   useEffect(() => {
     const checkDailyAvailability = async () => {
       if (!steamId) {
-        const lastSpin = localStorage.getItem('lastBonusSpin');
-        if (!lastSpin) {
-          setDailyCanClaim(true);
-          return;
-        }
-        
-        const lastSpinDate = new Date(lastSpin);
-        const now = new Date();
-        const hoursSinceLastSpin = (now.getTime() - lastSpinDate.getTime()) / (1000 * 60 * 60);
-        setDailyCanClaim(hoursSinceLastSpin >= 24);
+        // Для неавторизованных - не показываем кнопку как доступную
+        setDailyCanClaim(false);
         return;
       }
 
@@ -99,16 +99,8 @@ const DailyBonusButton = () => {
   useEffect(() => {
     const checkWeeklyAvailability = async () => {
       if (!steamId) {
-        const lastBonus = localStorage.getItem('lastWeeklyBonus');
-        if (!lastBonus) {
-          setWeeklyCanClaim(true);
-          return;
-        }
-        
-        const lastBonusDate = new Date(lastBonus);
-        const now = new Date();
-        const daysSinceLastBonus = (now.getTime() - lastBonusDate.getTime()) / (1000 * 60 * 60 * 24);
-        setWeeklyCanClaim(daysSinceLastBonus >= 7);
+        // Для неавторизованных - не показываем кнопку как доступную
+        setWeeklyCanClaim(false);
         return;
       }
 
@@ -171,81 +163,45 @@ const DailyBonusButton = () => {
     }
   }, [dailyCanClaim, weeklyCanClaim, canClaimAny]);
 
-  // Обновление таймеров
+  // Обновление таймеров (только для авторизованных)
   useEffect(() => {
+    if (!steamId) return; // Не обновляем таймеры для неавторизованных
+    
     const interval = setInterval(() => {
       // Daily timer
       if (!dailyCanClaim) {
-        if (steamId) {
-          const cachedData = localStorage.getItem(`bonus_check_${steamId}`);
-          if (cachedData) {
-            const { can_claim, time_left, cached_at } = JSON.parse(cachedData);
-            const cacheAge = Date.now() - cached_at;
-            const remainingTime = time_left - Math.floor(cacheAge / 1000);
-            
-            if (remainingTime <= 0) {
-              setDailyCanClaim(true);
-              setDailyTimeLeft('');
-            } else {
-              const hours = Math.floor(remainingTime / 3600);
-              const minutes = Math.floor((remainingTime % 3600) / 60);
-              setDailyTimeLeft(`${hours}ч ${minutes}м`);
-            }
-          }
-        } else {
-          const lastSpin = localStorage.getItem('lastBonusSpin');
-          if (lastSpin) {
-            const lastSpinDate = new Date(lastSpin);
-            const nextAvailable = new Date(lastSpinDate.getTime() + 24 * 60 * 60 * 1000);
-            const now = new Date();
-            const diff = nextAvailable.getTime() - now.getTime();
-
-            if (diff <= 0) {
-              setDailyCanClaim(true);
-              setDailyTimeLeft('');
-            } else {
-              const hours = Math.floor(diff / (1000 * 60 * 60));
-              const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-              setDailyTimeLeft(`${hours}ч ${minutes}м`);
-            }
+        const cachedData = localStorage.getItem(`bonus_check_${steamId}`);
+        if (cachedData) {
+          const { can_claim, time_left, cached_at } = JSON.parse(cachedData);
+          const cacheAge = Date.now() - cached_at;
+          const remainingTime = time_left - Math.floor(cacheAge / 1000);
+          
+          if (remainingTime <= 0) {
+            setDailyCanClaim(true);
+            setDailyTimeLeft('');
+          } else {
+            const hours = Math.floor(remainingTime / 3600);
+            const minutes = Math.floor((remainingTime % 3600) / 60);
+            setDailyTimeLeft(`${hours}ч ${minutes}м`);
           }
         }
       }
 
       // Weekly timer
       if (!weeklyCanClaim) {
-        if (steamId) {
-          const cachedData = localStorage.getItem(`weekly_bonus_check_${steamId}`);
-          if (cachedData) {
-            const { can_claim, time_left, cached_at } = JSON.parse(cachedData);
-            const cacheAge = Date.now() - cached_at;
-            const remainingTime = time_left - Math.floor(cacheAge / 1000);
-            
-            if (remainingTime <= 0) {
-              setWeeklyCanClaim(true);
-              setWeeklyTimeLeft('');
-            } else {
-              const days = Math.floor(remainingTime / 86400);
-              const hours = Math.floor((remainingTime % 86400) / 3600);
-              setWeeklyTimeLeft(`${days}д ${hours}ч`);
-            }
-          }
-        } else {
-          const lastBonus = localStorage.getItem('lastWeeklyBonus');
-          if (lastBonus) {
-            const lastBonusDate = new Date(lastBonus);
-            const nextAvailable = new Date(lastBonusDate.getTime() + 7 * 24 * 60 * 60 * 1000);
-            const now = new Date();
-            const diff = nextAvailable.getTime() - now.getTime();
-
-            if (diff <= 0) {
-              setWeeklyCanClaim(true);
-              setWeeklyTimeLeft('');
-            } else {
-              const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-              const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-              setWeeklyTimeLeft(`${days}д ${hours}ч`);
-            }
+        const cachedData = localStorage.getItem(`weekly_bonus_check_${steamId}`);
+        if (cachedData) {
+          const { can_claim, time_left, cached_at } = JSON.parse(cachedData);
+          const cacheAge = Date.now() - cached_at;
+          const remainingTime = time_left - Math.floor(cacheAge / 1000);
+          
+          if (remainingTime <= 0) {
+            setWeeklyCanClaim(true);
+            setWeeklyTimeLeft('');
+          } else {
+            const days = Math.floor(remainingTime / 86400);
+            const hours = Math.floor((remainingTime % 86400) / 3600);
+            setWeeklyTimeLeft(`${days}д ${hours}ч`);
           }
         }
       }
