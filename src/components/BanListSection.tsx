@@ -52,7 +52,7 @@ const BanListSection = () => {
 
   const fetchBans = async (skipCache = false) => {
     const CACHE_KEY = 'banlist_cache';
-    const CACHE_DURATION = 2 * 60 * 60 * 1000;
+    const CACHE_DURATION = 12 * 60 * 60 * 1000;
     
     if (!skipCache) {
       const cached = localStorage.getItem(CACHE_KEY);

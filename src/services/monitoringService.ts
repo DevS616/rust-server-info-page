@@ -70,7 +70,7 @@ class MonitoringService {
     if (this.isFetching) return;
 
     const CACHE_KEY = 'monitoring_cache';
-    const CACHE_DURATION = 5 * 60 * 1000;
+    const CACHE_DURATION = 30 * 60 * 1000;
     
     const cached = localStorage.getItem(CACHE_KEY);
     if (cached) {
@@ -122,7 +122,7 @@ class MonitoringService {
 
   private startAutoFetch(): void {
     let lastFetchTime = Date.now();
-    const MIN_FETCH_INTERVAL = 15 * 60 * 1000;
+    const MIN_FETCH_INTERVAL = 30 * 60 * 1000;
 
     this.fetchData();
     this.fetchInterval = window.setInterval(() => {
@@ -130,12 +130,12 @@ class MonitoringService {
         this.fetchData();
         lastFetchTime = Date.now();
       }
-    }, 15 * 60 * 1000);
+    }, 30 * 60 * 1000);
 
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible' && !this.isFetching) {
         const now = Date.now();
-        if (now - lastFetchTime >= 10 * 60 * 1000) {
+        if (now - lastFetchTime >= 20 * 60 * 1000) {
           this.fetchData();
           lastFetchTime = now;
         }
