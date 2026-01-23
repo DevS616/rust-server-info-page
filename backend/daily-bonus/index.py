@@ -33,31 +33,57 @@ def handler(event: dict, context) -> dict:
         
         if method == 'GET':
             steam_id = event.get('queryStringParameters', {}).get('steam_id')
+            bonus_type = event.get('queryStringParameters', {}).get('bonus_type', 'daily')
+            
             if not steam_id:
                 return response(400, {'error': 'steam_id required'})
             
-            cur.execute(
-                "SELECT last_spin_time FROM daily_bonus_claims WHERE steam_id = %s",
-                (steam_id,)
-            )
-            row = cur.fetchone()
-            
-            if not row:
-                return response(200, {'can_claim': True, 'time_left': 0})
-            
-            last_spin = row['last_spin_time']
-            now = datetime.utcnow()
-            next_available = last_spin + timedelta(hours=24)
-            
-            if now >= next_available:
-                return response(200, {'can_claim': True, 'time_left': 0})
-            
-            time_left_seconds = int((next_available - now).total_seconds())
-            return response(200, {
-                'can_claim': False,
-                'time_left': time_left_seconds,
-                'next_available': next_available.isoformat()
-            })
+            if bonus_type == 'weekly':
+                cur.execute(
+                    "SELECT last_weekly_bonus FROM daily_bonus_claims WHERE steam_id = %s",
+                    (steam_id,)
+                )
+                row = cur.fetchone()
+                
+                if not row or not row['last_weekly_bonus']:
+                    return response(200, {'can_claim': True, 'time_left': 0})
+                
+                last_bonus = row['last_weekly_bonus']
+                now = datetime.utcnow()
+                next_available = last_bonus + timedelta(days=7)
+                
+                if now >= next_available:
+                    return response(200, {'can_claim': True, 'time_left': 0})
+                
+                time_left_seconds = int((next_available - now).total_seconds())
+                return response(200, {
+                    'can_claim': False,
+                    'time_left': time_left_seconds,
+                    'next_available': next_available.isoformat()
+                })
+            else:
+                cur.execute(
+                    "SELECT last_spin_time FROM daily_bonus_claims WHERE steam_id = %s",
+                    (steam_id,)
+                )
+                row = cur.fetchone()
+                
+                if not row:
+                    return response(200, {'can_claim': True, 'time_left': 0})
+                
+                last_spin = row['last_spin_time']
+                now = datetime.utcnow()
+                next_available = last_spin + timedelta(hours=24)
+                
+                if now >= next_available:
+                    return response(200, {'can_claim': True, 'time_left': 0})
+                
+                time_left_seconds = int((next_available - now).total_seconds())
+                return response(200, {
+                    'can_claim': False,
+                    'time_left': time_left_seconds,
+                    'next_available': next_available.isoformat()
+                })
         
         elif method == 'POST':
             body_str = event.get('body', '{}')
@@ -67,6 +93,7 @@ def handler(event: dict, context) -> dict:
                 amount = body.get('amount', 0) if isinstance(body, dict) else 0
                 username = body.get('username') if isinstance(body, dict) else None
                 avatar = body.get('avatar') if isinstance(body, dict) else None
+                bonus_type = body.get('bonus_type', 'daily') if isinstance(body, dict) else 'daily'
             except (json.JSONDecodeError, AttributeError):
                 return response(400, {'error': 'Invalid request body'})
             
@@ -75,36 +102,72 @@ def handler(event: dict, context) -> dict:
             
             now = datetime.utcnow()
             
-            cur.execute(
-                "SELECT last_spin_time FROM daily_bonus_claims WHERE steam_id = %s",
-                (steam_id,)
-            )
-            row = cur.fetchone()
-            
-            if row:
-                last_spin = row['last_spin_time']
-                hours_since = (now - last_spin).total_seconds() / 3600
-                
-                if hours_since < 24:
-                    time_left = int((24 * 3600) - (hours_since * 3600))
-                    return response(429, {
-                        'error': 'Too early',
-                        'time_left': time_left
-                    })
-                
+            if bonus_type == 'weekly':
                 cur.execute(
-                    "UPDATE daily_bonus_claims SET last_spin_time = %s, total_spins = total_spins + 1, total_winnings = total_winnings + %s, steam_username = %s, steam_avatar = %s WHERE steam_id = %s",
-                    (now, amount, username, avatar, steam_id)
+                    "SELECT last_weekly_bonus FROM daily_bonus_claims WHERE steam_id = %s",
+                    (steam_id,)
                 )
+                row = cur.fetchone()
+                
+                if row and row['last_weekly_bonus']:
+                    last_bonus = row['last_weekly_bonus']
+                    days_since = (now - last_bonus).total_seconds() / 86400
+                    
+                    if days_since < 7:
+                        time_left = int((7 * 86400) - (days_since * 86400))
+                        return response(429, {
+                            'error': 'Too early',
+                            'time_left': time_left
+                        })
+                    
+                    cur.execute(
+                        "UPDATE daily_bonus_claims SET last_weekly_bonus = %s, total_spins = total_spins + 1, total_winnings = total_winnings + %s, steam_username = %s, steam_avatar = %s WHERE steam_id = %s",
+                        (now, amount, username, avatar, steam_id)
+                    )
+                else:
+                    if row:
+                        cur.execute(
+                            "UPDATE daily_bonus_claims SET last_weekly_bonus = %s, total_spins = total_spins + 1, total_winnings = total_winnings + %s, steam_username = %s, steam_avatar = %s WHERE steam_id = %s",
+                            (now, amount, username, avatar, steam_id)
+                        )
+                    else:
+                        cur.execute(
+                            "INSERT INTO daily_bonus_claims (steam_id, last_weekly_bonus, total_spins, total_winnings, steam_username, steam_avatar) VALUES (%s, %s, 1, %s, %s, %s)",
+                            (steam_id, now, amount, username, avatar)
+                        )
+                
+                conn.commit()
+                return response(200, {'success': True, 'next_available': (now + timedelta(days=7)).isoformat()})
             else:
                 cur.execute(
-                    "INSERT INTO daily_bonus_claims (steam_id, last_spin_time, total_spins, total_winnings, steam_username, steam_avatar) VALUES (%s, %s, 1, %s, %s, %s)",
-                    (steam_id, now, amount, username, avatar)
+                    "SELECT last_spin_time FROM daily_bonus_claims WHERE steam_id = %s",
+                    (steam_id,)
                 )
-            
-            conn.commit()
-            
-            return response(200, {'success': True, 'next_available': (now + timedelta(hours=24)).isoformat()})
+                row = cur.fetchone()
+                
+                if row:
+                    last_spin = row['last_spin_time']
+                    hours_since = (now - last_spin).total_seconds() / 3600
+                    
+                    if hours_since < 24:
+                        time_left = int((24 * 3600) - (hours_since * 3600))
+                        return response(429, {
+                            'error': 'Too early',
+                            'time_left': time_left
+                        })
+                    
+                    cur.execute(
+                        "UPDATE daily_bonus_claims SET last_spin_time = %s, total_spins = total_spins + 1, total_winnings = total_winnings + %s, steam_username = %s, steam_avatar = %s WHERE steam_id = %s",
+                        (now, amount, username, avatar, steam_id)
+                    )
+                else:
+                    cur.execute(
+                        "INSERT INTO daily_bonus_claims (steam_id, last_spin_time, total_spins, total_winnings, steam_username, steam_avatar) VALUES (%s, %s, 1, %s, %s, %s)",
+                        (steam_id, now, amount, username, avatar)
+                    )
+                
+                conn.commit()
+                return response(200, {'success': True, 'next_available': (now + timedelta(hours=24)).isoformat()})
         
         return response(405, {'error': 'Method not allowed'})
         
