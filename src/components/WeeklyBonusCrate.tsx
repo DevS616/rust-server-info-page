@@ -65,7 +65,7 @@ const WeeklyBonusCrate = ({ isOpen, onClose }: WeeklyBonusCrateProps) => {
         setTimeout(() => setShowConfetti(false), 5000);
       }
 
-      // Записываем бонус в базу
+      // Записываем бонус в базу И выдаем баланс
       if (steamId) {
         try {
           const userStr = localStorage.getItem('steam_user');
@@ -84,7 +84,8 @@ const WeeklyBonusCrate = ({ isOpen, onClose }: WeeklyBonusCrateProps) => {
 
           console.log('WeeklyBonus: Recording bonus', { steam_id: steamId, amount, username, bonus_type: 'weekly' });
 
-          const response = await fetch('https://functions.poehali.dev/2f8f1aed-8299-4c7c-b041-cfe28a3aa7f3/', {
+          // 1. Записываем время получения бонуса
+          const recordResponse = await fetch('https://functions.poehali.dev/2f8f1aed-8299-4c7c-b041-cfe28a3aa7f3/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -96,11 +97,28 @@ const WeeklyBonusCrate = ({ isOpen, onClose }: WeeklyBonusCrateProps) => {
             })
           });
 
-          console.log('WeeklyBonus: Response status', response.status);
-          const responseData = await response.json();
-          console.log('WeeklyBonus: Response data', responseData);
+          console.log('WeeklyBonus: Record response status', recordResponse.status);
+          const recordData = await recordResponse.json();
+          console.log('WeeklyBonus: Record response data', recordData);
 
-          if (response.ok) {
+          if (recordResponse.ok) {
+            // 2. Выдаем баланс
+            const balanceResponse = await fetch('https://functions.poehali.dev/f417ccf5-cc33-4765-9f67-ff481ae7cf82/', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                steam_id: steamId,
+                amount
+              })
+            });
+
+            console.log('WeeklyBonus: Balance response status', balanceResponse.status);
+            if (balanceResponse.ok) {
+              const balanceData = await balanceResponse.json();
+              console.log('WeeklyBonus: Balance response data', balanceData);
+            }
+
+            // Инвалидируем кеш
             localStorage.removeItem(`weekly_bonus_check_${steamId}`);
           }
         } catch (error) {
@@ -116,6 +134,12 @@ const WeeklyBonusCrate = ({ isOpen, onClose }: WeeklyBonusCrateProps) => {
 
   const handleClose = () => {
     if (isProcessing) return;
+    
+    // Если бонус получен, инвалидируем кеш
+    if (result && steamId) {
+      localStorage.removeItem(`weekly_bonus_check_${steamId}`);
+    }
+    
     setSelectedCode(null);
     setResult(null);
     setShowConfetti(false);
