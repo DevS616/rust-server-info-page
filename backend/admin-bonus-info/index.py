@@ -85,46 +85,82 @@ def handle_reset_limit(event: dict) -> dict:
     cur = None
     
     try:
+        print(f'[RESET] Raw event: {json.dumps(event)}')
+        
         body_str = event.get('body', '{}')
+        print(f'[RESET] Body string: {body_str}')
+        
         body = json.loads(body_str) if isinstance(body_str, str) else body_str
+        print(f'[RESET] Parsed body: {body}')
         
         steam_id = body.get('steam_id')
         bonus_type = body.get('bonus_type', 'daily')
         
+        print(f'[RESET] Extracted steam_id: {steam_id}, bonus_type: {bonus_type}')
+        
         if not steam_id:
+            print('[RESET] ERROR: No steam_id provided')
             return response(400, {'error': 'steam_id required'})
         
         conn = psycopg2.connect(os.environ['DATABASE_URL'])
         cur = conn.cursor()
         
-        past_time = datetime.utcnow() - timedelta(days=8)
+        print(f'[RESET] Database connected')
         
-        print(f'[RESET] Resetting {bonus_type} for {steam_id} to {past_time}')
+        cur.execute("SELECT steam_id, last_spin_time, last_weekly_bonus FROM daily_bonus_claims WHERE steam_id = %s", (steam_id,))
+        existing = cur.fetchone()
+        print(f'[RESET] Existing record: {existing}')
+        
+        if not existing:
+            print(f'[RESET] ERROR: Record not found for steam_id {steam_id}')
+            return response(404, {'error': 'Player not found in database'})
+        
+        past_time = datetime.utcnow() - timedelta(days=8)
+        print(f'[RESET] Will set time to: {past_time}')
         
         if bonus_type == 'weekly':
+            print(f'[RESET] Executing UPDATE for weekly bonus')
             cur.execute(
                 "UPDATE daily_bonus_claims SET last_weekly_bonus = %s WHERE steam_id = %s",
                 (past_time, steam_id)
             )
-            print(f'[RESET] Updated weekly bonus, rows affected: {cur.rowcount}')
+            print(f'[RESET] UPDATE executed, rows affected: {cur.rowcount}')
         elif bonus_type == 'daily':
+            print(f'[RESET] Executing UPDATE for daily bonus')
             cur.execute(
                 "UPDATE daily_bonus_claims SET last_spin_time = %s WHERE steam_id = %s",
                 (past_time, steam_id)
             )
-            print(f'[RESET] Updated daily bonus, rows affected: {cur.rowcount}')
+            print(f'[RESET] UPDATE executed, rows affected: {cur.rowcount}')
         else:
+            print(f'[RESET] ERROR: Invalid bonus_type: {bonus_type}')
             return response(400, {'error': 'Invalid bonus_type'})
         
         if cur.rowcount == 0:
-            return response(404, {'error': 'Player not found'})
+            print(f'[RESET] ERROR: UPDATE affected 0 rows')
+            return response(404, {'error': 'Update failed - no rows affected'})
         
         conn.commit()
+        print(f'[RESET] Transaction committed successfully')
         
-        return response(200, {'success': True, 'message': f'{bonus_type.capitalize()} limit reset successfully'})
+        cur.execute("SELECT steam_id, last_spin_time, last_weekly_bonus FROM daily_bonus_claims WHERE steam_id = %s", (steam_id,))
+        updated = cur.fetchone()
+        print(f'[RESET] Record after update: {updated}')
+        
+        return response(200, {
+            'success': True, 
+            'message': f'{bonus_type.capitalize()} limit reset successfully',
+            'updated_record': {
+                'steam_id': updated[0] if updated else None,
+                'last_spin_time': str(updated[1]) if updated and updated[1] else None,
+                'last_weekly_bonus': str(updated[2]) if updated and updated[2] else None
+            }
+        })
         
     except Exception as e:
-        print(f'Error: {str(e)}')
+        print(f'[RESET] EXCEPTION: {type(e).__name__}: {str(e)}')
+        import traceback
+        print(f'[RESET] Traceback: {traceback.format_exc()}')
         return response(500, {'error': str(e)})
     finally:
         if cur:
