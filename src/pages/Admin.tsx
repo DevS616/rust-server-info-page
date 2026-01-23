@@ -84,6 +84,9 @@ const Admin = () => {
     const { ticket, messages: ticketMessages } = await dataLoadTicketDetails(ticketId, authToken);
     setSelectedTicket(ticket);
     setMessages(ticketMessages);
+    
+    // Обновляем тикет в общем списке
+    setTickets(prev => prev.map(t => t.id === ticket.id ? ticket : t));
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -211,7 +214,8 @@ const Admin = () => {
         setReply('');
         setReplyFile(null);
         apiCache.invalidate('admin_tickets');
-        loadTicketDetails(selectedTicket.id.toString(), token!);
+        await loadTicketDetails(selectedTicket.id.toString(), token!);
+        await loadTickets(token!, false);
       } else {
         const error = await res.json();
         toast({ title: 'Ошибка', description: error.error || 'Не удалось отправить ответ', variant: 'destructive' });
@@ -240,8 +244,8 @@ const Admin = () => {
       if (res.ok) {
         toast({ title: 'Успешно', description: 'Статус изменён' });
         apiCache.invalidate('admin_tickets');
-        loadTickets(token!, false);
-        loadTicketDetails(selectedTicket.id.toString(), token!);
+        await loadTicketDetails(selectedTicket.id.toString(), token!);
+        await loadTickets(token!, false);
       } else {
         const error = await res.json();
         toast({ title: 'Ошибка', description: error.error || 'Не удалось изменить статус', variant: 'destructive' });
