@@ -99,16 +99,20 @@ def handle_reset_limit(event: dict) -> dict:
         
         past_time = datetime.utcnow() - timedelta(days=8)
         
+        print(f'[RESET] Resetting {bonus_type} for {steam_id} to {past_time}')
+        
         if bonus_type == 'weekly':
             cur.execute(
                 "UPDATE daily_bonus_claims SET last_weekly_bonus = %s WHERE steam_id = %s",
                 (past_time, steam_id)
             )
+            print(f'[RESET] Updated weekly bonus, rows affected: {cur.rowcount}')
         elif bonus_type == 'daily':
             cur.execute(
                 "UPDATE daily_bonus_claims SET last_spin_time = %s WHERE steam_id = %s",
                 (past_time, steam_id)
             )
+            print(f'[RESET] Updated daily bonus, rows affected: {cur.rowcount}')
         else:
             return response(400, {'error': 'Invalid bonus_type'})
         
