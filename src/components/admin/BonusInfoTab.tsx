@@ -26,6 +26,7 @@ const BonusInfoTab = ({ token }: BonusInfoTabProps) => {
   const [loading, setLoading] = useState(true);
   const [resettingDaily, setResettingDaily] = useState<string | null>(null);
   const [resettingWeekly, setResettingWeekly] = useState<string | null>(null);
+  const [deletingNoUsername, setDeletingNoUsername] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -147,6 +148,47 @@ const BonusInfoTab = ({ token }: BonusInfoTabProps) => {
     return `${days}д ${hours}ч`;
   };
 
+  const handleDeleteNoUsername = async () => {
+    if (!confirm('Вы уверены? Это удалит всех игроков без никнейма из списка.')) {
+      return;
+    }
+
+    setDeletingNoUsername(true);
+    try {
+      const res = await fetch(`${API_BASE}/f39e2f41-ff45-4800-8907-0ee09e17d8c6/`, {
+        method: 'DELETE',
+        headers: {
+          'X-Auth-Token': token
+        }
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        toast({ 
+          title: 'Успешно', 
+          description: `Удалено записей: ${data.deleted_count}` 
+        });
+        loadBonusRecords();
+      } else {
+        const error = await res.json();
+        toast({ 
+          title: 'Ошибка', 
+          description: error.error || 'Не удалось удалить записи', 
+          variant: 'destructive' 
+        });
+      }
+    } catch (error) {
+      console.error('Failed to delete records:', error);
+      toast({ 
+        title: 'Ошибка', 
+        description: 'Не удалось удалить записи', 
+        variant: 'destructive' 
+      });
+    } finally {
+      setDeletingNoUsername(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -170,13 +212,32 @@ const BonusInfoTab = ({ token }: BonusInfoTabProps) => {
         <div>
           <h2 className="text-2xl font-bold">Статистика рулетки</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Всего игроков: {records.length}
+            Всего игроков: {records.length} | Без никнейма: {records.filter(r => !r.steam_username).length}
           </p>
         </div>
-        <Button onClick={loadBonusRecords} variant="outline">
-          <Icon name="RefreshCw" className="mr-2 h-4 w-4" />
-          Обновить
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={handleDeleteNoUsername} 
+            variant="destructive"
+            disabled={deletingNoUsername || records.filter(r => !r.steam_username).length === 0}
+          >
+            {deletingNoUsername ? (
+              <>
+                <Icon name="Loader2" className="mr-2 h-4 w-4 animate-spin" />
+                Удаление...
+              </>
+            ) : (
+              <>
+                <Icon name="Trash2" className="mr-2 h-4 w-4" />
+                Удалить без никнейма
+              </>
+            )}
+          </Button>
+          <Button onClick={loadBonusRecords} variant="outline">
+            <Icon name="RefreshCw" className="mr-2 h-4 w-4" />
+            Обновить
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4">

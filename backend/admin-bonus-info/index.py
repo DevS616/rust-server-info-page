@@ -19,7 +19,7 @@ def handler(event: dict, context) -> dict:
             'statusCode': 200,
             'headers': {
                 'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
                 'Access-Control-Allow-Headers': 'Content-Type, X-Auth-Token'
             },
             'body': '',
@@ -36,6 +36,8 @@ def handler(event: dict, context) -> dict:
         return handle_get_records()
     elif method == 'POST':
         return handle_reset_limit(event)
+    elif method == 'DELETE':
+        return handle_delete_no_username()
     else:
         return response(405, {'error': 'Method not allowed'})
 
@@ -116,6 +118,35 @@ def handle_reset_limit(event: dict) -> dict:
         conn.commit()
         
         return response(200, {'success': True, 'message': f'{bonus_type.capitalize()} limit reset successfully'})
+        
+    except Exception as e:
+        print(f'Error: {str(e)}')
+        return response(500, {'error': str(e)})
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
+
+
+def handle_delete_no_username() -> dict:
+    conn = None
+    cur = None
+    
+    try:
+        conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        cur = conn.cursor()
+        
+        cur.execute("DELETE FROM daily_bonus_claims WHERE steam_username IS NULL")
+        deleted_count = cur.rowcount
+        
+        conn.commit()
+        
+        return response(200, {
+            'success': True,
+            'deleted_count': deleted_count,
+            'message': f'Deleted {deleted_count} records without username'
+        })
         
     except Exception as e:
         print(f'Error: {str(e)}')
