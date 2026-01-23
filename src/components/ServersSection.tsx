@@ -308,7 +308,6 @@ const ServersSection = () => {
               <Button 
                 className="flex-1 font-semibold uppercase tracking-wider" 
                 onClick={() => handleConnect(server)}
-                onMouseEnter={playHoverSound}
               >
                 <Icon name="Rocket" className="mr-2 h-4 w-4" />
                 Играть
