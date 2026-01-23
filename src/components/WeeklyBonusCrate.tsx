@@ -82,7 +82,9 @@ const WeeklyBonusCrate = ({ isOpen, onClose }: WeeklyBonusCrateProps) => {
             }
           }
 
-          await fetch('https://functions.poehali.dev/2f8f1aed-8299-4c7c-b041-cfe28a3aa7f3/', {
+          console.log('WeeklyBonus: Recording bonus', { steam_id: steamId, amount, username, bonus_type: 'weekly' });
+
+          const response = await fetch('https://functions.poehali.dev/2f8f1aed-8299-4c7c-b041-cfe28a3aa7f3/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -94,7 +96,13 @@ const WeeklyBonusCrate = ({ isOpen, onClose }: WeeklyBonusCrateProps) => {
             })
           });
 
-          localStorage.removeItem(`weekly_bonus_check_${steamId}`);
+          console.log('WeeklyBonus: Response status', response.status);
+          const responseData = await response.json();
+          console.log('WeeklyBonus: Response data', responseData);
+
+          if (response.ok) {
+            localStorage.removeItem(`weekly_bonus_check_${steamId}`);
+          }
         } catch (error) {
           console.error('Failed to record weekly bonus:', error);
         }

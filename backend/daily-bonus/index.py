@@ -145,7 +145,7 @@ def handler(event: dict, context) -> dict:
                 )
                 row = cur.fetchone()
                 
-                if row:
+                if row and row['last_spin_time']:
                     last_spin = row['last_spin_time']
                     hours_since = (now - last_spin).total_seconds() / 3600
                     
@@ -156,6 +156,11 @@ def handler(event: dict, context) -> dict:
                             'time_left': time_left
                         })
                     
+                    cur.execute(
+                        "UPDATE daily_bonus_claims SET last_spin_time = %s, total_spins = total_spins + 1, total_winnings = total_winnings + %s, steam_username = %s, steam_avatar = %s WHERE steam_id = %s",
+                        (now, amount, username, avatar, steam_id)
+                    )
+                elif row:
                     cur.execute(
                         "UPDATE daily_bonus_claims SET last_spin_time = %s, total_spins = total_spins + 1, total_winnings = total_winnings + %s, steam_username = %s, steam_avatar = %s WHERE steam_id = %s",
                         (now, amount, username, avatar, steam_id)
