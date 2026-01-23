@@ -135,9 +135,10 @@ const WeeklyBonusCrate = ({ isOpen, onClose }: WeeklyBonusCrateProps) => {
   const handleClose = () => {
     if (isProcessing) return;
     
-    // Если бонус получен, инвалидируем кеш
-    if (result && steamId) {
-      localStorage.removeItem(`weekly_bonus_check_${steamId}`);
+    // Если бонус получен, перенаправляем на главную
+    if (result) {
+      window.location.href = '/';
+      return;
     }
     
     setSelectedCode(null);

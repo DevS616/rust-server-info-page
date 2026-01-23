@@ -307,26 +307,8 @@ const DailyBonusButton = () => {
         weeklyTimeLeft={weeklyTimeLeft}
       />
 
-      <DailyBonusWheel 
-        isOpen={showDailyWheel} 
-        onClose={() => {
-          setShowDailyWheel(false);
-          // Перепроверяем доступность после закрытия
-          setTimeout(() => {
-            setDailyCanClaim(false);
-          }, 500);
-        }} 
-      />
-      <WeeklyBonusCrate 
-        isOpen={showWeeklyCrate} 
-        onClose={() => {
-          setShowWeeklyCrate(false);
-          // Перепроверяем доступность после закрытия
-          setTimeout(() => {
-            setWeeklyCanClaim(false);
-          }, 500);
-        }} 
-      />
+      <DailyBonusWheel isOpen={showDailyWheel} onClose={() => setShowDailyWheel(false)} />
+      <WeeklyBonusCrate isOpen={showWeeklyCrate} onClose={() => setShowWeeklyCrate(false)} />
       
       <style>{`
         @keyframes gradient {

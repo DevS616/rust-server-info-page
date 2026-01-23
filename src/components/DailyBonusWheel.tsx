@@ -284,14 +284,21 @@ const DailyBonusWheel = ({ isOpen, onClose }: DailyBonusWheelProps) => {
   };
 
   const handleClaim = () => {
-    // Теперь эта кнопка просто закрывает окно, бонус уже получен
-    onClose();
+    // Перенаправляем на главную после получения бонуса
+    window.location.href = '/';
   };
 
   const resetWheel = () => {
     if (spinSoundRef.current) {
       spinSoundRef.current.pause();
     }
+    
+    // Если был результат, перенаправляем на главную
+    if (result !== null) {
+      window.location.href = '/';
+      return;
+    }
+    
     setResult(null);
     setShowResult(false);
     setRotation(0);
