@@ -36,12 +36,17 @@ const BonusInfoTab = ({ token }: BonusInfoTabProps) => {
   const loadBonusRecords = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/f39e2f41-ff45-4800-8907-0ee09e17d8c6/`, {
-        headers: { 'X-Auth-Token': token }
+      const res = await fetch(`${API_BASE}/f39e2f41-ff45-4800-8907-0ee09e17d8c6/?t=${Date.now()}`, {
+        headers: { 
+          'X-Auth-Token': token,
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
       });
       
       if (res.ok) {
         const data = await res.json();
+        console.log('Loaded bonus records:', data.records);
         setRecords(data.records || []);
       } else {
         toast({ 
@@ -80,11 +85,13 @@ const BonusInfoTab = ({ token }: BonusInfoTabProps) => {
       });
       
       if (res.ok) {
+        const result = await res.json();
+        console.log('Reset result:', result);
         toast({ 
           title: 'Успешно', 
           description: `${bonusType === 'daily' ? 'Ежедневный' : 'Еженедельный'} лимит сброшен` 
         });
-        loadBonusRecords();
+        await loadBonusRecords();
       } else {
         const error = await res.json();
         toast({ 
