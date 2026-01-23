@@ -167,7 +167,7 @@ const BonusInfoTab = ({ token }: BonusInfoTabProps) => {
                 <div className="flex items-start justify-between gap-4 mb-2">
                   <div>
                     <h3 className="font-semibold text-lg">
-                      {record.steam_username || `Игрок ${record.steam_id.slice(-4)}`}
+                      {record.steam_username || `Steam ${record.steam_id.slice(-8)}`}
                     </h3>
                     <p className="text-sm text-muted-foreground">
                       Steam ID: {record.steam_id}
