@@ -163,8 +163,12 @@ const Privacy = () => {
             <section className="space-y-2 md:space-y-3">
               <h2 className="text-xl md:text-2xl font-semibold">10. Контактная информация</h2>
               <p className="text-sm md:text-base text-muted-foreground leading-relaxed">
-                По вопросам, связанным с обработкой персональных данных и настоящей Политикой конфиденциальности, вы можете обратиться в службу поддержки через раздел <a href="/support" className="text-primary hover:underline">"Поддержка"</a> на нашем Сайте.
+                По вопросам, связанным с обработкой персональных данных и настоящей Политикой конфиденциальности, вы можете обратиться:
               </p>
+              <ul className="list-disc list-inside text-sm md:text-base text-muted-foreground space-y-1 ml-4">
+                <li>Через раздел <a href="/support" className="text-primary hover:underline">"Поддержка"</a> на нашем Сайте</li>
+                <li>По электронной почте: <a href="mailto:devilrust@yandex.ru" className="text-primary hover:underline">devilrust@yandex.ru</a></li>
+              </ul>
             </section>
 
             <section className="space-y-2 md:space-y-3 pt-4 md:pt-6 border-t">
