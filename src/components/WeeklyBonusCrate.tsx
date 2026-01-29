@@ -118,8 +118,15 @@ const WeeklyBonusCrate = ({ isOpen, onClose }: WeeklyBonusCrateProps) => {
               console.log('WeeklyBonus: Balance response data', balanceData);
             }
 
-            // Инвалидируем кеш
-            localStorage.removeItem(`weekly_bonus_check_${steamId}`);
+            // Обновляем кеш с новым статусом (бонус получен)
+            localStorage.setItem(`weekly_bonus_check_${steamId}`, JSON.stringify({
+              can_claim: false,
+              time_left: 604800, // 7 дней в секундах
+              cached_at: Date.now()
+            }));
+            
+            // Отправляем событие для обновления UI
+            window.dispatchEvent(new Event('bonusUpdated'));
           }
         } catch (error) {
           console.error('Failed to record weekly bonus:', error);

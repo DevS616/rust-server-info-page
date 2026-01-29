@@ -151,6 +151,14 @@ const DailyBonusButton = () => {
     };
 
     checkWeeklyAvailability();
+    
+    // Слушаем событие обновления бонусов
+    const handleBonusUpdate = () => {
+      checkWeeklyAvailability();
+    };
+    
+    window.addEventListener('bonusUpdated', handleBonusUpdate);
+    return () => window.removeEventListener('bonusUpdated', handleBonusUpdate);
   }, [steamId]);
 
   useEffect(() => {
