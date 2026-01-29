@@ -83,7 +83,8 @@ const Footer = () => {
             <div>
               <h4 className="font-semibold text-sm mb-2 text-foreground">Реквизиты</h4>
               <div className="space-y-1">
-                <p>ИП: Васенин Алексей Павлович</p>
+                <p>Исполнитель: Васенин Алексей Павлович</p>
+                <p>Статус: Самозанятый (НПД)</p>
                 <p>ИНН: 434587444042</p>
                 <p>Email: <a href="mailto:devilrust@yandex.ru" className="text-primary hover:underline">devilrust@yandex.ru</a></p>
               </div>
