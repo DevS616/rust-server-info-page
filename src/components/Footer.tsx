@@ -78,7 +78,29 @@ const Footer = () => {
           </div>
         </div>
 
-        <div className="mt-8 pt-8 border-t border-primary/20 space-y-3">
+        <div className="mt-8 pt-8 border-t border-primary/20 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-muted-foreground/80">
+            <div>
+              <h4 className="font-semibold text-sm mb-2 text-foreground">Реквизиты</h4>
+              <div className="space-y-1">
+                <p>ИП: Васенин Алексей Павлович</p>
+                <p>ИНН: 434587444042</p>
+                <p>Email: <a href="mailto:devilrust@yandex.ru" className="text-primary hover:underline">devilrust@yandex.ru</a></p>
+              </div>
+            </div>
+            <div>
+              <h4 className="font-semibold text-sm mb-2 text-foreground">Юридическая информация</h4>
+              <div className="space-y-1">
+                <a href="/agreement" className="block hover:text-primary transition-colors">
+                  Пользовательское соглашение
+                </a>
+                <a href="/privacy" className="block hover:text-primary transition-colors">
+                  Политика конфиденциальности
+                </a>
+              </div>
+            </div>
+          </div>
+          
           <div className="text-center text-sm text-muted-foreground">© 2018 DevilRust. Все права защищены.</div>
           <div className="text-center text-xs text-muted-foreground/80 max-w-3xl mx-auto leading-relaxed">
             DevilRust — независимый проект игровых серверов, действующий с 2018 года. Данный сайт не принадлежит и не связан с Valve Corporation или Facepunch Studios. Rust® является зарегистрированным товарным знаком Facepunch Studios. Steam® и логотип Steam являются зарегистрированными товарными знаками Valve Corporation. Все торговые марки являются собственностью их владельцев.

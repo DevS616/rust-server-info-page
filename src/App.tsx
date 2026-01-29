@@ -17,6 +17,7 @@ import TicketDetails from "./pages/TicketDetails";
 import Admin from "./pages/Admin";
 import SteamCallback from "./pages/SteamCallback";
 import Privacy from "./pages/Privacy";
+import UserAgreement from "./pages/UserAgreement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -139,6 +140,7 @@ const AppContent = () => {
         <Route path="/steam-callback" element={<SteamCallback />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="/privacy" element={<Privacy />} />
+        <Route path="/agreement" element={<UserAgreement />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </>
