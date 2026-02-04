@@ -30,12 +30,20 @@ const PRESET_COLORS = [
   { name: 'Розовый', value: '#DB2777' },
 ];
 
+interface Server {
+  id: number;
+  name: string;
+  rate: string;
+}
+
 const EventsTab = ({ token }: EventsTabProps) => {
   const { toast } = useToast();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [servers, setServers] = useState<Server[]>([]);
+  const [selectedServers, setSelectedServers] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     date: '',
     event_time: '12:00',
@@ -48,6 +56,7 @@ const EventsTab = ({ token }: EventsTabProps) => {
   useEffect(() => {
     if (token) {
       loadEvents();
+      loadServers();
     }
   }, [token]);
 
@@ -69,11 +78,27 @@ const EventsTab = ({ token }: EventsTabProps) => {
     }
   };
 
+  const loadServers = async () => {
+    try {
+      const response = await fetch('https://functions.poehali.dev/eb33c1b5-6cb3-43e3-8d51-ef7f37e73ca2/');
+      if (response.ok) {
+        const data = await response.json();
+        setServers(data.servers || []);
+      }
+    } catch (error) {
+      console.error('Failed to load servers:', error);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
+      const serversText = selectedServers.length === 0 || selectedServers.length === servers.length
+        ? 'Все сервера'
+        : selectedServers.join(', ');
+
       const url = editingEvent
         ? `https://functions.poehali.dev/20b8d7e0-8c27-4631-9f36-7be6d0ffb6a1/?action=update&id=${editingEvent.id}`
         : 'https://functions.poehali.dev/20b8d7e0-8c27-4631-9f36-7be6d0ffb6a1/?action=create';
@@ -84,7 +109,7 @@ const EventsTab = ({ token }: EventsTabProps) => {
           'Content-Type': 'application/json',
           'X-Auth-Token': token!
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({ ...formData, servers: serversText })
       });
 
       if (response.ok) {
@@ -94,6 +119,7 @@ const EventsTab = ({ token }: EventsTabProps) => {
         });
         
         setFormData({ date: '', event_time: '12:00', title: '', description: '', color: '#DC2626', servers: 'Все сервера' });
+        setSelectedServers([]);
         setEditingEvent(null);
         setShowForm(false);
         loadEvents();
@@ -162,13 +188,38 @@ const EventsTab = ({ token }: EventsTabProps) => {
       color: event.color,
       servers: event.servers || 'Все сервера'
     });
+    
+    // Разбираем servers строку в массив
+    if (event.servers && event.servers !== 'Все сервера') {
+      setSelectedServers(event.servers.split(', ').map(s => s.trim()));
+    } else {
+      setSelectedServers([]);
+    }
+    
     setShowForm(true);
   };
 
   const cancelForm = () => {
     setEditingEvent(null);
     setFormData({ date: '', event_time: '12:00', title: '', description: '', color: '#DC2626', servers: 'Все сервера' });
+    setSelectedServers([]);
     setShowForm(false);
+  };
+
+  const toggleServer = (serverName: string) => {
+    setSelectedServers(prev => 
+      prev.includes(serverName)
+        ? prev.filter(s => s !== serverName)
+        : [...prev, serverName]
+    );
+  };
+
+  const toggleAllServers = () => {
+    if (selectedServers.length === servers.length) {
+      setSelectedServers([]);
+    } else {
+      setSelectedServers(servers.map(s => s.name));
+    }
   };
 
   return (
@@ -232,17 +283,42 @@ const EventsTab = ({ token }: EventsTabProps) => {
             </div>
 
             <div>
-              <Label htmlFor="servers">Сервера</Label>
-              <Input
-                id="servers"
-                value={formData.servers}
-                onChange={(e) => setFormData({ ...formData, servers: e.target.value })}
-                placeholder="Например: x2, x3, x5 или Все сервера"
-                required
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Укажите на каких серверах действует событие
-              </p>
+              <Label>Сервера</Label>
+              <div className="mt-2 space-y-2">
+                <div className="flex items-center gap-2 p-2 bg-muted rounded-lg">
+                  <input
+                    type="checkbox"
+                    id="all-servers"
+                    checked={selectedServers.length === 0 || selectedServers.length === servers.length}
+                    onChange={toggleAllServers}
+                    className="w-4 h-4 rounded border-gray-300"
+                  />
+                  <Label htmlFor="all-servers" className="font-semibold cursor-pointer">
+                    Все сервера
+                  </Label>
+                </div>
+                
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {servers.map((server) => (
+                    <div key={server.id} className="flex items-center gap-2 p-2 bg-muted/50 rounded">
+                      <input
+                        type="checkbox"
+                        id={`server-${server.id}`}
+                        checked={selectedServers.includes(server.name)}
+                        onChange={() => toggleServer(server.name)}
+                        className="w-4 h-4 rounded border-gray-300"
+                      />
+                      <Label htmlFor={`server-${server.id}`} className="cursor-pointer text-sm">
+                        {server.name}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+                
+                <p className="text-xs text-muted-foreground">
+                  Выбрано: {selectedServers.length === 0 || selectedServers.length === servers.length ? 'Все сервера' : selectedServers.join(', ')}
+                </p>
+              </div>
             </div>
 
             <div>
