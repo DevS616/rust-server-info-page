@@ -22,6 +22,8 @@ interface BonusInfoTabProps {
 const API_BASE = 'https://functions.poehali.dev';
 
 const BonusInfoTab = ({ token }: BonusInfoTabProps) => {
+  console.log('BonusInfoTab RENDER - token:', token ? 'present' : 'missing');
+  
   const [records, setRecords] = useState<BonusRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [resettingDaily, setResettingDaily] = useState<string | null>(null);
@@ -30,6 +32,7 @@ const BonusInfoTab = ({ token }: BonusInfoTabProps) => {
   const { toast } = useToast();
 
   useEffect(() => {
+    console.log('BonusInfoTab useEffect FIRED');
     loadBonusRecords();
   }, []);
 
