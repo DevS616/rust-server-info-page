@@ -89,11 +89,13 @@ def verify_admin(dsn: str, token: str) -> bool:
                 # Simple Query Protocol - escape single quotes
                 safe_token = token.replace("'", "''")
                 cur.execute(
-                    f"SELECT id FROM {schema}.admins WHERE token = '{safe_token}' AND is_active = true"
+                    f"SELECT id FROM {schema}.admins WHERE token = '{safe_token}'"
                 )
-                return cur.fetchone() is not None
+                result = cur.fetchone()
+                print(f"[AUTH] verify_admin: schema={schema}, token_found={result is not None}")
+                return result is not None
     except Exception as e:
-        print(f"Admin verification error: {e}")
+        print(f"[AUTH] verify_admin ERROR: {e}")
         return False
 
 def get_events(dsn: str) -> dict:
