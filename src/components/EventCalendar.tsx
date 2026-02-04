@@ -279,6 +279,8 @@ const EventCalendar = ({ isOpen, onClose }: EventCalendarProps) => {
                   
                   if (!upcomingEvent) return null;
                   
+                  const isEventStarted = timeLeft === 'Событие началось!';
+                  
                   return (
                     <button
                       onClick={() => setSelectedEvent(upcomingEvent)}
@@ -292,7 +294,9 @@ const EventCalendar = ({ isOpen, onClose }: EventCalendarProps) => {
                         >
                           "{upcomingEvent.title}"
                         </p>
-                        <p className="text-sm text-gray-300">Осталось: {timeLeft}</p>
+                        <p className="text-sm text-gray-300">
+                          {isEventStarted ? timeLeft : `Осталось: ${timeLeft}`}
+                        </p>
                         <p className="text-xs text-gray-400">Время по МСК</p>
                       </div>
                     </button>
