@@ -37,6 +37,18 @@ const BonusInfoTab = ({ token }: BonusInfoTabProps) => {
     setLoading(true);
     try {
       console.log('Loading bonus records with token:', token ? 'present' : 'missing');
+      
+      if (!token) {
+        console.error('No token available for bonus records');
+        toast({ 
+          title: 'Ошибка', 
+          description: 'Отсутствует токен авторизации', 
+          variant: 'destructive' 
+        });
+        setLoading(false);
+        return;
+      }
+      
       const res = await fetch(`${API_BASE}/f39e2f41-ff45-4800-8907-0ee09e17d8c6/?t=${Date.now()}`, {
         headers: { 
           'X-Auth-Token': token,
