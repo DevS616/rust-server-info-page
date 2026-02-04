@@ -129,7 +129,11 @@ const EventCalendar = ({ isOpen, onClose }: EventCalendarProps) => {
         const eventDate = new Date(e.date + 'T' + eventTime + '+03:00');
         return { ...e, eventDate };
       })
-      .filter(e => e.eventDate.getTime() > moscowTime.getTime())
+      .filter(e => {
+        // Показываем события которые еще не прошли (в пределах 24 часов после начала)
+        const eventEndTime = e.eventDate.getTime() + (24 * 60 * 60 * 1000);
+        return eventEndTime > moscowTime.getTime();
+      })
       .sort((a, b) => a.eventDate.getTime() - b.eventDate.getTime());
     
     return upcomingEvents[0] || null;
