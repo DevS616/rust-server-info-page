@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 interface CalendarEvent {
   id: number;
   date: string;
+  event_time?: string;
   title: string;
   description: string;
   color: string;
@@ -36,6 +37,7 @@ const EventsTab = ({ token }: EventsTabProps) => {
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
     date: '',
+    event_time: '12:00',
     title: '',
     description: '',
     color: '#DC2626'
@@ -89,7 +91,7 @@ const EventsTab = ({ token }: EventsTabProps) => {
           description: editingEvent ? 'Событие обновлено' : 'Событие создано'
         });
         
-        setFormData({ date: '', title: '', description: '', color: '#DC2626' });
+        setFormData({ date: '', event_time: '12:00', title: '', description: '', color: '#DC2626' });
         setEditingEvent(null);
         setShowForm(false);
         loadEvents();
@@ -152,6 +154,7 @@ const EventsTab = ({ token }: EventsTabProps) => {
     setEditingEvent(event);
     setFormData({
       date: event.date,
+      event_time: event.event_time || '12:00',
       title: event.title,
       description: event.description,
       color: event.color
@@ -161,7 +164,7 @@ const EventsTab = ({ token }: EventsTabProps) => {
 
   const cancelForm = () => {
     setEditingEvent(null);
-    setFormData({ date: '', title: '', description: '', color: '#DC2626' });
+    setFormData({ date: '', event_time: '12:00', title: '', description: '', color: '#DC2626' });
     setShowForm(false);
   };
 
@@ -178,7 +181,7 @@ const EventsTab = ({ token }: EventsTabProps) => {
       {showForm && (
         <Card className="p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="date">Дата</Label>
                 <Input
@@ -186,6 +189,17 @@ const EventsTab = ({ token }: EventsTabProps) => {
                   type="date"
                   value={formData.date}
                   onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="event_time">Время (МСК)</Label>
+                <Input
+                  id="event_time"
+                  type="time"
+                  value={formData.event_time}
+                  onChange={(e) => setFormData({ ...formData, event_time: e.target.value })}
                   required
                 />
               </div>

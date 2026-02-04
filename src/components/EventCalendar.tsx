@@ -6,6 +6,7 @@ import Icon from '@/components/ui/icon';
 interface CalendarEvent {
   id: number;
   date: string;
+  event_time?: string;
   title: string;
   description: string;
   color: string;
@@ -47,7 +48,8 @@ const EventCalendar = ({ isOpen, onClose }: EventCalendarProps) => {
         return;
       }
 
-      const eventDate = new Date(upcomingEvent.date + 'T00:00:00+03:00');
+      const eventTime = upcomingEvent.event_time || '12:00:00';
+      const eventDate = new Date(upcomingEvent.date + 'T' + eventTime + '+03:00');
       const diff = eventDate.getTime() - moscowTime.getTime();
 
       if (diff <= 0) {
@@ -121,11 +123,14 @@ const EventCalendar = ({ isOpen, onClose }: EventCalendarProps) => {
   };
 
   const getUpcomingEvent = (moscowTime: Date) => {
-    const moscowDateStr = `${moscowTime.getFullYear()}-${String(moscowTime.getMonth() + 1).padStart(2, '0')}-${String(moscowTime.getDate()).padStart(2, '0')}`;
-    
     const upcomingEvents = events
-      .filter(e => e.date >= moscowDateStr)
-      .sort((a, b) => a.date.localeCompare(b.date));
+      .map(e => {
+        const eventTime = e.event_time || '12:00:00';
+        const eventDate = new Date(e.date + 'T' + eventTime + '+03:00');
+        return { ...e, eventDate };
+      })
+      .filter(e => e.eventDate.getTime() > moscowTime.getTime())
+      .sort((a, b) => a.eventDate.getTime() - b.eventDate.getTime());
     
     return upcomingEvents[0] || null;
   };

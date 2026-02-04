@@ -105,9 +105,9 @@ def get_events(dsn: str) -> dict:
         with psycopg2.connect(dsn) as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute(f"""
-                    SELECT id, date, title, description, color
+                    SELECT id, date, event_time, title, description, color
                     FROM {schema}.calendar_events
-                    ORDER BY date
+                    ORDER BY date, event_time
                 """)
                 events = cur.fetchall()
                 
@@ -130,6 +130,7 @@ def create_event(dsn: str, event: dict) -> dict:
     try:
         data = json.loads(event.get('body', '{}'))
         date = data.get('date')
+        event_time = data.get('event_time', '12:00')
         title = data.get('title')
         description = data.get('description')
         color = data.get('color', '#DC2626')
@@ -145,14 +146,15 @@ def create_event(dsn: str, event: dict) -> dict:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 # Escape single quotes for Simple Query Protocol
                 safe_date = date.replace("'", "''")
+                safe_event_time = event_time.replace("'", "''")
                 safe_title = title.replace("'", "''")
                 safe_description = description.replace("'", "''")
                 safe_color = color.replace("'", "''")
                 
                 cur.execute(f"""
-                    INSERT INTO {schema}.calendar_events (date, title, description, color)
-                    VALUES ('{safe_date}', '{safe_title}', '{safe_description}', '{safe_color}')
-                    RETURNING id, date, title, description, color
+                    INSERT INTO {schema}.calendar_events (date, event_time, title, description, color)
+                    VALUES ('{safe_date}', '{safe_event_time}', '{safe_title}', '{safe_description}', '{safe_color}')
+                    RETURNING id, date, event_time, title, description, color
                 """)
                 
                 new_event = cur.fetchone()
@@ -185,6 +187,7 @@ def update_event(dsn: str, event: dict, params: dict) -> dict:
         
         data = json.loads(event.get('body', '{}'))
         date = data.get('date')
+        event_time = data.get('event_time', '12:00')
         title = data.get('title')
         description = data.get('description')
         color = data.get('color')
@@ -200,6 +203,7 @@ def update_event(dsn: str, event: dict, params: dict) -> dict:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 # Escape single quotes for Simple Query Protocol
                 safe_date = date.replace("'", "''")
+                safe_event_time = event_time.replace("'", "''")
                 safe_title = title.replace("'", "''")
                 safe_description = description.replace("'", "''")
                 safe_color = color.replace("'", "''")
@@ -207,9 +211,9 @@ def update_event(dsn: str, event: dict, params: dict) -> dict:
                 
                 cur.execute(f"""
                     UPDATE {schema}.calendar_events
-                    SET date = '{safe_date}', title = '{safe_title}', description = '{safe_description}', color = '{safe_color}'
+                    SET date = '{safe_date}', event_time = '{safe_event_time}', title = '{safe_title}', description = '{safe_description}', color = '{safe_color}'
                     WHERE id = '{safe_id}'
-                    RETURNING id, date, title, description, color
+                    RETURNING id, date, event_time, title, description, color
                 """)
                 
                 updated_event = cur.fetchone()
