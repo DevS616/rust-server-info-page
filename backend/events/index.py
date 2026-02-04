@@ -141,11 +141,17 @@ def create_event(dsn: str, event: dict) -> dict:
         
         with psycopg2.connect(dsn) as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                # Escape single quotes for Simple Query Protocol
+                safe_date = date.replace("'", "''")
+                safe_title = title.replace("'", "''")
+                safe_description = description.replace("'", "''")
+                safe_color = color.replace("'", "''")
+                
                 cur.execute(f"""
                     INSERT INTO {schema}.calendar_events (date, title, description, color)
-                    VALUES (%s, %s, %s, %s)
+                    VALUES ('{safe_date}', '{safe_title}', '{safe_description}', '{safe_color}')
                     RETURNING id, date, title, description, color
-                """, (date, title, description, color))
+                """)
                 
                 new_event = cur.fetchone()
                 conn.commit()
@@ -190,12 +196,19 @@ def update_event(dsn: str, event: dict, params: dict) -> dict:
         
         with psycopg2.connect(dsn) as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                # Escape single quotes for Simple Query Protocol
+                safe_date = date.replace("'", "''")
+                safe_title = title.replace("'", "''")
+                safe_description = description.replace("'", "''")
+                safe_color = color.replace("'", "''")
+                safe_id = str(event_id).replace("'", "''")
+                
                 cur.execute(f"""
                     UPDATE {schema}.calendar_events
-                    SET date = %s, title = %s, description = %s, color = %s
-                    WHERE id = %s
+                    SET date = '{safe_date}', title = '{safe_title}', description = '{safe_description}', color = '{safe_color}'
+                    WHERE id = '{safe_id}'
                     RETURNING id, date, title, description, color
-                """, (date, title, description, color, event_id))
+                """)
                 
                 updated_event = cur.fetchone()
                 conn.commit()
@@ -234,10 +247,13 @@ def delete_event(dsn: str, params: dict) -> dict:
         
         with psycopg2.connect(dsn) as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                # Escape single quotes for Simple Query Protocol
+                safe_id = str(event_id).replace("'", "''")
+                
                 cur.execute(f"""
-                    DELETE FROM {schema}.calendar_events WHERE id = %s
+                    DELETE FROM {schema}.calendar_events WHERE id = '{safe_id}'
                     RETURNING id
-                """, (event_id,))
+                """)
                 
                 deleted = cur.fetchone()
                 conn.commit()

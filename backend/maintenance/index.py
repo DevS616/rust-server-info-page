@@ -106,53 +106,28 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             
             print(f'Active holiday to save: {active_holiday}')
             
-            update_fields = []
-            update_values = []
+            safe_update_parts = []
             
             if 'is_maintenance' in body_data:
-                update_fields.append('is_maintenance = %s')
-                update_values.append(is_maintenance)
+                safe_update_parts.append(f"is_maintenance = {is_maintenance}")
             if 'maintenance_title' in body_data:
-                update_fields.append('maintenance_title = %s')
-                update_values.append(maintenance_title)
+                safe_val = str(maintenance_title).replace("'", "''")
+                safe_update_parts.append(f"maintenance_title = '{safe_val}'")
             if 'maintenance_subtitle' in body_data:
-                update_fields.append('maintenance_subtitle = %s')
-                update_values.append(maintenance_subtitle)
+                safe_val = str(maintenance_subtitle).replace("'", "''")
+                safe_update_parts.append(f"maintenance_subtitle = '{safe_val}'")
             if 'newyear_snow_enabled' in body_data:
-                update_fields.append('newyear_snow_enabled = %s')
-                update_values.append(newyear_snow)
+                safe_update_parts.append(f"newyear_snow_enabled = {newyear_snow}")
             if 'newyear_lights_enabled' in body_data:
-                update_fields.append('newyear_lights_enabled = %s')
-                update_values.append(newyear_lights)
+                safe_update_parts.append(f"newyear_lights_enabled = {newyear_lights}")
             if 'active_holiday' in body_data:
-                update_fields.append('active_holiday = %s')
-                update_values.append(active_holiday)
+                if active_holiday is None:
+                    safe_update_parts.append("active_holiday = NULL")
+                else:
+                    safe_val = str(active_holiday).replace("'", "''")
+                    safe_update_parts.append(f"active_holiday = '{safe_val}'")
             
-            update_fields.append('updated_at = NOW()')
-            update_values.append(1)
-            
-            safe_update_parts = []
-            for i, field in enumerate(update_fields):
-                if 'maintenance_title' in field:
-                    safe_val = str(update_values[i]).replace("'", "''")
-                    safe_update_parts.append(f"maintenance_title = '{safe_val}'")
-                elif 'maintenance_subtitle' in field:
-                    safe_val = str(update_values[i]).replace("'", "''")
-                    safe_update_parts.append(f"maintenance_subtitle = '{safe_val}'")
-                elif 'active_holiday' in field:
-                    if update_values[i] is None:
-                        safe_update_parts.append("active_holiday = NULL")
-                    else:
-                        safe_val = str(update_values[i]).replace("'", "''")
-                        safe_update_parts.append(f"active_holiday = '{safe_val}'")
-                elif 'is_maintenance' in field:
-                    safe_update_parts.append(f"is_maintenance = {update_values[i]}")
-                elif 'newyear_snow_enabled' in field:
-                    safe_update_parts.append(f"newyear_snow_enabled = {update_values[i]}")
-                elif 'newyear_lights_enabled' in field:
-                    safe_update_parts.append(f"newyear_lights_enabled = {update_values[i]}")
-                elif 'updated_at' in field:
-                    safe_update_parts.append('updated_at = NOW()')
+            safe_update_parts.append('updated_at = NOW()')
             
             query = f"""
                 UPDATE site_settings 

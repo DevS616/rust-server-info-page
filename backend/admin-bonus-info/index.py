@@ -107,7 +107,9 @@ def handle_reset_limit(event: dict) -> dict:
         
         print(f'[RESET] Database connected')
         
-        cur.execute("SELECT steam_id, last_spin_time, last_weekly_bonus FROM daily_bonus_claims WHERE steam_id = %s", (steam_id,))
+        # Escape single quotes for Simple Query Protocol
+        safe_steam_id = str(steam_id).replace("'", "''")
+        cur.execute(f"SELECT steam_id, last_spin_time, last_weekly_bonus FROM daily_bonus_claims WHERE steam_id = '{safe_steam_id}'")
         existing = cur.fetchone()
         print(f'[RESET] Existing record: {existing}')
         
