@@ -208,7 +208,7 @@ const EventCalendar = ({ isOpen, onClose }: EventCalendarProps) => {
                 <div className="flex items-center gap-3 mb-6 text-blue-400">
                   <Icon name="Info" className="h-6 w-6" />
                   <p className="text-sm">
-                    ДЛЯ ПОЛУЧЕНИЯ ДОП. ИНФОРМАЦИИ ВВЕДИТЕ КОМАНДУ /help В ЧАТЕ
+                    ДЛЯ ПОЛУЧЕНИЯ ДОП. ИНФОРМАЦИИ В ИГРЕ ВВЕДИТЕ КОМАНДУ /wipe В ЧАТЕ, ИЛИ НАЖМИТЕ НА КАЛЕНДАРЬ В ЛИЧНОМ МЕНЮ
                   </p>
                 </div>
 
