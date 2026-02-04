@@ -14,6 +14,7 @@ interface CalendarEvent {
   title: string;
   description: string;
   color: string;
+  servers?: string;
 }
 
 interface EventsTabProps {
@@ -40,7 +41,8 @@ const EventsTab = ({ token }: EventsTabProps) => {
     event_time: '12:00',
     title: '',
     description: '',
-    color: '#DC2626'
+    color: '#DC2626',
+    servers: 'Все сервера'
   });
 
   useEffect(() => {
@@ -91,7 +93,7 @@ const EventsTab = ({ token }: EventsTabProps) => {
           description: editingEvent ? 'Событие обновлено' : 'Событие создано'
         });
         
-        setFormData({ date: '', event_time: '12:00', title: '', description: '', color: '#DC2626' });
+        setFormData({ date: '', event_time: '12:00', title: '', description: '', color: '#DC2626', servers: 'Все сервера' });
         setEditingEvent(null);
         setShowForm(false);
         loadEvents();
@@ -157,14 +159,15 @@ const EventsTab = ({ token }: EventsTabProps) => {
       event_time: event.event_time || '12:00',
       title: event.title,
       description: event.description,
-      color: event.color
+      color: event.color,
+      servers: event.servers || 'Все сервера'
     });
     setShowForm(true);
   };
 
   const cancelForm = () => {
     setEditingEvent(null);
-    setFormData({ date: '', event_time: '12:00', title: '', description: '', color: '#DC2626' });
+    setFormData({ date: '', event_time: '12:00', title: '', description: '', color: '#DC2626', servers: 'Все сервера' });
     setShowForm(false);
   };
 
@@ -226,6 +229,20 @@ const EventsTab = ({ token }: EventsTabProps) => {
                 rows={4}
                 required
               />
+            </div>
+
+            <div>
+              <Label htmlFor="servers">Сервера</Label>
+              <Input
+                id="servers"
+                value={formData.servers}
+                onChange={(e) => setFormData({ ...formData, servers: e.target.value })}
+                placeholder="Например: x2, x3, x5 или Все сервера"
+                required
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Укажите на каких серверах действует событие
+              </p>
             </div>
 
             <div>

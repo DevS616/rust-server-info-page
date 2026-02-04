@@ -105,7 +105,7 @@ def get_events(dsn: str) -> dict:
         with psycopg2.connect(dsn) as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute(f"""
-                    SELECT id, date, event_time, title, description, color
+                    SELECT id, date, event_time, title, description, color, servers
                     FROM {schema}.calendar_events
                     ORDER BY date, event_time
                 """)
@@ -134,6 +134,7 @@ def create_event(dsn: str, event: dict) -> dict:
         title = data.get('title')
         description = data.get('description')
         color = data.get('color', '#DC2626')
+        servers = data.get('servers', 'Все сервера')
         
         if not all([date, title, description]):
             return {
@@ -150,11 +151,12 @@ def create_event(dsn: str, event: dict) -> dict:
                 safe_title = title.replace("'", "''")
                 safe_description = description.replace("'", "''")
                 safe_color = color.replace("'", "''")
+                safe_servers = servers.replace("'", "''")
                 
                 cur.execute(f"""
-                    INSERT INTO {schema}.calendar_events (date, event_time, title, description, color)
-                    VALUES ('{safe_date}', '{safe_event_time}', '{safe_title}', '{safe_description}', '{safe_color}')
-                    RETURNING id, date, event_time, title, description, color
+                    INSERT INTO {schema}.calendar_events (date, event_time, title, description, color, servers)
+                    VALUES ('{safe_date}', '{safe_event_time}', '{safe_title}', '{safe_description}', '{safe_color}', '{safe_servers}')
+                    RETURNING id, date, event_time, title, description, color, servers
                 """)
                 
                 new_event = cur.fetchone()
@@ -191,6 +193,7 @@ def update_event(dsn: str, event: dict, params: dict) -> dict:
         title = data.get('title')
         description = data.get('description')
         color = data.get('color')
+        servers = data.get('servers', 'Все сервера')
         
         if not all([date, title, description, color]):
             return {
@@ -207,13 +210,14 @@ def update_event(dsn: str, event: dict, params: dict) -> dict:
                 safe_title = title.replace("'", "''")
                 safe_description = description.replace("'", "''")
                 safe_color = color.replace("'", "''")
+                safe_servers = servers.replace("'", "''")
                 safe_id = str(event_id).replace("'", "''")
                 
                 cur.execute(f"""
                     UPDATE {schema}.calendar_events
-                    SET date = '{safe_date}', event_time = '{safe_event_time}', title = '{safe_title}', description = '{safe_description}', color = '{safe_color}'
+                    SET date = '{safe_date}', event_time = '{safe_event_time}', title = '{safe_title}', description = '{safe_description}', color = '{safe_color}', servers = '{safe_servers}'
                     WHERE id = '{safe_id}'
-                    RETURNING id, date, event_time, title, description, color
+                    RETURNING id, date, event_time, title, description, color, servers
                 """)
                 
                 updated_event = cur.fetchone()

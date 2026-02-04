@@ -10,6 +10,7 @@ interface CalendarEvent {
   title: string;
   description: string;
   color: string;
+  servers?: string;
 }
 
 interface EventCalendarProps {
@@ -262,6 +263,12 @@ const EventCalendar = ({ isOpen, onClose }: EventCalendarProps) => {
 
                 <div className="mt-6">
                   <h5 className="text-lg font-semibold text-white mb-2">{selectedEvent.title}</h5>
+                  {selectedEvent.servers && (
+                    <div className="mb-3 flex items-center gap-2">
+                      <Icon name="Server" className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-medium text-primary">{selectedEvent.servers}</span>
+                    </div>
+                  )}
                   <p className="text-gray-300 whitespace-pre-wrap">{selectedEvent.description}</p>
                 </div>
               </>
@@ -298,6 +305,12 @@ const EventCalendar = ({ isOpen, onClose }: EventCalendarProps) => {
                         >
                           "{upcomingEvent.title}"
                         </p>
+                        {upcomingEvent.servers && (
+                          <div className="flex items-center gap-2">
+                            <Icon name="Server" className="h-4 w-4 text-gray-400" />
+                            <span className="text-xs text-gray-400">{upcomingEvent.servers}</span>
+                          </div>
+                        )}
                         <p className="text-sm text-gray-300">
                           {isEventStarted ? timeLeft : `Осталось: ${timeLeft}`}
                         </p>

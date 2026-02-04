@@ -1,0 +1,1 @@
+ALTER TABLE calendar_events ADD COLUMN servers TEXT DEFAULT 'Все сервера';
