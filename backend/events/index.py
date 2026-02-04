@@ -3,6 +3,30 @@ import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
+def get_schema(dsn: str) -> str:
+    '''Получение имени схемы из DSN или автоопределение'''
+    schema = os.environ.get('MAIN_DB_SCHEMA')
+    if schema:
+        return schema
+    
+    # Автоматическое определение схемы по наличию таблицы admins
+    try:
+        with psycopg2.connect(dsn) as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT schemaname 
+                    FROM pg_tables 
+                    WHERE tablename = 'admins'
+                    LIMIT 1
+                """)
+                result = cur.fetchone()
+                if result:
+                    return result[0]
+    except Exception as e:
+        print(f"Schema detection error: {e}")
+    
+    return 'public'
+
 def handler(event: dict, context) -> dict:
     '''API для управления календарем событий'''
     method = event.get('httpMethod', 'GET')
@@ -58,7 +82,7 @@ def handler(event: dict, context) -> dict:
 
 def verify_admin(dsn: str, token: str) -> bool:
     '''Проверка админского токена'''
-    schema = os.environ.get('MAIN_DB_SCHEMA', 'public')
+    schema = get_schema(dsn)
     try:
         with psycopg2.connect(dsn) as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
@@ -73,7 +97,7 @@ def verify_admin(dsn: str, token: str) -> bool:
 
 def get_events(dsn: str) -> dict:
     '''Получение всех событий'''
-    schema = os.environ.get('MAIN_DB_SCHEMA', 'public')
+    schema = get_schema(dsn)
     try:
         with psycopg2.connect(dsn) as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
@@ -99,7 +123,7 @@ def get_events(dsn: str) -> dict:
 
 def create_event(dsn: str, event: dict) -> dict:
     '''Создание нового события'''
-    schema = os.environ.get('MAIN_DB_SCHEMA', 'public')
+    schema = get_schema(dsn)
     try:
         data = json.loads(event.get('body', '{}'))
         date = data.get('date')
@@ -140,7 +164,7 @@ def create_event(dsn: str, event: dict) -> dict:
 
 def update_event(dsn: str, event: dict, params: dict) -> dict:
     '''Обновление события'''
-    schema = os.environ.get('MAIN_DB_SCHEMA', 'public')
+    schema = get_schema(dsn)
     try:
         event_id = params.get('id')
         if not event_id:
@@ -197,7 +221,7 @@ def update_event(dsn: str, event: dict, params: dict) -> dict:
 
 def delete_event(dsn: str, params: dict) -> dict:
     '''Удаление события'''
-    schema = os.environ.get('MAIN_DB_SCHEMA', 'public')
+    schema = get_schema(dsn)
     try:
         event_id = params.get('id')
         if not event_id:
