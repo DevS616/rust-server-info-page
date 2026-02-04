@@ -83,7 +83,10 @@ const EventsTab = ({ token }: EventsTabProps) => {
       const response = await fetch('https://functions.poehali.dev/eb33c1b5-6cb3-43e3-8d51-ef7f37e73ca2/');
       if (response.ok) {
         const data = await response.json();
+        console.log('Loaded servers:', data.servers);
         setServers(data.servers || []);
+      } else {
+        console.error('Failed to load servers, status:', response.status);
       }
     } catch (error) {
       console.error('Failed to load servers:', error);
@@ -207,19 +210,31 @@ const EventsTab = ({ token }: EventsTabProps) => {
   };
 
   const toggleServer = (serverName: string) => {
-    setSelectedServers(prev => 
-      prev.includes(serverName)
-        ? prev.filter(s => s !== serverName)
-        : [...prev, serverName]
-    );
+    setSelectedServers(prev => {
+      // Если были выбраны все (пустой массив), сначала заполняем всеми
+      if (prev.length === 0) {
+        return servers.map(s => s.name).filter(name => name !== serverName);
+      }
+      
+      if (prev.includes(serverName)) {
+        const newSelection = prev.filter(s => s !== serverName);
+        // Если сняли последний, возвращаемся к "все сервера"
+        return newSelection.length === 0 ? [] : newSelection;
+      } else {
+        const newSelection = [...prev, serverName];
+        // Если выбрали все, сбрасываем в пустой массив ("все")
+        return newSelection.length === servers.length ? [] : newSelection;
+      }
+    });
   };
 
   const toggleAllServers = () => {
-    if (selectedServers.length === servers.length) {
-      setSelectedServers([]);
-    } else {
-      setSelectedServers(servers.map(s => s.name));
-    }
+    setSelectedServers([]);
+  };
+  
+  const isAllSelected = selectedServers.length === 0;
+  const isServerSelected = (serverName: string) => {
+    return isAllSelected || selectedServers.includes(serverName);
   };
 
   return (
@@ -289,7 +304,7 @@ const EventsTab = ({ token }: EventsTabProps) => {
                   <input
                     type="checkbox"
                     id="all-servers"
-                    checked={selectedServers.length === 0 || selectedServers.length === servers.length}
+                    checked={isAllSelected}
                     onChange={toggleAllServers}
                     className="w-4 h-4 rounded border-gray-300"
                   />
@@ -298,25 +313,30 @@ const EventsTab = ({ token }: EventsTabProps) => {
                   </Label>
                 </div>
                 
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                  {servers.map((server) => (
-                    <div key={server.id} className="flex items-center gap-2 p-2 bg-muted/50 rounded">
-                      <input
-                        type="checkbox"
-                        id={`server-${server.id}`}
-                        checked={selectedServers.includes(server.name)}
-                        onChange={() => toggleServer(server.name)}
-                        className="w-4 h-4 rounded border-gray-300"
-                      />
-                      <Label htmlFor={`server-${server.id}`} className="cursor-pointer text-sm">
-                        {server.name}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
+                {servers.length > 0 ? (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {servers.map((server) => (
+                      <div key={server.id} className="flex items-center gap-2 p-2 bg-muted/50 rounded">
+                        <input
+                          type="checkbox"
+                          id={`server-${server.id}`}
+                          checked={isServerSelected(server.name)}
+                          onChange={() => toggleServer(server.name)}
+                          disabled={isAllSelected}
+                          className="w-4 h-4 rounded border-gray-300 disabled:opacity-50"
+                        />
+                        <Label htmlFor={`server-${server.id}`} className="cursor-pointer text-sm">
+                          {server.name}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Загрузка серверов...</p>
+                )}
                 
                 <p className="text-xs text-muted-foreground">
-                  Выбрано: {selectedServers.length === 0 || selectedServers.length === servers.length ? 'Все сервера' : selectedServers.join(', ')}
+                  Выбрано: {isAllSelected ? 'Все сервера' : selectedServers.join(', ')}
                 </p>
               </div>
             </div>
