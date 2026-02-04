@@ -11,6 +11,30 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 
 
+def get_schema(dsn: str) -> str:
+    '''Получение имени схемы из DSN или автоопределение'''
+    schema = os.environ.get('MAIN_DB_SCHEMA')
+    if schema:
+        return schema
+    
+    try:
+        with psycopg2.connect(dsn) as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT schemaname 
+                    FROM pg_tables 
+                    WHERE tablename = 'admins'
+                    LIMIT 1
+                """)
+                result = cur.fetchone()
+                if result:
+                    return result[0]
+    except Exception as e:
+        print(f"Schema detection error: {e}")
+    
+    return 'public'
+
+
 def handler(event: dict, context) -> dict:
     method = event.get('httpMethod', 'GET')
     
@@ -55,10 +79,12 @@ def handle_get_records() -> dict:
     cur = None
     
     try:
-        conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        dsn = os.environ['DATABASE_URL']
+        schema = get_schema(dsn)
+        conn = psycopg2.connect(dsn)
         cur = conn.cursor(cursor_factory=RealDictCursor)
         
-        cur.execute("""
+        cur.execute(f"""
             SELECT 
                 id,
                 steam_id,
@@ -68,7 +94,7 @@ def handle_get_records() -> dict:
                 last_weekly_bonus,
                 total_spins,
                 total_winnings
-            FROM daily_bonus_claims
+            FROM {schema}.daily_bonus_claims
             ORDER BY last_spin_time DESC
         """)
         
@@ -110,14 +136,16 @@ def handle_reset_limit(event: dict) -> dict:
             print('[RESET] ERROR: No steam_id provided')
             return response(400, {'error': 'steam_id required'})
         
-        conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        dsn = os.environ['DATABASE_URL']
+        schema = get_schema(dsn)
+        conn = psycopg2.connect(dsn)
         cur = conn.cursor()
         
-        print(f'[RESET] Database connected')
+        print(f'[RESET] Database connected, schema: {schema}')
         
         # Escape single quotes for Simple Query Protocol
         safe_steam_id = str(steam_id).replace("'", "''")
-        cur.execute(f"SELECT steam_id, last_spin_time, last_weekly_bonus FROM daily_bonus_claims WHERE steam_id = '{safe_steam_id}'")
+        cur.execute(f"SELECT steam_id, last_spin_time, last_weekly_bonus FROM {schema}.daily_bonus_claims WHERE steam_id = '{safe_steam_id}'")
         existing = cur.fetchone()
         print(f'[RESET] Existing record: {existing}')
         
@@ -132,14 +160,14 @@ def handle_reset_limit(event: dict) -> dict:
             print(f'[RESET] Executing UPDATE for weekly bonus')
             safe_steam_id = str(steam_id).replace("'", "''")
             cur.execute(
-                f"UPDATE daily_bonus_claims SET last_weekly_bonus = '{past_time}' WHERE steam_id = '{safe_steam_id}'"
+                f"UPDATE {schema}.daily_bonus_claims SET last_weekly_bonus = '{past_time}' WHERE steam_id = '{safe_steam_id}'"
             )
             print(f'[RESET] UPDATE executed, rows affected: {cur.rowcount}')
         elif bonus_type == 'daily':
             print(f'[RESET] Executing UPDATE for daily bonus')
             safe_steam_id = str(steam_id).replace("'", "''")
             cur.execute(
-                f"UPDATE daily_bonus_claims SET last_spin_time = '{past_time}' WHERE steam_id = '{safe_steam_id}'"
+                f"UPDATE {schema}.daily_bonus_claims SET last_spin_time = '{past_time}' WHERE steam_id = '{safe_steam_id}'"
             )
             print(f'[RESET] UPDATE executed, rows affected: {cur.rowcount}')
         else:
@@ -154,7 +182,7 @@ def handle_reset_limit(event: dict) -> dict:
         print(f'[RESET] Transaction committed successfully')
         
         safe_steam_id = str(steam_id).replace("'", "''")
-        cur.execute(f"SELECT steam_id, last_spin_time, last_weekly_bonus FROM daily_bonus_claims WHERE steam_id = '{safe_steam_id}'")
+        cur.execute(f"SELECT steam_id, last_spin_time, last_weekly_bonus FROM {schema}.daily_bonus_claims WHERE steam_id = '{safe_steam_id}'")
         updated = cur.fetchone()
         print(f'[RESET] Record after update: {updated}')
         
@@ -185,10 +213,12 @@ def handle_delete_no_username() -> dict:
     cur = None
     
     try:
-        conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        dsn = os.environ['DATABASE_URL']
+        schema = get_schema(dsn)
+        conn = psycopg2.connect(dsn)
         cur = conn.cursor()
         
-        cur.execute("DELETE FROM daily_bonus_claims WHERE steam_username IS NULL")
+        cur.execute(f"DELETE FROM {schema}.daily_bonus_claims WHERE steam_username IS NULL")
         deleted_count = cur.rowcount
         
         conn.commit()
@@ -213,13 +243,18 @@ def verify_admin_token(token: str) -> bool:
     conn = None
     cur = None
     try:
-        conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        dsn = os.environ['DATABASE_URL']
+        schema = get_schema(dsn)
+        conn = psycopg2.connect(dsn)
         cur = conn.cursor()
         
         safe_token = str(token).replace("'", "''")
-        cur.execute(f"SELECT id FROM admins WHERE token = '{safe_token}'")
-        return cur.fetchone() is not None
-    except:
+        cur.execute(f"SELECT id FROM {schema}.admins WHERE token = '{safe_token}'")
+        result = cur.fetchone()
+        print(f'[AUTH] verify_admin_token: schema={schema}, found={result is not None}')
+        return result is not None
+    except Exception as e:
+        print(f'[AUTH] verify_admin_token ERROR: {e}')
         return False
     finally:
         if cur:
