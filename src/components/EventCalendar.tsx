@@ -24,12 +24,49 @@ const EventCalendar = ({ isOpen, onClose }: EventCalendarProps) => {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [loading, setLoading] = useState(false);
+  const [timeLeft, setTimeLeft] = useState<string>('');
 
   useEffect(() => {
     if (isOpen) {
       loadEvents();
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || events.length === 0) return;
+
+    const updateTimer = () => {
+      const now = new Date();
+      const moscowOffset = 3 * 60;
+      const localOffset = now.getTimezoneOffset();
+      const moscowTime = new Date(now.getTime() + (moscowOffset + localOffset) * 60000);
+
+      const upcomingEvent = getUpcomingEvent(moscowTime);
+      if (!upcomingEvent) {
+        setTimeLeft('');
+        return;
+      }
+
+      const eventDate = new Date(upcomingEvent.date + 'T00:00:00+03:00');
+      const diff = eventDate.getTime() - moscowTime.getTime();
+
+      if (diff <= 0) {
+        setTimeLeft('Событие началось!');
+        return;
+      }
+
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+      setTimeLeft(`${days} дней ${hours} часов ${minutes} минут`);
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 60000);
+
+    return () => clearInterval(interval);
+  }, [isOpen, events]);
 
   const loadEvents = async () => {
     setLoading(true);
@@ -81,6 +118,16 @@ const EventCalendar = ({ isOpen, onClose }: EventCalendarProps) => {
   const getEventForDate = (day: number) => {
     const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     return events.find(e => e.date === dateStr);
+  };
+
+  const getUpcomingEvent = (moscowTime: Date) => {
+    const moscowDateStr = `${moscowTime.getFullYear()}-${String(moscowTime.getMonth() + 1).padStart(2, '0')}-${String(moscowTime.getDate()).padStart(2, '0')}`;
+    
+    const upcomingEvents = events
+      .filter(e => e.date >= moscowDateStr)
+      .sort((a, b) => a.date.localeCompare(b.date));
+    
+    return upcomingEvents[0] || null;
   };
 
   const handlePrevMonth = () => {
@@ -159,14 +206,20 @@ const EventCalendar = ({ isOpen, onClose }: EventCalendarProps) => {
                     onClick={() => event && setSelectedEvent(event)}
                     disabled={!isCurrentMonthDay}
                     className={`
-                      aspect-square p-2 rounded-lg text-lg font-bold transition-all
+                      aspect-square p-2 rounded-lg text-lg font-bold transition-all relative
                       ${!isCurrentMonthDay ? 'bg-gray-800/30 text-gray-600' : 'bg-gray-700/50 text-white hover:bg-gray-600/50'}
-                      ${isToday ? 'ring-2 ring-gray-500' : ''}
+                      ${isToday ? 'ring-4 ring-yellow-400 shadow-lg shadow-yellow-400/50' : ''}
                       ${event ? 'cursor-pointer' : 'cursor-default'}
                     `}
                     style={event ? { backgroundColor: event.color } : {}}
                   >
                     {day}
+                    {isToday && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className="absolute w-2 h-2 bg-yellow-400 rounded-full animate-ping" />
+                        <div className="absolute w-2 h-2 bg-yellow-400 rounded-full" />
+                      </div>
+                    )}
                   </button>
                 );
               })}
@@ -211,6 +264,35 @@ const EventCalendar = ({ isOpen, onClose }: EventCalendarProps) => {
                     ДЛЯ ПОЛУЧЕНИЯ ДОП. ИНФОРМАЦИИ В ИГРЕ ВВЕДИТЕ КОМАНДУ /wipe В ЧАТЕ, ИЛИ НАЖМИТЕ НА КАЛЕНДАРЬ В ЛИЧНОМ МЕНЮ
                   </p>
                 </div>
+
+                {timeLeft && (() => {
+                  const now = new Date();
+                  const moscowOffset = 3 * 60;
+                  const localOffset = now.getTimezoneOffset();
+                  const moscowTime = new Date(now.getTime() + (moscowOffset + localOffset) * 60000);
+                  const upcomingEvent = getUpcomingEvent(moscowTime);
+                  
+                  if (!upcomingEvent) return null;
+                  
+                  return (
+                    <button
+                      onClick={() => setSelectedEvent(upcomingEvent)}
+                      className="w-full mb-6 p-4 bg-gradient-to-r from-primary/20 to-primary/10 hover:from-primary/30 hover:to-primary/20 rounded-lg border-2 border-primary/50 transition-all"
+                    >
+                      <div className="text-left space-y-2">
+                        <p className="text-xs text-gray-400 uppercase font-semibold">До ближайшего события</p>
+                        <p 
+                          className="text-lg font-bold text-primary hover:text-primary/80 transition-colors cursor-pointer"
+                          style={{ color: upcomingEvent.color }}
+                        >
+                          "{upcomingEvent.title}"
+                        </p>
+                        <p className="text-sm text-gray-300">Осталось: {timeLeft}</p>
+                        <p className="text-xs text-gray-400">Время по МСК</p>
+                      </div>
+                    </button>
+                  );
+                })()}
 
                 <div className="space-y-3">
                   <h4 className="text-sm font-semibold text-gray-400 uppercase mb-3">Легенда событий:</h4>
