@@ -13,6 +13,7 @@ import PromotionTab from '@/components/admin/PromotionTab';
 import NewsTab from '@/components/admin/NewsTab';
 import PricingTab from '@/components/admin/PricingTab';
 import BonusInfoTab from '@/components/admin/BonusInfoTab';
+import EventsTab from '@/components/admin/EventsTab';
 
 import { useAdminAuth } from '@/components/admin/AdminAuth';
 import { useAdminDataLoader, Ticket, Message, Server } from '@/components/admin/AdminDataLoader';
@@ -340,7 +341,7 @@ const Admin = () => {
         </Card>
 
         <Tabs defaultValue="tickets" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 sm:grid-cols-7 h-auto gap-1">
+          <TabsList className="grid w-full grid-cols-4 sm:grid-cols-8 h-auto gap-1">
             <TabsTrigger value="tickets" className="text-xs md:text-sm px-1.5 py-2 md:py-2.5 flex-col sm:flex-row gap-0.5 sm:gap-2">
               <Icon name="MessageSquare" className="h-4 w-4" />
               <span className="text-[10px] sm:text-xs md:text-sm">Тикеты</span>
@@ -355,7 +356,11 @@ const Admin = () => {
             </TabsTrigger>
             <TabsTrigger value="bonus" className="text-xs md:text-sm px-1.5 py-2 md:py-2.5 flex-col sm:flex-row gap-0.5 sm:gap-2">
               <Icon name="Gift" className="h-4 w-4" />
-              <span className="text-[10px] sm:text-xs md:text-sm">Ежедневный бонус</span>
+              <span className="text-[10px] sm:text-xs md:text-sm">Бонус</span>
+            </TabsTrigger>
+            <TabsTrigger value="events" className="text-xs md:text-sm px-1.5 py-2 md:py-2.5 flex-col sm:flex-row gap-0.5 sm:gap-2">
+              <Icon name="Calendar" className="h-4 w-4" />
+              <span className="text-[10px] sm:text-xs md:text-sm">События</span>
             </TabsTrigger>
             <TabsTrigger value="promotion" className="text-xs md:text-sm px-1.5 py-2 md:py-2.5 flex-col sm:flex-row gap-0.5 sm:gap-2">
               <Icon name="Gift" className="h-4 w-4" />
@@ -427,6 +432,10 @@ const Admin = () => {
 
           <TabsContent value="bonus">
             <BonusInfoTab token={token!} />
+          </TabsContent>
+
+          <TabsContent value="events">
+            <EventsTab token={token!} />
           </TabsContent>
 
           <TabsContent value="promotion">

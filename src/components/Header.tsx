@@ -3,6 +3,7 @@ import Icon from '@/components/ui/icon';
 import { useEffect, useState } from 'react';
 import RulesModal from '@/components/RulesModal';
 import SteamAuth from '@/components/SteamAuth';
+import EventCalendar from '@/components/EventCalendar';
 import {
   Sheet,
   SheetContent,
@@ -14,6 +15,7 @@ import {
 const Header = () => {
   const [isRulesOpen, setIsRulesOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
@@ -110,6 +112,9 @@ const Header = () => {
           <button onClick={() => setIsRulesOpen(true)} className="text-sm font-medium text-foreground hover:text-primary transition-colors uppercase tracking-wider">
             Правила
           </button>
+          <button onClick={() => setIsCalendarOpen(true)} className="text-sm font-medium text-foreground hover:text-primary transition-colors uppercase tracking-wider">
+            Календарь
+          </button>
           <a href="https://wiki.devilrust.ru" target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-foreground hover:text-primary transition-colors uppercase tracking-wider">
             Wiki
           </a>
@@ -165,6 +170,15 @@ const Header = () => {
               >
                 Правила
               </button>
+              <button 
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  setIsCalendarOpen(true);
+                }} 
+                className="text-base font-medium text-foreground hover:text-primary transition-colors uppercase tracking-wider py-2 text-left"
+              >
+                Календарь
+              </button>
               <a 
                 href="https://wiki.devilrust.ru" 
                 target="_blank" 
@@ -200,6 +214,7 @@ const Header = () => {
       </div>
       
       <RulesModal open={isRulesOpen} onOpenChange={setIsRulesOpen} />
+      <EventCalendar isOpen={isCalendarOpen} onClose={() => setIsCalendarOpen(false)} />
     </header>
   );
 };
