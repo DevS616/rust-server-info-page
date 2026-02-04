@@ -73,10 +73,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         if user_id_header:
             try:
                 user_id = int(user_id_header)
-                cur.execute('''
+                safe_user_id = int(user_id)
+                cur.execute(f'''
                     SELECT COUNT(*) as unread_count
                     FROM t_p48919527_rust_server_info_pag.tickets t
-                    WHERE t.user_id = %s 
+                    WHERE t.user_id = {safe_user_id} 
                     AND t.status != 'closed'
                     AND EXISTS (
                         SELECT 1 FROM t_p48919527_rust_server_info_pag.ticket_messages tm
@@ -84,7 +85,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         AND tm.is_admin_reply = true
                         AND tm.created_at > t.last_user_view
                     )
-                ''', (user_id,))
+                ''')
                 unread = cur.fetchone()
                 result['unread_tickets'] = unread['unread_count'] if unread else 0
             except (ValueError, TypeError):

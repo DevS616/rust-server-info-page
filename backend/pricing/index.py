@@ -93,12 +93,13 @@ def handler(event: dict, context) -> dict:
         if method == 'GET' and action == 'get_donations':
             fundraiser_id = params.get('fundraiser_id')
             
-            cursor.execute("""
+            safe_fid = int(fundraiser_id)
+            cursor.execute(f"""
                 SELECT id, steam_id, steam_username, amount, comment, created_at
                 FROM fundraiser_donations 
-                WHERE fundraiser_id = %s
+                WHERE fundraiser_id = {safe_fid}
                 ORDER BY created_at DESC
-            """, (fundraiser_id,))
+            """)
             donations = cursor.fetchall()
             
             result = []
@@ -122,17 +123,16 @@ def handler(event: dict, context) -> dict:
         if method == 'POST' and action == 'create_price':
             data = json.loads(event.get('body', '{}'))
             
-            cursor.execute("""
+            safe_title = str(data['title']).replace("'", "''")
+            safe_desc = str(data.get('description', '')).replace("'", "''")
+            safe_price = int(data['price'])
+            safe_active = bool(data.get('is_active', True))
+            safe_pos = int(data.get('position', 0))
+            cursor.execute(f"""
                 INSERT INTO price_items (title, description, price, is_active, position)
-                VALUES (%s, %s, %s, %s, %s)
+                VALUES ('{safe_title}', '{safe_desc}', {safe_price}, {safe_active}, {safe_pos})
                 RETURNING id
-            """, (
-                data['title'],
-                data.get('description', ''),
-                data['price'],
-                data.get('is_active', True),
-                data.get('position', 0)
-            ))
+            """)
             
             new_id = cursor.fetchone()[0]
             conn.commit()
@@ -147,18 +147,17 @@ def handler(event: dict, context) -> dict:
         if method == 'POST' and action == 'create_fundraiser':
             data = json.loads(event.get('body', '{}'))
             
-            cursor.execute("""
+            safe_title = str(data['title']).replace("'", "''")
+            safe_desc = str(data.get('description', '')).replace("'", "''")
+            safe_goal = int(data['goal_amount'])
+            safe_current = int(data.get('current_amount', 0))
+            safe_active = bool(data.get('is_active', True))
+            safe_status = str(data.get('status', 'active')).replace("'", "''")
+            cursor.execute(f"""
                 INSERT INTO fundraisers (title, description, goal_amount, current_amount, is_active, status)
-                VALUES (%s, %s, %s, %s, %s, %s)
+                VALUES ('{safe_title}', '{safe_desc}', {safe_goal}, {safe_current}, {safe_active}, '{safe_status}')
                 RETURNING id
-            """, (
-                data['title'],
-                data.get('description', ''),
-                data['goal_amount'],
-                data.get('current_amount', 0),
-                data.get('is_active', True),
-                data.get('status', 'active')
-            ))
+            """)
             
             new_id = cursor.fetchone()[0]
             conn.commit()
@@ -174,19 +173,18 @@ def handler(event: dict, context) -> dict:
             item_id = params.get('item_id')
             data = json.loads(event.get('body', '{}'))
             
-            cursor.execute("""
+            safe_title = str(data['title']).replace("'", "''")
+            safe_desc = str(data.get('description', '')).replace("'", "''")
+            safe_price = int(data['price'])
+            safe_active = bool(data.get('is_active', True))
+            safe_pos = int(data.get('position', 0))
+            safe_id = int(item_id)
+            cursor.execute(f"""
                 UPDATE price_items 
-                SET title = %s, description = %s, price = %s, 
-                    is_active = %s, position = %s, updated_at = CURRENT_TIMESTAMP
-                WHERE id = %s
-            """, (
-                data['title'],
-                data.get('description', ''),
-                data['price'],
-                data.get('is_active', True),
-                data.get('position', 0),
-                item_id
-            ))
+                SET title = '{safe_title}', description = '{safe_desc}', price = {safe_price}, 
+                    is_active = {safe_active}, position = {safe_pos}, updated_at = CURRENT_TIMESTAMP
+                WHERE id = {safe_id}
+            """)
             
             conn.commit()
             
@@ -201,21 +199,20 @@ def handler(event: dict, context) -> dict:
             fundraiser_id = params.get('fundraiser_id')
             data = json.loads(event.get('body', '{}'))
             
-            cursor.execute("""
+            safe_title = str(data['title']).replace("'", "''")
+            safe_desc = str(data.get('description', '')).replace("'", "''")
+            safe_goal = int(data['goal_amount'])
+            safe_current = int(data.get('current_amount', 0))
+            safe_active = bool(data.get('is_active', True))
+            safe_status = str(data.get('status', 'active')).replace("'", "''")
+            safe_id = int(fundraiser_id)
+            cursor.execute(f"""
                 UPDATE fundraisers 
-                SET title = %s, description = %s, goal_amount = %s, 
-                    current_amount = %s, is_active = %s, status = %s, 
+                SET title = '{safe_title}', description = '{safe_desc}', goal_amount = {safe_goal}, 
+                    current_amount = {safe_current}, is_active = {safe_active}, status = '{safe_status}', 
                     updated_at = CURRENT_TIMESTAMP
-                WHERE id = %s
-            """, (
-                data['title'],
-                data.get('description', ''),
-                data['goal_amount'],
-                data.get('current_amount', 0),
-                data.get('is_active', True),
-                data.get('status', 'active'),
-                fundraiser_id
-            ))
+                WHERE id = {safe_id}
+            """)
             
             conn.commit()
             

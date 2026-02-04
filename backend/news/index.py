@@ -115,11 +115,17 @@ def handler(event: dict, context) -> dict:
                 image_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{image_filename}"
             
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute('''
+                safe_title = str(title).replace("'", "''")
+                safe_desc = str(description).replace("'", "''")
+                safe_date = str(date).replace("'", "''")
+                safe_cat = str(category).replace("'", "''")
+                safe_icon = str(icon).replace("'", "''")
+                safe_url = 'NULL' if image_url is None else f"'{str(image_url).replace("'", "''")}'" 
+                cur.execute(f'''
                     INSERT INTO news (title, description, date, category, icon, image_url, is_published)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    VALUES ('{safe_title}', '{safe_desc}', '{safe_date}', '{safe_cat}', '{safe_icon}', {safe_url}, {is_published})
                     RETURNING id, title, description, date, category, icon, image_url, is_published, created_at, updated_at
-                ''', (title, description, date, category, icon, image_url, is_published))
+                ''')
                 news_item = cur.fetchone()
             
             conn.close()
@@ -170,13 +176,20 @@ def handler(event: dict, context) -> dict:
                 image_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{image_filename}"
             
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute('''
+                safe_title = str(title).replace("'", "''")
+                safe_desc = str(description).replace("'", "''")
+                safe_date = str(date).replace("'", "''")
+                safe_cat = str(category).replace("'", "''")
+                safe_icon = str(icon).replace("'", "''")
+                safe_url = 'NULL' if image_url is None else f"'{str(image_url).replace("'", "''")}'" 
+                safe_id = int(news_id)
+                cur.execute(f'''
                     UPDATE news
-                    SET title = %s, description = %s, date = %s, category = %s, 
-                        icon = %s, image_url = %s, is_published = %s, updated_at = CURRENT_TIMESTAMP
-                    WHERE id = %s
+                    SET title = '{safe_title}', description = '{safe_desc}', date = '{safe_date}', category = '{safe_cat}', 
+                        icon = '{safe_icon}', image_url = {safe_url}, is_published = {is_published}, updated_at = CURRENT_TIMESTAMP
+                    WHERE id = {safe_id}
                     RETURNING id, title, description, date, category, icon, image_url, is_published, created_at, updated_at
-                ''', (title, description, date, category, icon, image_url, is_published, news_id))
+                ''')
                 news_item = cur.fetchone()
             
             conn.close()
@@ -200,7 +213,8 @@ def handler(event: dict, context) -> dict:
             news_id = params.get('id')
             
             with conn.cursor() as cur:
-                cur.execute('DELETE FROM news WHERE id = %s', (news_id,))
+                safe_id = int(news_id)
+                cur.execute(f'DELETE FROM news WHERE id = {safe_id}')
             
             conn.close()
             return {

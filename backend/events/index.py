@@ -86,9 +86,10 @@ def verify_admin(dsn: str, token: str) -> bool:
     try:
         with psycopg2.connect(dsn) as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                # Simple Query Protocol - escape single quotes
+                safe_token = token.replace("'", "''")
                 cur.execute(
-                    f"SELECT id FROM {schema}.admins WHERE token = %s AND is_active = true",
-                    (token,)
+                    f"SELECT id FROM {schema}.admins WHERE token = '{safe_token}' AND is_active = true"
                 )
                 return cur.fetchone() is not None
     except Exception as e:

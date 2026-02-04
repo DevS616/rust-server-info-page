@@ -80,7 +80,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'body': json.dumps({'error': 'Unauthorized'})
                 }
             
-            cur.execute("SELECT id, role FROM admins WHERE token = %s", (token,))
+            safe_token = str(token).replace("'", "''")
+            cur.execute(f"SELECT id, role FROM admins WHERE token = '{safe_token}'")
             admin = cur.fetchone()
             
             print(f'Admin found: {admin}')
@@ -130,15 +131,37 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             update_fields.append('updated_at = NOW()')
             update_values.append(1)
             
+            safe_update_parts = []
+            for i, field in enumerate(update_fields):
+                if 'maintenance_title' in field:
+                    safe_val = str(update_values[i]).replace("'", "''")
+                    safe_update_parts.append(f"maintenance_title = '{safe_val}'")
+                elif 'maintenance_subtitle' in field:
+                    safe_val = str(update_values[i]).replace("'", "''")
+                    safe_update_parts.append(f"maintenance_subtitle = '{safe_val}'")
+                elif 'active_holiday' in field:
+                    if update_values[i] is None:
+                        safe_update_parts.append("active_holiday = NULL")
+                    else:
+                        safe_val = str(update_values[i]).replace("'", "''")
+                        safe_update_parts.append(f"active_holiday = '{safe_val}'")
+                elif 'is_maintenance' in field:
+                    safe_update_parts.append(f"is_maintenance = {update_values[i]}")
+                elif 'newyear_snow_enabled' in field:
+                    safe_update_parts.append(f"newyear_snow_enabled = {update_values[i]}")
+                elif 'newyear_lights_enabled' in field:
+                    safe_update_parts.append(f"newyear_lights_enabled = {update_values[i]}")
+                elif 'updated_at' in field:
+                    safe_update_parts.append('updated_at = NOW()')
+            
             query = f"""
                 UPDATE site_settings 
-                SET {', '.join(update_fields)}
-                WHERE id = %s
+                SET {', '.join(safe_update_parts)}
+                WHERE id = 1
             """
             print(f'Update query: {query}')
-            print(f'Update values: {tuple(update_values)}')
             
-            cur.execute(query, tuple(update_values))
+            cur.execute(query)
             conn.commit()
             
             print('Update committed successfully')

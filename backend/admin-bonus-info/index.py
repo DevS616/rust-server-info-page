@@ -120,16 +120,16 @@ def handle_reset_limit(event: dict) -> dict:
         
         if bonus_type == 'weekly':
             print(f'[RESET] Executing UPDATE for weekly bonus')
+            safe_steam_id = str(steam_id).replace("'", "''")
             cur.execute(
-                "UPDATE daily_bonus_claims SET last_weekly_bonus = %s WHERE steam_id = %s",
-                (past_time, steam_id)
+                f"UPDATE daily_bonus_claims SET last_weekly_bonus = '{past_time}' WHERE steam_id = '{safe_steam_id}'"
             )
             print(f'[RESET] UPDATE executed, rows affected: {cur.rowcount}')
         elif bonus_type == 'daily':
             print(f'[RESET] Executing UPDATE for daily bonus')
+            safe_steam_id = str(steam_id).replace("'", "''")
             cur.execute(
-                "UPDATE daily_bonus_claims SET last_spin_time = %s WHERE steam_id = %s",
-                (past_time, steam_id)
+                f"UPDATE daily_bonus_claims SET last_spin_time = '{past_time}' WHERE steam_id = '{safe_steam_id}'"
             )
             print(f'[RESET] UPDATE executed, rows affected: {cur.rowcount}')
         else:
@@ -143,7 +143,8 @@ def handle_reset_limit(event: dict) -> dict:
         conn.commit()
         print(f'[RESET] Transaction committed successfully')
         
-        cur.execute("SELECT steam_id, last_spin_time, last_weekly_bonus FROM daily_bonus_claims WHERE steam_id = %s", (steam_id,))
+        safe_steam_id = str(steam_id).replace("'", "''")
+        cur.execute(f"SELECT steam_id, last_spin_time, last_weekly_bonus FROM daily_bonus_claims WHERE steam_id = '{safe_steam_id}'")
         updated = cur.fetchone()
         print(f'[RESET] Record after update: {updated}')
         
@@ -205,7 +206,8 @@ def verify_admin_token(token: str) -> bool:
         conn = psycopg2.connect(os.environ['DATABASE_URL'])
         cur = conn.cursor()
         
-        cur.execute("SELECT id FROM admins WHERE token = %s", (token,))
+        safe_token = str(token).replace("'", "''")
+        cur.execute(f"SELECT id FROM admins WHERE token = '{safe_token}'")
         return cur.fetchone() is not None
     except:
         return False

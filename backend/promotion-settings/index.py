@@ -73,10 +73,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'isBase64Encoded': False
                 }
             
-            cur.execute('''
+            safe_token = str(auth_token).replace("'", "''")
+            cur.execute(f'''
                 SELECT id FROM t_p48919527_rust_server_info_pag.admins 
-                WHERE token = %s
-            ''', (auth_token,))
+                WHERE token = '{safe_token}'
+            ''')
             
             admin = cur.fetchone()
             if not admin:
@@ -89,12 +90,13 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             
             body_data = json.loads(event.get('body', '{}'))
             
-            cur.execute('''
+            safe_json = json.dumps(body_data).replace("'", "''")
+            cur.execute(f'''
                 UPDATE t_p48919527_rust_server_info_pag.site_settings 
-                SET promotion_data = %s::jsonb, updated_at = NOW()
+                SET promotion_data = '{safe_json}'::jsonb, updated_at = NOW()
                 WHERE id = 1
                 RETURNING promotion_data
-            ''', (json.dumps(body_data),))
+            ''')
             
             updated = cur.fetchone()
             conn.commit()

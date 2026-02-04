@@ -39,9 +39,9 @@ def handler(event: dict, context) -> dict:
                 return response(400, {'error': 'steam_id required'})
             
             if bonus_type == 'weekly':
+                safe_steam_id = str(steam_id).replace("'", "''")
                 cur.execute(
-                    "SELECT last_weekly_bonus FROM daily_bonus_claims WHERE steam_id = %s",
-                    (steam_id,)
+                    f"SELECT last_weekly_bonus FROM daily_bonus_claims WHERE steam_id = '{safe_steam_id}'"
                 )
                 row = cur.fetchone()
                 
@@ -62,9 +62,9 @@ def handler(event: dict, context) -> dict:
                     'next_available': next_available.isoformat()
                 })
             else:
+                safe_steam_id = str(steam_id).replace("'", "''")
                 cur.execute(
-                    "SELECT last_spin_time FROM daily_bonus_claims WHERE steam_id = %s",
-                    (steam_id,)
+                    f"SELECT last_spin_time FROM daily_bonus_claims WHERE steam_id = '{safe_steam_id}'"
                 )
                 row = cur.fetchone()
                 
@@ -103,9 +103,9 @@ def handler(event: dict, context) -> dict:
             now = datetime.utcnow()
             
             if bonus_type == 'weekly':
+                safe_steam_id = str(steam_id).replace("'", "''")
                 cur.execute(
-                    "SELECT last_weekly_bonus FROM daily_bonus_claims WHERE steam_id = %s",
-                    (steam_id,)
+                    f"SELECT last_weekly_bonus FROM daily_bonus_claims WHERE steam_id = '{safe_steam_id}'"
                 )
                 row = cur.fetchone()
                 
@@ -120,28 +120,34 @@ def handler(event: dict, context) -> dict:
                             'time_left': time_left
                         })
                     
+                    safe_steam_id = str(steam_id).replace("'", "''")
+                    safe_username = str(username).replace("'", "''")
+                    safe_avatar = str(avatar).replace("'", "''")
                     cur.execute(
-                        "UPDATE daily_bonus_claims SET last_weekly_bonus = %s, total_spins = total_spins + 1, total_winnings = total_winnings + %s, steam_username = %s, steam_avatar = %s WHERE steam_id = %s",
-                        (now, amount, username, avatar, steam_id)
+                        f"UPDATE daily_bonus_claims SET last_weekly_bonus = '{now}', total_spins = total_spins + 1, total_winnings = total_winnings + {amount}, steam_username = '{safe_username}', steam_avatar = '{safe_avatar}' WHERE steam_id = '{safe_steam_id}'"
                     )
                 else:
                     if row:
+                        safe_steam_id = str(steam_id).replace("'", "''")
+                        safe_username = str(username).replace("'", "''")
+                        safe_avatar = str(avatar).replace("'", "''")
                         cur.execute(
-                            "UPDATE daily_bonus_claims SET last_weekly_bonus = %s, total_spins = total_spins + 1, total_winnings = total_winnings + %s, steam_username = %s, steam_avatar = %s WHERE steam_id = %s",
-                            (now, amount, username, avatar, steam_id)
+                            f"UPDATE daily_bonus_claims SET last_weekly_bonus = '{now}', total_spins = total_spins + 1, total_winnings = total_winnings + {amount}, steam_username = '{safe_username}', steam_avatar = '{safe_avatar}' WHERE steam_id = '{safe_steam_id}'"
                         )
                     else:
+                        safe_steam_id = str(steam_id).replace("'", "''")
+                        safe_username = str(username).replace("'", "''")
+                        safe_avatar = str(avatar).replace("'", "''")
                         cur.execute(
-                            "INSERT INTO daily_bonus_claims (steam_id, last_weekly_bonus, total_spins, total_winnings, steam_username, steam_avatar) VALUES (%s, %s, 1, %s, %s, %s)",
-                            (steam_id, now, amount, username, avatar)
+                            f"INSERT INTO daily_bonus_claims (steam_id, last_weekly_bonus, total_spins, total_winnings, steam_username, steam_avatar) VALUES ('{safe_steam_id}', '{now}', 1, {amount}, '{safe_username}', '{safe_avatar}')"
                         )
                 
                 conn.commit()
                 return response(200, {'success': True, 'next_available': (now + timedelta(days=7)).isoformat()})
             else:
+                safe_steam_id = str(steam_id).replace("'", "''")
                 cur.execute(
-                    "SELECT last_spin_time FROM daily_bonus_claims WHERE steam_id = %s",
-                    (steam_id,)
+                    f"SELECT last_spin_time FROM daily_bonus_claims WHERE steam_id = '{safe_steam_id}'"
                 )
                 row = cur.fetchone()
                 
@@ -156,19 +162,25 @@ def handler(event: dict, context) -> dict:
                             'time_left': time_left
                         })
                     
+                    safe_steam_id = str(steam_id).replace("'", "''")
+                    safe_username = str(username).replace("'", "''")
+                    safe_avatar = str(avatar).replace("'", "''")
                     cur.execute(
-                        "UPDATE daily_bonus_claims SET last_spin_time = %s, total_spins = total_spins + 1, total_winnings = total_winnings + %s, steam_username = %s, steam_avatar = %s WHERE steam_id = %s",
-                        (now, amount, username, avatar, steam_id)
+                        f"UPDATE daily_bonus_claims SET last_spin_time = '{now}', total_spins = total_spins + 1, total_winnings = total_winnings + {amount}, steam_username = '{safe_username}', steam_avatar = '{safe_avatar}' WHERE steam_id = '{safe_steam_id}'"
                     )
                 elif row:
+                    safe_steam_id = str(steam_id).replace("'", "''")
+                    safe_username = str(username).replace("'", "''")
+                    safe_avatar = str(avatar).replace("'", "''")
                     cur.execute(
-                        "UPDATE daily_bonus_claims SET last_spin_time = %s, total_spins = total_spins + 1, total_winnings = total_winnings + %s, steam_username = %s, steam_avatar = %s WHERE steam_id = %s",
-                        (now, amount, username, avatar, steam_id)
+                        f"UPDATE daily_bonus_claims SET last_spin_time = '{now}', total_spins = total_spins + 1, total_winnings = total_winnings + {amount}, steam_username = '{safe_username}', steam_avatar = '{safe_avatar}' WHERE steam_id = '{safe_steam_id}'"
                     )
                 else:
+                    safe_steam_id = str(steam_id).replace("'", "''")
+                    safe_username = str(username).replace("'", "''")
+                    safe_avatar = str(avatar).replace("'", "''")
                     cur.execute(
-                        "INSERT INTO daily_bonus_claims (steam_id, last_spin_time, total_spins, total_winnings, steam_username, steam_avatar) VALUES (%s, %s, 1, %s, %s, %s)",
-                        (steam_id, now, amount, username, avatar)
+                        f"INSERT INTO daily_bonus_claims (steam_id, last_spin_time, total_spins, total_winnings, steam_username, steam_avatar) VALUES ('{safe_steam_id}', '{now}', 1, {amount}, '{safe_username}', '{safe_avatar}')"
                     )
                 
                 conn.commit()
