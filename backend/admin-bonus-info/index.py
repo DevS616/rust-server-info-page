@@ -29,8 +29,16 @@ def handler(event: dict, context) -> dict:
     headers = event.get('headers', {})
     token = headers.get('X-Auth-Token') or headers.get('x-auth-token')
     
-    if not token or not verify_admin_token(token):
-        return response(403, {'error': 'Access denied'})
+    print(f'[AUTH] Headers: {headers}')
+    print(f'[AUTH] Token extracted: {token[:20] if token else "None"}...')
+    
+    if not token:
+        print('[AUTH] ERROR: No token provided')
+        return response(403, {'error': 'No token provided'})
+    
+    if not verify_admin_token(token):
+        print('[AUTH] ERROR: Token verification failed')
+        return response(403, {'error': 'Invalid token'})
     
     if method == 'GET':
         return handle_get_records()

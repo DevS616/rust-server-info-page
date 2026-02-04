@@ -6,7 +6,7 @@
       "path": "/",
       "expectedStatus": 403,
       "expectedBody": {
-        "error": "Access denied"
+        "error": "No token provided"
       },
       "bodyMatcher": "partial"
     },
@@ -19,7 +19,7 @@
       },
       "expectedStatus": 403,
       "expectedBody": {
-        "error": "Access denied"
+        "error": "No token provided"
       },
       "bodyMatcher": "partial"
     }
