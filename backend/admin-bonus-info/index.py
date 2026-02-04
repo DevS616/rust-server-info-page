@@ -20,7 +20,7 @@ def handler(event: dict, context) -> dict:
             'headers': {
                 'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type, X-Auth-Token'
+                'Access-Control-Allow-Headers': 'Content-Type, X-Auth-Token, Cache-Control, Pragma'
             },
             'body': '',
             'isBase64Encoded': False
