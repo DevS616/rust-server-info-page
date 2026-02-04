@@ -58,11 +58,12 @@ def handler(event: dict, context) -> dict:
 
 def verify_admin(dsn: str, token: str) -> bool:
     '''Проверка админского токена'''
+    schema = os.environ.get('MAIN_DB_SCHEMA', 'public')
     try:
         with psycopg2.connect(dsn) as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute(
-                    "SELECT id FROM admins WHERE token = %s AND is_active = true",
+                    f"SELECT id FROM {schema}.admins WHERE token = %s AND is_active = true",
                     (token,)
                 )
                 return cur.fetchone() is not None
@@ -72,12 +73,13 @@ def verify_admin(dsn: str, token: str) -> bool:
 
 def get_events(dsn: str) -> dict:
     '''Получение всех событий'''
+    schema = os.environ.get('MAIN_DB_SCHEMA', 'public')
     try:
         with psycopg2.connect(dsn) as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("""
+                cur.execute(f"""
                     SELECT id, date, title, description, color
-                    FROM calendar_events
+                    FROM {schema}.calendar_events
                     ORDER BY date
                 """)
                 events = cur.fetchall()
@@ -97,6 +99,7 @@ def get_events(dsn: str) -> dict:
 
 def create_event(dsn: str, event: dict) -> dict:
     '''Создание нового события'''
+    schema = os.environ.get('MAIN_DB_SCHEMA', 'public')
     try:
         data = json.loads(event.get('body', '{}'))
         date = data.get('date')
@@ -113,8 +116,8 @@ def create_event(dsn: str, event: dict) -> dict:
         
         with psycopg2.connect(dsn) as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("""
-                    INSERT INTO calendar_events (date, title, description, color)
+                cur.execute(f"""
+                    INSERT INTO {schema}.calendar_events (date, title, description, color)
                     VALUES (%s, %s, %s, %s)
                     RETURNING id, date, title, description, color
                 """, (date, title, description, color))
@@ -137,6 +140,7 @@ def create_event(dsn: str, event: dict) -> dict:
 
 def update_event(dsn: str, event: dict, params: dict) -> dict:
     '''Обновление события'''
+    schema = os.environ.get('MAIN_DB_SCHEMA', 'public')
     try:
         event_id = params.get('id')
         if not event_id:
@@ -161,8 +165,8 @@ def update_event(dsn: str, event: dict, params: dict) -> dict:
         
         with psycopg2.connect(dsn) as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("""
-                    UPDATE calendar_events
+                cur.execute(f"""
+                    UPDATE {schema}.calendar_events
                     SET date = %s, title = %s, description = %s, color = %s
                     WHERE id = %s
                     RETURNING id, date, title, description, color
@@ -193,6 +197,7 @@ def update_event(dsn: str, event: dict, params: dict) -> dict:
 
 def delete_event(dsn: str, params: dict) -> dict:
     '''Удаление события'''
+    schema = os.environ.get('MAIN_DB_SCHEMA', 'public')
     try:
         event_id = params.get('id')
         if not event_id:
@@ -204,8 +209,8 @@ def delete_event(dsn: str, params: dict) -> dict:
         
         with psycopg2.connect(dsn) as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("""
-                    DELETE FROM calendar_events WHERE id = %s
+                cur.execute(f"""
+                    DELETE FROM {schema}.calendar_events WHERE id = %s
                     RETURNING id
                 """, (event_id,))
                 
