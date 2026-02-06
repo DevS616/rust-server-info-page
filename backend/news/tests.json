@@ -1,7 +1,7 @@
 {
   "tests": [
     {
-      "name": "Get published news list",
+      "name": "Get published news",
       "method": "GET",
       "path": "/?action=list",
       "expectedStatus": 200

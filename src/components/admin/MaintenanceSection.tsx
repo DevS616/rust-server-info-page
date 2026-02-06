@@ -61,6 +61,8 @@ const MaintenanceSection = ({ token }: MaintenanceSectionProps) => {
       if (res.ok) {
         const data = await res.json();
         setIsMaintenance(data.is_maintenance);
+        // Очищаем кэш чтобы изменения сразу вступили в силу
+        localStorage.removeItem('maintenance_cache');
         toast({
           title: 'Успешно',
           description: data.is_maintenance 
@@ -102,6 +104,8 @@ const MaintenanceSection = ({ token }: MaintenanceSectionProps) => {
       });
 
       if (res.ok) {
+        // Очищаем кэш чтобы изменения сразу вступили в силу
+        localStorage.removeItem('maintenance_cache');
         toast({
           title: 'Успешно',
           description: 'Тексты обновлены'
