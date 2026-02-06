@@ -45,7 +45,7 @@ const NewsSection = () => {
       }
       
       try {
-        const res = await fetch('https://functions.poehali.dev/e6be6494-14cb-4278-882b-d4498bef6cf6/?action=list');
+        const res = await fetch('https://functions.poehali.dev/e6be6494-14cb-4278-882b-d4498bef6cf6/');
         if (res.ok) {
           const data = await res.json();
           setNewsItems(data);

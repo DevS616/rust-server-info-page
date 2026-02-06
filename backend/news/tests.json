@@ -1,9 +1,9 @@
 {
   "tests": [
     {
-      "name": "Get published news",
+      "name": "Get news",
       "method": "GET",
-      "path": "/?action=list",
+      "path": "/",
       "expectedStatus": 200
     }
   ]
