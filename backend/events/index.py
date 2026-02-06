@@ -1,7 +1,9 @@
 import json
 import os
+import jwt
 import psycopg2
 from psycopg2.extras import RealDictCursor
+from typing import Optional, Dict, Any
 
 def get_schema(dsn: str) -> str:
     '''Получение имени схемы из DSN или автоопределение'''
@@ -81,19 +83,23 @@ def handler(event: dict, context) -> dict:
     }
 
 def verify_admin(dsn: str, token: str) -> bool:
-    '''Проверка админского токена'''
-    schema = get_schema(dsn)
+    '''Проверка админского JWT токена'''
     try:
-        with psycopg2.connect(dsn) as conn:
-            with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                # Simple Query Protocol - escape single quotes
-                safe_token = token.replace("'", "''")
-                cur.execute(
-                    f"SELECT id FROM {schema}.admins WHERE token = '{safe_token}'"
-                )
-                result = cur.fetchone()
-                print(f"[AUTH] verify_admin: schema={schema}, token_found={result is not None}")
-                return result is not None
+        secret = os.environ.get('JWT_SECRET')
+        if not secret:
+            print('[AUTH] JWT_SECRET not configured')
+            return False
+        
+        payload = jwt.decode(token, secret, algorithms=['HS256'])
+        is_admin = payload.get('is_admin', False)
+        print(f"[AUTH] verify_admin: is_admin={is_admin}")
+        return is_admin
+    except jwt.ExpiredSignatureError:
+        print('[AUTH] Token expired')
+        return False
+    except jwt.InvalidTokenError as e:
+        print(f"[AUTH] Invalid token: {e}")
+        return False
     except Exception as e:
         print(f"[AUTH] verify_admin ERROR: {e}")
         return False

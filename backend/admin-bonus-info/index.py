@@ -6,6 +6,7 @@ POST: сброс лимита для конкретного игрока.
 
 import json
 import os
+import jwt
 from datetime import datetime, timedelta
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -240,27 +241,26 @@ def handle_delete_no_username() -> dict:
 
 
 def verify_admin_token(token: str) -> bool:
-    conn = None
-    cur = None
+    '''Проверка админского JWT токена'''
     try:
-        dsn = os.environ['DATABASE_URL']
-        schema = get_schema(dsn)
-        conn = psycopg2.connect(dsn)
-        cur = conn.cursor()
+        secret = os.environ.get('JWT_SECRET')
+        if not secret:
+            print('[AUTH] JWT_SECRET not configured')
+            return False
         
-        safe_token = str(token).replace("'", "''")
-        cur.execute(f"SELECT id FROM {schema}.admins WHERE token = '{safe_token}'")
-        result = cur.fetchone()
-        print(f'[AUTH] verify_admin_token: schema={schema}, found={result is not None}')
-        return result is not None
+        payload = jwt.decode(token, secret, algorithms=['HS256'])
+        is_admin = payload.get('is_admin', False)
+        print(f'[AUTH] verify_admin_token: is_admin={is_admin}')
+        return is_admin
+    except jwt.ExpiredSignatureError:
+        print('[AUTH] Token expired')
+        return False
+    except jwt.InvalidTokenError as e:
+        print(f'[AUTH] Invalid token: {e}')
+        return False
     except Exception as e:
         print(f'[AUTH] verify_admin_token ERROR: {e}')
         return False
-    finally:
-        if cur:
-            cur.close()
-        if conn:
-            conn.close()
 
 
 def response(status: int, data: dict) -> dict:

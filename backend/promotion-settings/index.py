@@ -1,8 +1,20 @@
 import json
 import os
 import psycopg2
+import jwt
 from psycopg2.extras import RealDictCursor
 from typing import Dict, Any
+
+def verify_admin_token(token: str) -> bool:
+    '''Проверка админского JWT токена'''
+    try:
+        secret = os.environ.get('JWT_SECRET')
+        if not secret:
+            return False
+        payload = jwt.decode(token, secret, algorithms=['HS256'])
+        return payload.get('is_admin', False)
+    except:
+        return False
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     '''
@@ -63,28 +75,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             }
         
         if method == 'POST':
-            auth_token = event.get('headers', {}).get('X-Auth-Token') or event.get('headers', {}).get('x-auth-token')
-            
-            if not auth_token:
+            token = event.get('headers', {}).get('X-Auth-Token') or event.get('headers', {}).get('x-auth-token')
+            if not token or not verify_admin_token(token):
                 return {
                     'statusCode': 401,
                     'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
                     'body': json.dumps({'error': 'Unauthorized'}),
-                    'isBase64Encoded': False
-                }
-            
-            safe_token = str(auth_token).replace("'", "''")
-            cur.execute(f'''
-                SELECT id FROM t_p48919527_rust_server_info_pag.admins 
-                WHERE token = '{safe_token}'
-            ''')
-            
-            admin = cur.fetchone()
-            if not admin:
-                return {
-                    'statusCode': 403,
-                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                    'body': json.dumps({'error': 'Forbidden'}),
                     'isBase64Encoded': False
                 }
             

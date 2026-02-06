@@ -80,13 +80,10 @@ const EventsTab = ({ token }: EventsTabProps) => {
 
   const loadServers = async () => {
     try {
-      const response = await fetch('https://functions.poehali.dev/eb33c1b5-6cb3-43e3-8d51-ef7f37e73ca2/');
+      const response = await fetch('https://functions.poehali.dev/cd63f370-b8ea-4adc-ace4-a274aa6f6e34/');
       if (response.ok) {
         const data = await response.json();
-        console.log('Loaded servers:', data.servers);
         setServers(data.servers || []);
-      } else {
-        console.error('Failed to load servers, status:', response.status);
       }
     } catch (error) {
       console.error('Failed to load servers:', error);

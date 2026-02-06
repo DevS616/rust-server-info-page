@@ -1,8 +1,20 @@
 import json
 import os
 import psycopg2
+import jwt
 from psycopg2.extras import RealDictCursor
 from typing import Dict, Any
+
+def verify_admin_token(token: str) -> bool:
+    '''Проверка админского JWT токена'''
+    try:
+        secret = os.environ.get('JWT_SECRET')
+        if not secret:
+            return False
+        payload = jwt.decode(token, secret, algorithms=['HS256'])
+        return payload.get('is_admin', False)
+    except:
+        return False
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     '''
@@ -68,30 +80,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         if method == 'PUT':
             token = event.get('headers', {}).get('X-Auth-Token') or event.get('headers', {}).get('x-auth-token')
-            
-            print(f'PUT request received. Headers: {event.get("headers", {})}')
-            print(f'Token: {token}')
-            
-            if not token:
-                print('No token provided')
+            if not token or not verify_admin_token(token):
                 return {
                     'statusCode': 401,
                     'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
                     'body': json.dumps({'error': 'Unauthorized'})
-                }
-            
-            safe_token = str(token).replace("'", "''")
-            cur.execute(f"SELECT id, role FROM admins WHERE token = '{safe_token}'")
-            admin = cur.fetchone()
-            
-            print(f'Admin found: {admin}')
-            
-            if not admin:
-                print('Admin not found in database')
-                return {
-                    'statusCode': 403,
-                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                    'body': json.dumps({'error': 'Access denied'})
                 }
             
             body_data = json.loads(event.get('body', '{}'))

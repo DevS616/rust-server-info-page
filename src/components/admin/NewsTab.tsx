@@ -32,7 +32,7 @@ interface NewsItem {
 }
 
 interface NewsTabProps {
-  password: string;
+  token: string;
 }
 
 const categoryConfig = {
@@ -47,7 +47,7 @@ const iconOptions = [
   'Trophy', 'Zap', 'Star', 'Sparkles', 'Bell', 'Megaphone'
 ];
 
-const NewsTab = ({ password }: NewsTabProps) => {
+const NewsTab = ({ token }: NewsTabProps) => {
   const { toast } = useToast();
   const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,8 +67,8 @@ const NewsTab = ({ password }: NewsTabProps) => {
 
   const fetchNews = async () => {
     try {
-      const res = await fetch('https://functions.poehali.dev/e6be6494-14cb-4278-882b-d4498bef6cf6/?action=admin-list', {
-        headers: { 'X-Admin-Password': password }
+      const res = await fetch('https://functions.poehali.dev/news/?action=admin-list', {
+        headers: { 'X-Auth-Token': token }
       });
       if (res.ok) {
         const data = await res.json();
@@ -145,8 +145,8 @@ const NewsTab = ({ password }: NewsTabProps) => {
 
     try {
       const url = editingNews
-        ? 'https://functions.poehali.dev/e6be6494-14cb-4278-882b-d4498bef6cf6/'
-        : 'https://functions.poehali.dev/e6be6494-14cb-4278-882b-d4498bef6cf6/';
+        ? 'https://functions.poehali.dev/news/'
+        : 'https://functions.poehali.dev/news/';
 
       const method = editingNews ? 'PUT' : 'POST';
       let body: any = editingNews ? { ...formData, id: editingNews.id } : formData;
@@ -170,7 +170,7 @@ const NewsTab = ({ password }: NewsTabProps) => {
         method,
         headers: {
           'Content-Type': 'application/json',
-          'X-Admin-Password': password
+          'X-Auth-Token': token
         },
         body: JSON.stringify(body)
       });
@@ -191,9 +191,9 @@ const NewsTab = ({ password }: NewsTabProps) => {
     if (!confirm('Удалить эту новость?')) return;
 
     try {
-      const res = await fetch(`https://functions.poehali.dev/e6be6494-14cb-4278-882b-d4498bef6cf6/?id=${id}`, {
+      const res = await fetch(`https://functions.poehali.dev/news/?id=${id}`, {
         method: 'DELETE',
-        headers: { 'X-Admin-Password': password }
+        headers: { 'X-Auth-Token': token }
       });
 
       if (res.ok) {

@@ -4,10 +4,22 @@ import base64
 import uuid
 import boto3
 import psycopg2
+import jwt
 from psycopg2.extras import RealDictCursor
 
+def verify_admin_token(token: str) -> bool:
+    '''Проверка админского JWT токена'''
+    try:
+        secret = os.environ.get('JWT_SECRET')
+        if not secret:
+            return False
+        payload = jwt.decode(token, secret, algorithms=['HS256'])
+        return payload.get('is_admin', False)
+    except:
+        return False
+
 def handler(event: dict, context) -> dict:
-    '''API для управления новостями сайта'''
+    '''API для управления новостями сайта (с JWT авторизацией)'''
     method = event.get('httpMethod', 'GET')
     
     if method == 'OPTIONS':
@@ -16,7 +28,7 @@ def handler(event: dict, context) -> dict:
             'headers': {
                 'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type, X-Admin-Password'
+                'Access-Control-Allow-Headers': 'Content-Type, X-Auth-Token'
             },
             'body': ''
         }
@@ -50,8 +62,8 @@ def handler(event: dict, context) -> dict:
                 }
             
             elif action == 'admin-list':
-                admin_password = event.get('headers', {}).get('x-admin-password', '')
-                if admin_password != os.environ.get('ADMIN_PASSWORD', ''):
+                token = event.get('headers', {}).get('X-Auth-Token') or event.get('headers', {}).get('x-auth-token')
+                if not token or not verify_admin_token(token):
                     conn.close()
                     return {
                         'statusCode': 401,
@@ -76,8 +88,8 @@ def handler(event: dict, context) -> dict:
                 }
         
         elif method == 'POST':
-            admin_password = event.get('headers', {}).get('x-admin-password', '')
-            if admin_password != os.environ.get('ADMIN_PASSWORD', ''):
+            token = event.get('headers', {}).get('X-Auth-Token') or event.get('headers', {}).get('x-auth-token')
+            if not token or not verify_admin_token(token):
                 conn.close()
                 return {
                     'statusCode': 401,
@@ -136,8 +148,8 @@ def handler(event: dict, context) -> dict:
             }
         
         elif method == 'PUT':
-            admin_password = event.get('headers', {}).get('x-admin-password', '')
-            if admin_password != os.environ.get('ADMIN_PASSWORD', ''):
+            token = event.get('headers', {}).get('X-Auth-Token') or event.get('headers', {}).get('x-auth-token')
+            if not token or not verify_admin_token(token):
                 conn.close()
                 return {
                     'statusCode': 401,
@@ -200,8 +212,8 @@ def handler(event: dict, context) -> dict:
             }
         
         elif method == 'DELETE':
-            admin_password = event.get('headers', {}).get('x-admin-password', '')
-            if admin_password != os.environ.get('ADMIN_PASSWORD', ''):
+            token = event.get('headers', {}).get('X-Auth-Token') or event.get('headers', {}).get('x-auth-token')
+            if not token or not verify_admin_token(token):
                 conn.close()
                 return {
                     'statusCode': 401,
