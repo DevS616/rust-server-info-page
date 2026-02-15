@@ -1,10 +1,31 @@
 {
   "tests": [
     {
-      "name": "Get news",
+      "name": "Get published news",
       "method": "GET",
       "path": "/",
       "expectedStatus": 200
+    },
+    {
+      "name": "Admin list requires auth",
+      "method": "GET",
+      "path": "/?action=admin-list",
+      "expectedStatus": 401,
+      "expectedBody": {
+        "error": "string"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Create requires auth",
+      "method": "POST",
+      "path": "/",
+      "body": {"title": "Test", "description": "Test", "date": "1 января 2025"},
+      "expectedStatus": 401,
+      "expectedBody": {
+        "error": "string"
+      },
+      "bodyMatcher": "partial"
     }
   ]
 }
