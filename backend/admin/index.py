@@ -8,7 +8,7 @@ from typing import Dict, Any, Optional
 from datetime import datetime, timedelta
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
-    '''
+    """
     API для админ-панели техподдержки.
     POST /login - авторизация администратора
     POST /admins - добавление нового администратора (требует токен)
@@ -16,7 +16,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     DELETE /admins/{admin_id} - удаление администратора (требует токен)
     PUT /users/{user_id}/block - блокировка пользователя (требует токен)
     PUT /users/{user_id}/unblock - разблокировка пользователя (требует токен)
-    '''
+    """
     method = event.get('httpMethod', 'GET')
     
     if method == 'OPTIONS':
