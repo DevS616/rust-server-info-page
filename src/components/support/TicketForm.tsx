@@ -10,9 +10,15 @@ import { useToast } from '@/hooks/use-toast';
 
 const API_BASE = 'https://functions.poehali.dev';
 
+interface Server {
+  id: number;
+  name: string;
+  map?: string;
+}
+
 interface TicketFormProps {
   token: string;
-  servers: any[];
+  servers: Server[];
   isBlocked: boolean;
   onTicketCreated: () => void;
   onCancel: () => void;
@@ -28,11 +34,18 @@ const TicketForm = ({ token, servers, isBlocked, onTicketCreated, onCancel }: Ti
   });
   const [uploading, setUploading] = useState(false);
 
+  const ALLOWED_TYPES = ['image/jpeg','image/png','image/gif','image/webp','image/bmp','video/mp4','video/webm','video/mov','video/avi','video/mkv','video/quicktime'];
+  const MAX_FILE_SIZE = 100 * 1024 * 1024;
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      if (file.size > 10 * 1024 * 1024) {
-        toast({ title: 'Ошибка', description: 'Размер файла не должен превышать 10 МБ', variant: 'destructive' });
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        toast({ title: 'Ошибка', description: 'Допустимы только фото (JPG, PNG, GIF, WEBP) и видео (MP4, MOV, AVI, MKV)', variant: 'destructive' });
+        return;
+      }
+      if (file.size > MAX_FILE_SIZE) {
+        toast({ title: 'Ошибка', description: 'Размер файла не должен превышать 100 МБ', variant: 'destructive' });
         return;
       }
       setFormData({ ...formData, file });
@@ -195,7 +208,7 @@ const TicketForm = ({ token, servers, isBlocked, onTicketCreated, onCancel }: Ti
             id="file"
             type="file"
             onChange={handleFileChange}
-            accept="image/*,.pdf,.txt,.doc,.docx"
+            accept="image/jpeg,image/png,image/gif,image/webp,image/bmp,video/mp4,video/webm,video/quicktime,video/avi,video/x-matroska"
             className="hidden"
           />
           <label 
@@ -205,6 +218,9 @@ const TicketForm = ({ token, servers, isBlocked, onTicketCreated, onCancel }: Ti
             <Icon name="Paperclip" size={18} />
             <span>{formData.file ? 'Изменить файл' : 'Выбрать файл'}</span>
           </label>
+          <p className="text-xs text-slate-500 mt-2">
+            Фото: JPG, PNG, GIF, WEBP · Видео: MP4, MOV, AVI, MKV · Макс. 100 МБ
+          </p>
           {formData.file && (
             <div className="mt-3 p-3 bg-slate-800/50 border border-slate-700 rounded-md flex items-center justify-between">
               <div className="flex items-center gap-2">

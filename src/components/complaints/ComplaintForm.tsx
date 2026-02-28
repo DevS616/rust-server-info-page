@@ -28,11 +28,18 @@ const ComplaintForm = ({ token, isBlocked, onCreated, onCancel }: ComplaintFormP
   });
   const [uploading, setUploading] = useState(false);
 
+  const ALLOWED_TYPES = ['image/jpeg','image/png','image/gif','image/webp','image/bmp','video/mp4','video/webm','video/mov','video/avi','video/mkv','video/quicktime'];
+  const MAX_FILE_SIZE = 100 * 1024 * 1024;
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      if (file.size > 50 * 1024 * 1024) {
-        toast({ title: 'Ошибка', description: 'Размер файла не должен превышать 50 МБ', variant: 'destructive' });
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        toast({ title: 'Ошибка', description: 'Допустимы только фото (JPG, PNG, GIF, WEBP) и видео (MP4, MOV, AVI, MKV)', variant: 'destructive' });
+        return;
+      }
+      if (file.size > MAX_FILE_SIZE) {
+        toast({ title: 'Ошибка', description: 'Размер файла не должен превышать 100 МБ', variant: 'destructive' });
         return;
       }
       setFormData({ ...formData, file });
@@ -154,7 +161,7 @@ const ComplaintForm = ({ token, isBlocked, onCreated, onCancel }: ComplaintFormP
           <Label className="text-slate-300 mb-2 block">
             <div className="flex items-center gap-2">
               <Icon name="Paperclip" size={16} />
-              Доказательство (видео или скриншот, до 50 МБ)
+              Доказательство (фото или видео)
             </div>
           </Label>
           <label className="flex items-center gap-3 p-3 border-2 border-dashed border-slate-600 rounded-lg cursor-pointer hover:border-red-500 transition-colors">
@@ -164,11 +171,14 @@ const ComplaintForm = ({ token, isBlocked, onCreated, onCancel }: ComplaintFormP
             </span>
             <input
               type="file"
-              accept="image/*,video/*"
+              accept="image/jpeg,image/png,image/gif,image/webp,image/bmp,video/mp4,video/webm,video/quicktime,video/avi,video/x-matroska"
               onChange={handleFileChange}
               className="hidden"
             />
           </label>
+          <p className="text-xs text-slate-500 mt-1">
+            Фото: JPG, PNG, GIF, WEBP · Видео: MP4, MOV, AVI, MKV · Макс. 100 МБ
+          </p>
           {formData.file && (
             <Button
               type="button"

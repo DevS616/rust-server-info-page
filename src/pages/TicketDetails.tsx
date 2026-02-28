@@ -65,31 +65,28 @@ const TicketDetails = () => {
       navigate('/support');
     }
     
+    const AudioCtx = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioCtx) return;
     audioRef.current = {
       play: () => {
         try {
-          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+          const audioContext = new AudioCtx();
           const oscillator = audioContext.createOscillator();
           const gainNode = audioContext.createGain();
-          
           oscillator.connect(gainNode);
           gainNode.connect(audioContext.destination);
-          
           oscillator.frequency.value = 800;
           oscillator.type = 'sine';
-          
           gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
           gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-          
           oscillator.start(audioContext.currentTime);
           oscillator.stop(audioContext.currentTime + 0.3);
-          
           return Promise.resolve();
         } catch (e) {
           return Promise.reject(e);
         }
       }
-    } as any;
+    } as HTMLAudioElement;
   }, [navigate]);
 
   useEffect(() => {
@@ -103,7 +100,7 @@ const TicketDetails = () => {
     
     // Используем кэш по умолчанию
     if (useCache) {
-      const cached = apiCache.get<any>(cacheKey);
+      const cached = apiCache.get<{ ticket: Ticket; messages: Message[] }>(cacheKey);
       if (cached) {
         setTicket(cached.ticket);
         setMessages(cached.messages);
@@ -171,11 +168,18 @@ const TicketDetails = () => {
     }
   };
 
+  const ALLOWED_TYPES = ['image/jpeg','image/png','image/gif','image/webp','image/bmp','video/mp4','video/webm','video/mov','video/avi','video/mkv','video/quicktime'];
+  const MAX_FILE_SIZE = 100 * 1024 * 1024;
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
-      if (selectedFile.size > 10 * 1024 * 1024) {
-        toast({ title: 'Ошибка', description: 'Размер файла не должен превышать 10 МБ', variant: 'destructive' });
+      if (!ALLOWED_TYPES.includes(selectedFile.type)) {
+        toast({ title: 'Ошибка', description: 'Допустимы только фото (JPG, PNG, GIF, WEBP) и видео (MP4, MOV, AVI, MKV)', variant: 'destructive' });
+        return;
+      }
+      if (selectedFile.size > MAX_FILE_SIZE) {
+        toast({ title: 'Ошибка', description: 'Размер файла не должен превышать 100 МБ', variant: 'destructive' });
         return;
       }
       setFile(selectedFile);
@@ -400,7 +404,7 @@ const TicketDetails = () => {
                     id="replyFile"
                     type="file"
                     onChange={handleFileChange}
-                    accept="image/*,.txt,.log,.pdf"
+                    accept="image/jpeg,image/png,image/gif,image/webp,image/bmp,video/mp4,video/webm,video/quicktime,video/avi,video/x-matroska"
                     className="hidden"
                   />
                   <label 
@@ -410,6 +414,9 @@ const TicketDetails = () => {
                     <Icon name="Paperclip" size={18} />
                     <span>{file ? 'Изменить файл' : 'Выбрать файл'}</span>
                   </label>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Фото: JPG, PNG, GIF, WEBP · Видео: MP4, MOV, AVI, MKV · Макс. 100 МБ
+                  </p>
                   {file && (
                     <div className="mt-3 p-3 bg-muted border border-border rounded-md flex items-center justify-between">
                       <div className="flex items-center gap-2">

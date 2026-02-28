@@ -46,8 +46,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     except Exception as e:
         return error_response(f'Invalid base64 data: {str(e)}')
 
-    if len(file_data) > 52 * 1024 * 1024:
-        return error_response('File size exceeds 52MB limit', 413)
+    if len(file_data) > 100 * 1024 * 1024:
+        return error_response('File size exceeds 100MB limit', 413)
 
     s3 = boto3.client(
         's3',

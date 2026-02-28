@@ -23,14 +23,19 @@ interface Ticket {
   unread_count?: number;
 }
 
+interface Server {
+  id: number;
+  name: string;
+  map?: string;
+}
+
 const Support = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [token, setToken] = useState<string | null>(null);
-  const [user, setUser] = useState<any>(null);
   const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [servers, setServers] = useState<any[]>([]);
+  const [servers, setServers] = useState<Server[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
@@ -85,7 +90,7 @@ const Support = () => {
 
   const loadServers = async () => {
     // Проверяем кэш
-    const cached = apiCache.get<any[]>('servers');
+    const cached = apiCache.get<Server[]>('servers');
     if (cached) {
       setServers(cached);
       return;
@@ -107,7 +112,7 @@ const Support = () => {
   const loadDashboard = async (useCache = true) => {
     // Проверяем кэш только если разрешено
     if (useCache) {
-      const cached = apiCache.get<any>('dashboard');
+      const cached = apiCache.get<{ tickets: Ticket[]; is_blocked: boolean; telegram_linked: boolean; telegram_username: string | null }>('dashboard');
       if (cached) {
         setTickets(cached.tickets || []);
         setIsBlocked(cached.is_blocked);
