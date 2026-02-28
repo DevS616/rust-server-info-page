@@ -208,7 +208,7 @@ def get_complaint_details(complaint_id: str, user_data: Dict[str, Any]) -> Dict[
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor(cursor_factory=RealDictCursor)
 
-    user_id = int(user_data['user_id'])
+    user_id = int(user_data.get('user_id') or user_data.get('id') or 0)
     is_admin = user_data.get('is_admin', False)
     cid = int(complaint_id)
 

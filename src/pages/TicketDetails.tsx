@@ -345,7 +345,10 @@ const TicketDetails = () => {
                   <span className={`w-2 h-2 rounded-full ${getStatusColor(ticket.status)}`}></span>
                   <span className="text-sm font-medium">{getStatusText(ticket.status)}</span>
                 </div>
-                <h1 className="text-3xl font-bold mb-2">{ticket.subject}</h1>
+                <div className="flex items-center gap-3 mb-2">
+                  <h1 className="text-3xl font-bold">{ticket.subject}</h1>
+                  <span className="text-base text-muted-foreground">#{ticket.id}</span>
+                </div>
                 <p className="text-muted-foreground">Сервер: {ticket.server}</p>
                 <p className="text-sm text-muted-foreground">{new Date(ticket.created_at).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}</p>
               </div>
