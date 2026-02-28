@@ -2,13 +2,34 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
 
-const TelegramWidget = () => {
+interface TelegramWidgetProps {
+  forceOpen?: boolean;
+  onClose?: () => void;
+}
+
+const TelegramWidget = ({ forceOpen, onClose }: TelegramWidgetProps = {}) => {
   const [isOpen, setIsOpen] = useState(false);
   const [showFireworks, setShowFireworks] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  useEffect(() => {
+    if (forceOpen) {
+      setIsOpen(true);
+      setTimeout(() => setShowFireworks(true), 400);
+      return;
+    }
+
+    if (isMobile) return;
+
     const hiddenUntil = localStorage.getItem('telegram_widget_hidden_until');
     
     if (hiddenUntil) {
@@ -28,7 +49,7 @@ const TelegramWidget = () => {
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [isMobile, forceOpen]);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -46,6 +67,7 @@ const TelegramWidget = () => {
     const hideUntil = new Date().getTime() + (24 * 60 * 60 * 1000);
     localStorage.setItem('telegram_widget_hidden_until', hideUntil.toString());
     setIsOpen(false);
+    onClose?.();
   };
 
   if (!isOpen) return null;

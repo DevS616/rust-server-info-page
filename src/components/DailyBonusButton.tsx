@@ -4,7 +4,13 @@ import DailyBonusWheel from './DailyBonusWheel';
 import WeeklyBonusCrate from './WeeklyBonusCrate';
 import BonusSelectionModal from './BonusSelectionModal';
 
-const DailyBonusButton = () => {
+interface DailyBonusButtonProps {
+  openFromMenu?: boolean;
+  onMenuOpenHandled?: () => void;
+  onAvailabilityChange?: (available: boolean) => void;
+}
+
+const DailyBonusButton = ({ openFromMenu, onMenuOpenHandled, onAvailabilityChange }: DailyBonusButtonProps = {}) => {
   const [showSelection, setShowSelection] = useState(false);
   const [showDailyWheel, setShowDailyWheel] = useState(false);
   const [showWeeklyCrate, setShowWeeklyCrate] = useState(false);
@@ -169,7 +175,16 @@ const DailyBonusButton = () => {
       localStorage.removeItem('bonus_after_auth');
       setTimeout(() => setShowSelection(true), 100);
     }
+
+    onAvailabilityChange?.(canClaimAny);
   }, [dailyCanClaim, weeklyCanClaim, canClaimAny]);
+
+  useEffect(() => {
+    if (openFromMenu && !isChecking) {
+      handleButtonClick();
+      onMenuOpenHandled?.();
+    }
+  }, [openFromMenu]);
 
   // Обновление таймеров (только для авторизованных)
   useEffect(() => {
@@ -250,9 +265,9 @@ const DailyBonusButton = () => {
       <button
         onClick={handleButtonClick}
         className={`
-          fixed bottom-20 md:bottom-24 right-4 md:right-8 z-40 
-          px-4 md:px-6 py-3 md:py-4 rounded-xl md:rounded-2xl
-          font-bold text-base md:text-lg
+          hidden md:flex fixed bottom-24 right-8 z-40 
+          px-6 py-4 rounded-2xl
+          font-bold text-lg
           transition-all duration-300
           ${isAvailable
             ? 'bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 bg-[length:200%_100%] animate-gradient text-white shadow-[0_0_20px_rgba(245,158,11,0.6)] md:shadow-[0_0_30px_rgba(245,158,11,0.6)] hover:shadow-[0_0_40px_rgba(245,158,11,0.8)] md:hover:shadow-[0_0_50px_rgba(245,158,11,0.8)] hover:scale-105 md:hover:scale-110 cursor-pointer' 
@@ -263,13 +278,13 @@ const DailyBonusButton = () => {
           animation: 'gradient 3s ease infinite, pulse 2s ease-in-out infinite'
         } : undefined}
       >
-        <div className="flex items-center gap-2 md:gap-3">
+        <div className="flex items-center gap-3">
           <div className={isAvailable ? 'animate-bounce' : ''}>
-            <Icon name="Gift" className="h-5 md:h-6 w-5 md:w-6 flex-shrink-0" />
+            <Icon name="Gift" className="h-6 w-6 flex-shrink-0" />
           </div>
           <div className="flex flex-col items-start leading-tight">
-            <span className="text-xs md:text-sm opacity-90">Бонусы</span>
-            <span className="text-lg md:text-xl font-black">
+            <span className="text-sm opacity-90">Бонусы</span>
+            <span className="text-xl font-black">
               {displayText}
             </span>
           </div>

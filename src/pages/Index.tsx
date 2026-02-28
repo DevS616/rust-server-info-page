@@ -9,11 +9,15 @@ import NewsSection from '@/components/NewsSection';
 import HowToStartSection from '@/components/HowToStartSection';
 import Footer from '@/components/Footer';
 import DailyBonusButton from '@/components/DailyBonusButton';
+import TelegramWidget from '@/components/TelegramWidget';
 
 const Index = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [openBonusFromMenu, setOpenBonusFromMenu] = useState(false);
+  const [openTelegramFromMenu, setOpenTelegramFromMenu] = useState(false);
+  const [bonusAvailable, setBonusAvailable] = useState(false);
 
   useEffect(() => {
     const urlToken = searchParams.get('token');
@@ -62,14 +66,29 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      <Header
+        onOpenBonus={() => setOpenBonusFromMenu(true)}
+        onOpenTelegram={() => setOpenTelegramFromMenu(true)}
+        bonusAvailable={bonusAvailable}
+      />
       <HeroSection />
       <ServersSection />
       <NewsSection />
       <HowToStartSection />
       <Footer />
 
-      <DailyBonusButton />
+      <DailyBonusButton
+        openFromMenu={openBonusFromMenu}
+        onMenuOpenHandled={() => setOpenBonusFromMenu(false)}
+        onAvailabilityChange={setBonusAvailable}
+      />
+
+      {openTelegramFromMenu && (
+        <TelegramWidget
+          forceOpen={true}
+          onClose={() => setOpenTelegramFromMenu(false)}
+        />
+      )}
 
       {showScrollTop && (
         <Button
