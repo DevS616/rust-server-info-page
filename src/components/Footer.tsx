@@ -50,6 +50,10 @@ const Footer = () => {
                 Поддержка
               </a>
 
+              <a href="/complaints" className="block text-destructive hover:text-destructive/80 transition-colors hover:translate-x-1 transform font-medium">
+                Подать жалобу
+              </a>
+
               <a href="/privacy" className="block text-muted-foreground hover:text-primary transition-colors hover:translate-x-1 transform">
                 Политика конфиденциальности
               </a>

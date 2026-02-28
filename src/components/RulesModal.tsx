@@ -326,6 +326,18 @@ const RulesModal = ({ open, onOpenChange }: RulesModalProps) => {
           </div>
         </ScrollArea>
 
+        <div className="border-t border-primary/20 pt-3 mt-0 flex-shrink-0 px-1">
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-destructive/10 border border-destructive/30 mb-3">
+            <Icon name="AlertTriangle" className="h-5 w-5 text-destructive flex-shrink-0" />
+            <span className="text-sm text-muted-foreground">
+              Заметили нарушение правил другим игроком или администратором?{' '}
+              <a href="/complaints" className="text-destructive font-semibold hover:underline" onClick={() => onOpenChange(false)}>
+                Подайте жалобу
+              </a>
+            </span>
+          </div>
+        </div>
+
         <DialogFooter className="border-t border-primary/20 pt-4 mt-0 flex-shrink-0">
           {!hasAccepted ? (
             <div className="w-full space-y-3">

@@ -14,6 +14,7 @@ import Index from "./pages/Index";
 import BanList from "./pages/BanList";
 import Support from "./pages/Support";
 import TicketDetails from "./pages/TicketDetails";
+import Complaints from "./pages/Complaints";
 import Admin from "./pages/Admin";
 import SteamCallback from "./pages/SteamCallback";
 import Privacy from "./pages/Privacy";
@@ -137,6 +138,7 @@ const AppContent = () => {
         <Route path="/banlist" element={<BanList />} />
         <Route path="/support" element={<Support />} />
         <Route path="/support/ticket/:ticketId" element={<TicketDetails />} />
+        <Route path="/complaints" element={<Complaints />} />
         <Route path="/steam-callback" element={<SteamCallback />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="/privacy" element={<Privacy />} />

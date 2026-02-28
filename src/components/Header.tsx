@@ -130,6 +130,9 @@ const Header = () => {
               </span>
             )}
           </a>
+          <a href="/complaints" className="text-sm font-medium text-destructive hover:text-destructive/80 transition-colors uppercase tracking-wider">
+            Жалобы
+          </a>
         </nav>
 
 <div className="hidden md:flex">
@@ -203,6 +206,13 @@ const Header = () => {
                 className="text-base font-medium text-foreground hover:text-primary transition-colors uppercase tracking-wider py-2"
               >
                 Поддержка
+              </a>
+              <a 
+                href="/complaints" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="text-base font-medium text-destructive hover:text-destructive/80 transition-colors uppercase tracking-wider py-2"
+              >
+                Жалобы
               </a>
               
               <div className="pt-4 border-t border-primary/20">
