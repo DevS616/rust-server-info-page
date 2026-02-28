@@ -28,7 +28,7 @@ const Admin = () => {
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const [token, setToken] = useState<string | null>(null);
-  const [admin, setAdmin] = useState<any>(null);
+  const [admin, setAdmin] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(false);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [filteredTickets, setFilteredTickets] = useState<Ticket[]>([]);
@@ -92,7 +92,7 @@ const Admin = () => {
   };
 
   const handleLogin = async (e: React.FormEvent) => {
-    await authHandleLogin(e, (newToken: string, newAdmin: any) => {
+    await authHandleLogin(e, (newToken: string, newAdmin: Record<string, unknown>) => {
       setToken(newToken);
       setAdmin(newAdmin);
       loadTickets(newToken, false);
@@ -334,10 +334,20 @@ const Admin = () => {
               <h1 className="text-xl md:text-3xl font-bold mb-1 md:mb-2">Админ-панель</h1>
               <p className="text-sm md:text-base text-muted-foreground">Управление сайтом</p>
             </div>
-            <Button onClick={handleLogout} variant="outline" size="sm" className="flex-shrink-0">
-              <Icon name="LogOut" className="h-4 w-4 md:mr-2" />
-              <span className="hidden md:inline">Выйти</span>
-            </Button>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Button
+                onClick={() => { window.location.href = '/img'; }}
+                variant="outline"
+                size="sm"
+              >
+                <Icon name="Image" className="h-4 w-4 md:mr-2" />
+                <span className="hidden md:inline">Хостинг фото</span>
+              </Button>
+              <Button onClick={handleLogout} variant="outline" size="sm">
+                <Icon name="LogOut" className="h-4 w-4 md:mr-2" />
+                <span className="hidden md:inline">Выйти</span>
+              </Button>
+            </div>
           </div>
         </Card>
 

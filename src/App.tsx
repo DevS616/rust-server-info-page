@@ -16,6 +16,7 @@ import Support from "./pages/Support";
 import TicketDetails from "./pages/TicketDetails";
 import Complaints from "./pages/Complaints";
 import Admin from "./pages/Admin";
+import ImgHosting from "./pages/ImgHosting";
 import SteamCallback from "./pages/SteamCallback";
 import Privacy from "./pages/Privacy";
 import UserAgreement from "./pages/UserAgreement";
@@ -141,6 +142,7 @@ const AppContent = () => {
         <Route path="/complaints" element={<Complaints />} />
         <Route path="/steam-callback" element={<SteamCallback />} />
         <Route path="/admin" element={<Admin />} />
+        <Route path="/img" element={<ImgHosting />} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/agreement" element={<UserAgreement />} />
         <Route path="*" element={<NotFound />} />
