@@ -147,6 +147,8 @@ const ImgHosting = () => {
   const [uploadQueue, setUploadQueue] = useState<UploadItem[]>([]);
   const [selectedFile, setSelectedFile] = useState<HostedFile | null>(null);
   const [uploadProgress, setUploadProgress] = useState<Record<number, 'pending' | 'done' | 'error'>>({});
+  const [search, setSearch] = useState('');
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'name' | 'size'>('newest');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -384,7 +386,31 @@ const ImgHosting = () => {
 
         {/* Галерея */}
         <div>
-          <h2 className="text-lg font-semibold mb-4">Все файлы</h2>
+          <div className="flex flex-col sm:flex-row gap-3 mb-4 items-start sm:items-center justify-between">
+            <h2 className="text-lg font-semibold">Все файлы</h2>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <div className="relative flex-1 sm:w-64">
+                <Icon name="Search" size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Поиск по имени..."
+                  className="pl-8 bg-slate-800 border-slate-700 h-9 text-sm"
+                />
+              </div>
+              <select
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value as typeof sortOrder)}
+                className="bg-slate-800 border border-slate-700 text-slate-300 rounded-md px-3 h-9 text-sm focus:outline-none"
+              >
+                <option value="newest">Новые</option>
+                <option value="oldest">Старые</option>
+                <option value="name">По имени</option>
+                <option value="size">По размеру</option>
+              </select>
+            </div>
+          </div>
+
           {loadingList ? (
             <div className="flex items-center justify-center py-16">
               <Icon name="Loader2" size={32} className="animate-spin text-slate-500" />
@@ -394,9 +420,25 @@ const ImgHosting = () => {
               <Icon name="Image" size={40} className="mx-auto mb-3 opacity-30" />
               <p>Нет загруженных файлов</p>
             </div>
-          ) : (
+          ) : (() => {
+            const q = search.toLowerCase().trim();
+            const filtered = files
+              .filter((f) => !q || f.filename.toLowerCase().includes(q))
+              .sort((a, b) => {
+                if (sortOrder === 'newest') return new Date(b.last_modified).getTime() - new Date(a.last_modified).getTime();
+                if (sortOrder === 'oldest') return new Date(a.last_modified).getTime() - new Date(b.last_modified).getTime();
+                if (sortOrder === 'name') return a.filename.localeCompare(b.filename);
+                if (sortOrder === 'size') return b.size - a.size;
+                return 0;
+              });
+            return filtered.length === 0 ? (
+              <div className="text-center py-16 text-slate-500">
+                <Icon name="SearchX" size={32} className="mx-auto mb-3 opacity-30" />
+                <p>Ничего не найдено по запросу «{search}»</p>
+              </div>
+            ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-              {files.map((f) => (
+              {filtered.map((f) => (
                 <div
                   key={f.key}
                   className="group relative aspect-square bg-slate-800 rounded-xl overflow-hidden cursor-pointer border border-slate-700 hover:border-slate-500 transition-all"
@@ -426,7 +468,8 @@ const ImgHosting = () => {
                 </div>
               ))}
             </div>
-          )}
+            );
+          })()}
         </div>
       </div>
 
