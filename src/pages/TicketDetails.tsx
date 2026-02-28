@@ -95,18 +95,6 @@ const TicketDetails = () => {
   useEffect(() => {
     if (token && ticketId) {
       loadTicketDetails();
-      
-      // Опрос только при возвращении на вкладку
-      const handleVisibilityChange = () => {
-        if (!document.hidden) {
-          loadTicketDetails(false);
-        }
-      };
-      document.addEventListener('visibilitychange', handleVisibilityChange);
-      
-      return () => {
-        document.removeEventListener('visibilitychange', handleVisibilityChange);
-      };
     }
   }, [token, ticketId]);
 
@@ -333,10 +321,16 @@ const TicketDetails = () => {
       
       <main className="container mx-auto px-4 py-24">
         <div className="max-w-4xl mx-auto">
-          <Button onClick={() => navigate('/support')} variant="outline" className="mb-6">
-            <Icon name="ArrowLeft" className="mr-2" />
-            Назад к списку
-          </Button>
+          <div className="flex items-center gap-3 mb-6">
+            <Button onClick={() => navigate('/support')} variant="outline">
+              <Icon name="ArrowLeft" className="mr-2" />
+              Назад к списку
+            </Button>
+            <Button onClick={() => loadTicketDetails(false)} variant="outline" disabled={loading}>
+              <Icon name={loading ? 'Loader2' : 'RefreshCw'} size={16} className={`mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Обновить
+            </Button>
+          </div>
 
           <Card className="p-6 mb-6">
             <div className="flex items-start justify-between mb-4">

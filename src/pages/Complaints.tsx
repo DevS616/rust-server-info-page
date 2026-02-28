@@ -332,14 +332,25 @@ const Complaints = () => {
         <div className="max-w-4xl mx-auto">
           <div className="flex justify-between items-center mb-8">
             <h1 className="text-4xl font-bold text-white">Жалобы</h1>
-            <Button
-              onClick={handleLogout}
-              variant="outline"
-              className="border-slate-700 text-white hover:bg-slate-800"
-            >
-              <Icon name="LogOut" size={16} className="mr-2" />
-              Выйти
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={loadDashboard}
+                variant="outline"
+                disabled={loading}
+                className="border-slate-700 text-white hover:bg-slate-800"
+              >
+                <Icon name={loading ? 'Loader2' : 'RefreshCw'} size={16} className={`mr-2 ${loading ? 'animate-spin' : ''}`} />
+                Обновить
+              </Button>
+              <Button
+                onClick={handleLogout}
+                variant="outline"
+                className="border-slate-700 text-white hover:bg-slate-800"
+              >
+                <Icon name="LogOut" size={16} className="mr-2" />
+                Выйти
+              </Button>
+            </div>
           </div>
 
           {showForm ? (
