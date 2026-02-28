@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import Icon from '@/components/ui/icon';
 
 interface Ticket {
@@ -21,6 +23,7 @@ interface TicketsListProps {
 
 const TicketsList = ({ tickets, loading, onNewTicket }: TicketsListProps) => {
   const navigate = useNavigate();
+  const [search, setSearch] = useState('');
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -62,7 +65,7 @@ const TicketsList = ({ tickets, loading, onNewTicket }: TicketsListProps) => {
 
   return (
     <>
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold text-white">Мои обращения</h2>
         <Button 
           onClick={onNewTicket}
@@ -72,6 +75,18 @@ const TicketsList = ({ tickets, loading, onNewTicket }: TicketsListProps) => {
           Новое обращение
         </Button>
       </div>
+
+      {tickets.length > 0 && (
+        <div className="relative mb-4">
+          <Icon name="Search" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+          <Input
+            placeholder="Поиск по ID или теме..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
+          />
+        </div>
+      )}
 
       {tickets.length === 0 ? (
         <Card className="p-12 bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700">
@@ -92,7 +107,11 @@ const TicketsList = ({ tickets, loading, onNewTicket }: TicketsListProps) => {
         </Card>
       ) : (
         <div className="grid gap-4">
-          {tickets.map((ticket) => (
+          {tickets.filter((ticket) => {
+            if (!search.trim()) return true;
+            const q = search.toLowerCase();
+            return String(ticket.id).includes(q) || ticket.subject.toLowerCase().includes(q);
+          }).map((ticket) => (
             <Card 
               key={ticket.id}
               className="p-6 bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700 hover:border-orange-500/50 transition-all cursor-pointer"
