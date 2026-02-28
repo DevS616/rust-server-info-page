@@ -232,7 +232,7 @@ def get_complaint_details(complaint_id: str, user_data: Dict[str, Any]) -> Dict[
 
     cur.execute(f"""
         SELECT cm.*, u.steam_username as user_name, u.steam_avatar as user_avatar,
-               a.username as admin_name
+               a.full_name as admin_name
         FROM complaint_messages cm
         LEFT JOIN users u ON cm.user_id = u.id AND cm.is_admin_reply = FALSE
         LEFT JOIN admins a ON cm.user_id = a.id AND cm.is_admin_reply = TRUE
