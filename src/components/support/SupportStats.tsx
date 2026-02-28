@@ -3,8 +3,6 @@ import { Card } from '@/components/ui/card';
 import Icon from '@/components/ui/icon';
 
 const API_URL = 'https://functions.poehali.dev/887805c0-0d3a-4f32-8436-1ba1adda4a4f';
-const CACHE_KEY = 'support_stats_cache';
-const CACHE_TTL = 10 * 60 * 1000;
 
 interface Stats {
   total: number;
@@ -27,27 +25,11 @@ const SupportStats = ({ token }: SupportStatsProps) => {
   const starsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const cached = localStorage.getItem(CACHE_KEY);
-    if (cached) {
-      try {
-        const { data, ts } = JSON.parse(cached);
-        if (Date.now() - ts < CACHE_TTL) {
-          setStats(data);
-          return;
-        }
-      } catch (_e) { /* ignore */ }
-    }
-
     fetch(`${API_URL}/?action=stats`, { headers: { 'X-Auth-Token': token } })
       .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (data) {
-          setStats(data);
-          localStorage.setItem(CACHE_KEY, JSON.stringify({ data, ts: Date.now() }));
-        }
-      })
+      .then(data => { if (data) setStats(data); })
       .catch(() => {});
-  }, [token]);
+  }, []);
 
   if (!stats) return null;
 
