@@ -10,7 +10,7 @@ import TelegramSection from '@/components/support/TelegramSection';
 import TicketForm from '@/components/support/TicketForm';
 import TicketsList from '@/components/support/TicketsList';
 import SupportStats from '@/components/support/SupportStats';
-import { apiCache } from '@/utils/apiCache';
+
 
 const API_BASE = 'https://functions.poehali.dev';
 
@@ -90,40 +90,18 @@ const Support = () => {
   }, [token]);
 
   const loadServers = async () => {
-    // Проверяем кэш
-    const cached = apiCache.get<Server[]>('servers');
-    if (cached) {
-      setServers(cached);
-      return;
-    }
-
     try {
       const res = await fetch(`${API_BASE}/cd63f370-b8ea-4adc-ace4-a274aa6f6e34/?active=true`);
       if (res.ok) {
         const data = await res.json();
         setServers(data.servers || []);
-        // Кэшируем на 10 минут (сервера меняются редко)
-        apiCache.set('servers', data.servers || [], 600000);
       }
     } catch (error) {
       console.error('Failed to load servers:', error);
     }
   };
 
-  const loadDashboard = async (useCache = true) => {
-    // Проверяем кэш только если разрешено
-    if (useCache) {
-      const cached = apiCache.get<{ tickets: Ticket[]; is_blocked: boolean; telegram_linked: boolean; telegram_username: string | null }>('dashboard');
-      if (cached) {
-        setTickets(cached.tickets || []);
-        setIsBlocked(cached.is_blocked);
-        setTelegramLinked(cached.telegram_linked || false);
-        setTelegramUsername(cached.telegram_username || null);
-        setLoading(false);
-        return;
-      }
-    }
-
+  const loadDashboard = async () => {
     try {
       const res = await fetch(`${API_BASE}/887805c0-0d3a-4f32-8436-1ba1adda4a4f/?action=dashboard`, {
         headers: { 'X-Auth-Token': token! }
@@ -131,14 +109,10 @@ const Support = () => {
       
       if (res.ok) {
         const data = await res.json();
-        console.log('Dashboard loaded, tickets:', data.tickets?.length || 0);
         setTickets(data.tickets || []);
         setIsBlocked(data.is_blocked);
         setTelegramLinked(data.telegram_linked || false);
         setTelegramUsername(data.telegram_username || null);
-        
-        // Кэшируем на 2 минуты
-        apiCache.set('dashboard', data, 120000);
         
         if (data.is_blocked) {
           toast({ 
@@ -148,8 +122,6 @@ const Support = () => {
             duration: 10000
           });
         }
-      } else {
-        console.error('Dashboard failed:', res.status);
       }
     } catch (error) {
       console.error('Failed to load dashboard:', error);
@@ -222,7 +194,7 @@ const Support = () => {
             <h1 className="text-4xl font-bold text-white">Техподдержка</h1>
             <div className="flex items-center gap-2">
               <Button
-                onClick={() => { apiCache.invalidate('dashboard'); loadDashboard(false); }}
+                onClick={() => loadDashboard()}
                 variant="outline"
                 disabled={loading}
                 className="border-slate-700 text-white hover:bg-slate-800"

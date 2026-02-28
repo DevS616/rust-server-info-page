@@ -25,71 +25,15 @@ const Header = ({ onOpenBonus, onOpenTelegram, bonusAvailable }: HeaderProps = {
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    let lastCheckTime = 0;
-    const MIN_CHECK_INTERVAL = 30 * 60 * 1000;
-    const CACHE_KEY = 'ticket_status_cache';
-    const CACHE_DURATION = 5 * 60 * 1000;
+    const token = localStorage.getItem('support_token');
+    if (!token) return;
 
-    const checkUnread = async (skipCache = false) => {
-      if (document.hidden) return;
-      
-      const now = Date.now();
-      if (!skipCache && now - lastCheckTime < MIN_CHECK_INTERVAL) return;
-      
-      const token = localStorage.getItem('support_token');
-      if (!token) return;
-      
-      const cached = localStorage.getItem(CACHE_KEY);
-      if (!skipCache && cached) {
-        try {
-          const { data, timestamp } = JSON.parse(cached);
-          if (now - timestamp < CACHE_DURATION) {
-            setUnreadCount(data.unread_count || 0);
-            return;
-          }
-        } catch (e) {
-          console.error('Failed to parse ticket status cache:', e);
-        }
-      }
-      
-      lastCheckTime = now;
-      
-      try {
-        const res = await fetch('https://functions.poehali.dev/887805c0-0d3a-4f32-8436-1ba1adda4a4f/?action=status', {
-          headers: { 'X-Auth-Token': token }
-        });
-        
-        if (res.ok) {
-          const data = await res.json();
-          setUnreadCount(data.unread_count || 0);
-          
-          localStorage.setItem(CACHE_KEY, JSON.stringify({
-            data,
-            timestamp: now
-          }));
-        }
-      } catch (error) {
-        console.error('Failed to check unread:', error);
-      }
-    };
-
-    checkUnread();
-    const interval = setInterval(() => checkUnread(true), 30 * 60 * 1000);
-    
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        const now = Date.now();
-        if (now - lastCheckTime >= 10 * 60 * 1000) {
-          checkUnread();
-        }
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    return () => {
-      clearInterval(interval);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
+    fetch('https://functions.poehali.dev/887805c0-0d3a-4f32-8436-1ba1adda4a4f/?action=status', {
+      headers: { 'X-Auth-Token': token }
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setUnreadCount(data.unread_count || 0); })
+      .catch(() => {});
   }, []);
 
 

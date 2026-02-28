@@ -186,52 +186,7 @@ const DailyBonusButton = ({ openFromMenu, onMenuOpenHandled, onAvailabilityChang
     }
   }, [openFromMenu]);
 
-  // Обновление таймеров (только для авторизованных)
-  useEffect(() => {
-    if (!steamId) return; // Не обновляем таймеры для неавторизованных
-    
-    const interval = setInterval(() => {
-      // Daily timer
-      if (!dailyCanClaim) {
-        const cachedData = localStorage.getItem(`bonus_check_${steamId}`);
-        if (cachedData) {
-          const { can_claim, time_left, cached_at } = JSON.parse(cachedData);
-          const cacheAge = Date.now() - cached_at;
-          const remainingTime = time_left - Math.floor(cacheAge / 1000);
-          
-          if (remainingTime <= 0) {
-            setDailyCanClaim(true);
-            setDailyTimeLeft('');
-          } else {
-            const hours = Math.floor(remainingTime / 3600);
-            const minutes = Math.floor((remainingTime % 3600) / 60);
-            setDailyTimeLeft(`${hours}ч ${minutes}м`);
-          }
-        }
-      }
 
-      // Weekly timer
-      if (!weeklyCanClaim) {
-        const cachedData = localStorage.getItem(`weekly_bonus_check_${steamId}`);
-        if (cachedData) {
-          const { can_claim, time_left, cached_at } = JSON.parse(cachedData);
-          const cacheAge = Date.now() - cached_at;
-          const remainingTime = time_left - Math.floor(cacheAge / 1000);
-          
-          if (remainingTime <= 0) {
-            setWeeklyCanClaim(true);
-            setWeeklyTimeLeft('');
-          } else {
-            const days = Math.floor(remainingTime / 86400);
-            const hours = Math.floor((remainingTime % 86400) / 3600);
-            setWeeklyTimeLeft(`${days}д ${hours}ч`);
-          }
-        }
-      }
-    }, 60000);
-
-    return () => clearInterval(interval);
-  }, [dailyCanClaim, weeklyCanClaim, steamId]);
 
   if (isChecking) {
     return null;

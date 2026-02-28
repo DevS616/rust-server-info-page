@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import RatingModal from '@/components/support/RatingModal';
-import { apiCache } from '@/utils/apiCache';
+
 
 const API_BASE = 'https://functions.poehali.dev';
 
@@ -95,21 +95,7 @@ const TicketDetails = () => {
     }
   }, [token, ticketId]);
 
-  const loadTicketDetails = async (useCache = true) => {
-    const cacheKey = `ticket_${ticketId}`;
-    
-    // Используем кэш по умолчанию
-    if (useCache) {
-      const cached = apiCache.get<{ ticket: Ticket; messages: Message[] }>(cacheKey);
-      if (cached) {
-        setTicket(cached.ticket);
-        setMessages(cached.messages);
-        setPrevMessageCount(cached.messages.length);
-        setLoading(false);
-        return;
-      }
-    }
-
+  const loadTicketDetails = async () => {
     try {
       const res = await fetch(`${API_BASE}/887805c0-0d3a-4f32-8436-1ba1adda4a4f/?ticket_id=${ticketId}`, {
         headers: { 'X-Auth-Token': token! }
@@ -119,9 +105,6 @@ const TicketDetails = () => {
         const data = await res.json();
         const ticketData = data.ticket;
         setTicket(ticketData);
-        
-        // Кэшируем на 2 минуты
-        apiCache.set(cacheKey, data, 120000);
         
         if (ticketData.status === 'closed' && !ticketData.rating && prevMessageCount > 0) {
           setShowRatingModal(true);
@@ -330,7 +313,7 @@ const TicketDetails = () => {
               <Icon name="ArrowLeft" className="mr-2" />
               Назад к списку
             </Button>
-            <Button onClick={() => loadTicketDetails(false)} variant="outline" disabled={loading}>
+            <Button onClick={() => loadTicketDetails()} variant="outline" disabled={loading}>
               <Icon name={loading ? 'Loader2' : 'RefreshCw'} size={16} className={`mr-2 ${loading ? 'animate-spin' : ''}`} />
               Обновить
             </Button>
