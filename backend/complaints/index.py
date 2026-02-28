@@ -60,6 +60,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         return update_status(complaint_id, event, user_data)
     elif method == 'DELETE' and complaint_id:
         return delete_complaint(complaint_id, user_data)
+    elif method == 'POST' and action == 'block_user':
+        return block_user(event, user_data)
 
     return error_response('Not found', 404)
 
@@ -341,9 +343,8 @@ def delete_complaint(complaint_id: str, user_data: Dict[str, Any]) -> Dict[str, 
     cur = conn.cursor()
     cid = int(complaint_id)
 
-    cur.execute(f"UPDATE complaint_messages SET complaint_id = NULL WHERE complaint_id = {cid}")
-    cur.execute(f"UPDATE complaints SET user_id = NULL WHERE id = {cid}")
-    cur.execute(f"UPDATE complaint_messages SET user_id = NULL WHERE complaint_id IS NULL AND id IN (SELECT id FROM complaint_messages WHERE complaint_id IS NULL)")
+    cur.execute(f"DELETE FROM complaint_messages WHERE complaint_id = {cid}")
+    cur.execute(f"DELETE FROM complaints WHERE id = {cid}")
 
     conn.commit()
     cur.close()
@@ -353,5 +354,37 @@ def delete_complaint(complaint_id: str, user_data: Dict[str, Any]) -> Dict[str, 
         'statusCode': 200,
         'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
         'body': json.dumps({'success': True}),
+        'isBase64Encoded': False
+    }
+
+
+def block_user(event: Dict[str, Any], user_data: Dict[str, Any]) -> Dict[str, Any]:
+    if not user_data.get('is_admin'):
+        return error_response('Forbidden', 403)
+
+    body = json.loads(event.get('body', '{}'))
+    target_user_id = body.get('user_id')
+    block = body.get('block', True)
+
+    if not target_user_id:
+        return error_response('user_id is required')
+
+    conn = psycopg2.connect(os.environ['DATABASE_URL'])
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    cur.execute(f"UPDATE users SET is_blocked = {str(block).upper()} WHERE id = {int(target_user_id)} RETURNING id, steam_username, is_blocked")
+    user = cur.fetchone()
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    if not user:
+        return error_response('User not found', 404)
+
+    return {
+        'statusCode': 200,
+        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+        'body': json.dumps({'user': dict(user)}, default=str),
         'isBase64Encoded': False
     }

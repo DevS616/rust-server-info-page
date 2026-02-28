@@ -133,7 +133,14 @@ const TicketsList = ({ tickets, loading, onNewTicket }: TicketsListProps) => {
                   
                   <div className="flex items-center gap-2 mb-2">
                     <h3 className="text-lg font-semibold text-white">{ticket.subject}</h3>
-                    <span className="text-xs text-slate-500 flex-shrink-0">#{ticket.id}</span>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(String(ticket.id)); }}
+                      className="flex items-center gap-0.5 text-xs text-slate-500 hover:text-slate-300 transition-colors flex-shrink-0"
+                      title="Скопировать ID"
+                    >
+                      #{ticket.id}
+                      <Icon name="Copy" size={10} />
+                    </button>
                   </div>
                   
                   <div className="flex items-center gap-4 text-sm text-slate-400">

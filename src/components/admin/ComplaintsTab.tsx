@@ -134,6 +134,38 @@ const ComplaintsTab = ({ token }: ComplaintsTabProps) => {
     }
   };
 
+  const deleteComplaint = async () => {
+    if (!selected || !confirm(`Удалить жалобу #${selected.id}? Это действие необратимо.`)) return;
+    const res = await fetch(`${COMPLAINTS_API}/?complaint_id=${selected.id}`, {
+      method: 'DELETE',
+      headers: { 'X-Auth-Token': token },
+    });
+    if (res.ok) {
+      setComplaints((prev) => prev.filter((c) => c.id !== selected.id));
+      setSelected(null);
+    }
+  };
+
+  const toggleBlockUser = async () => {
+    if (!selected) return;
+    const block = !selected.user_is_blocked;
+    const action = block ? 'заблокировать' : 'разблокировать';
+    if (!confirm(`${action.charAt(0).toUpperCase() + action.slice(1)} пользователя ${selected.steam_username}?`)) return;
+    const res = await fetch(`${COMPLAINTS_API}/?action=block_user`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Auth-Token': token },
+      body: JSON.stringify({ user_id: selected.user_id, block }),
+    });
+    if (res.ok) {
+      setSelected((prev) => prev ? { ...prev, user_is_blocked: block } : prev);
+      setComplaints((prev) => prev.map((c) => c.user_id === selected.user_id ? { ...c, user_is_blocked: block } : c));
+    }
+  };
+
+  const copyId = (id: number) => {
+    navigator.clipboard.writeText(String(id));
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'open': return 'bg-green-500/20 text-green-400 border-green-500/30';
@@ -199,7 +231,14 @@ const ComplaintsTab = ({ token }: ComplaintsTabProps) => {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
                   <h2 className="text-lg md:text-xl font-semibold break-words">{selected.subject}</h2>
-                  <span className="text-xs text-muted-foreground">#{selected.id}</span>
+                  <button
+                    onClick={() => copyId(selected.id)}
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    title="Скопировать ID"
+                  >
+                    #{selected.id}
+                    <Icon name="Copy" size={10} />
+                  </button>
                 </div>
                 <p className="text-sm text-muted-foreground">от {selected.steam_username}</p>
                 <div className="flex items-center gap-1 mt-1">
@@ -220,7 +259,7 @@ const ComplaintsTab = ({ token }: ComplaintsTabProps) => {
               </div>
             </div>
 
-            <div className="flex gap-2 flex-wrap">
+            <div className="flex gap-2 flex-wrap items-center">
               <Select value={selected.status} onValueChange={changeStatus}>
                 <SelectTrigger className="w-40">
                   <SelectValue />
@@ -231,6 +270,24 @@ const ComplaintsTab = ({ token }: ComplaintsTabProps) => {
                   <SelectItem value="closed">Закрыта</SelectItem>
                 </SelectContent>
               </Select>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleBlockUser}
+                className={selected.user_is_blocked ? 'border-green-500 text-green-600 hover:bg-green-50' : 'border-orange-500 text-orange-600 hover:bg-orange-50'}
+              >
+                <Icon name={selected.user_is_blocked ? 'ShieldCheck' : 'ShieldOff'} size={14} className="mr-1" />
+                {selected.user_is_blocked ? 'Разблокировать' : 'Заблокировать'}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={deleteComplaint}
+                className="border-red-500 text-red-600 hover:bg-red-50 ml-auto"
+              >
+                <Icon name="Trash2" size={14} className="mr-1" />
+                Удалить жалобу
+              </Button>
             </div>
           </div>
 
@@ -376,7 +433,14 @@ const ComplaintsTab = ({ token }: ComplaintsTabProps) => {
                   </div>
                   <div className="flex items-center gap-2 mb-0.5">
                     <p className="font-medium text-sm truncate">{c.subject}</p>
-                    <span className="text-xs text-muted-foreground flex-shrink-0">#{c.id}</span>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); copyId(c.id); }}
+                      className="flex items-center gap-0.5 text-xs text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
+                      title="Скопировать ID"
+                    >
+                      #{c.id}
+                      <Icon name="Copy" size={10} />
+                    </button>
                   </div>
                   <p className="text-xs text-muted-foreground">{c.steam_username} · {new Date(c.created_at).toLocaleString('ru-RU')}</p>
                   {c.steam_id && (

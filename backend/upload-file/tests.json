@@ -1,14 +1,18 @@
 {
   "tests": [
     {
+      "name": "OPTIONS preflight",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
       "name": "Upload requires file data",
       "method": "POST",
       "path": "/",
-      "body": {},
+      "body": {"file": ""},
       "expectedStatus": 400,
-      "expectedBody": {
-        "error": "string"
-      },
+      "expectedBody": {"error": "string"},
       "bodyMatcher": "partial"
     }
   ]

@@ -345,9 +345,16 @@ const TicketDetails = () => {
                   <span className={`w-2 h-2 rounded-full ${getStatusColor(ticket.status)}`}></span>
                   <span className="text-sm font-medium">{getStatusText(ticket.status)}</span>
                 </div>
-                <div className="flex items-center gap-3 mb-2">
+                <div className="flex items-center gap-3 mb-2 flex-wrap">
                   <h1 className="text-3xl font-bold">{ticket.subject}</h1>
-                  <span className="text-base text-muted-foreground">#{ticket.id}</span>
+                  <button
+                    onClick={() => navigator.clipboard.writeText(String(ticket.id))}
+                    className="flex items-center gap-1 text-base text-muted-foreground hover:text-foreground transition-colors"
+                    title="Скопировать ID"
+                  >
+                    #{ticket.id}
+                    <Icon name="Copy" size={14} />
+                  </button>
                 </div>
                 <p className="text-muted-foreground">Сервер: {ticket.server}</p>
                 <p className="text-sm text-muted-foreground">{new Date(ticket.created_at).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}</p>
