@@ -49,6 +49,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     
     if method == 'POST' and action == 'create':
         return create_ticket(event, user_data)
+    elif method == 'GET' and action == 'stats':
+        return get_stats()
     elif method == 'GET' and action == 'dashboard':
         return get_dashboard(user_data)
     elif method == 'GET' and action == 'list':
@@ -79,6 +81,51 @@ def verify_token(token: Optional[str]) -> Optional[Dict[str, Any]]:
         return payload
     except:
         return None
+
+
+def get_stats() -> Dict[str, Any]:
+    conn = psycopg2.connect(os.environ['DATABASE_URL'])
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    cur.execute("""
+        SELECT
+            COUNT(*) as total,
+            COUNT(CASE WHEN status = 'open' THEN 1 END) as open_count,
+            COUNT(CASE WHEN status = 'in_progress' THEN 1 END) as in_progress_count,
+            COUNT(CASE WHEN status = 'closed' THEN 1 END) as closed_count,
+            COUNT(CASE WHEN rating IS NOT NULL THEN 1 END) as rated_count,
+            ROUND(AVG(rating) FILTER (WHERE rating IS NOT NULL), 2) as avg_rating,
+            COUNT(CASE WHEN rating = 5 THEN 1 END) as r5,
+            COUNT(CASE WHEN rating = 4 THEN 1 END) as r4,
+            COUNT(CASE WHEN rating = 3 THEN 1 END) as r3,
+            COUNT(CASE WHEN rating = 2 THEN 1 END) as r2,
+            COUNT(CASE WHEN rating = 1 THEN 1 END) as r1
+        FROM tickets
+    """)
+    row = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    return {
+        'statusCode': 200,
+        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+        'body': json.dumps({
+            'total': int(row['total']),
+            'open_count': int(row['open_count']),
+            'in_progress_count': int(row['in_progress_count']),
+            'closed_count': int(row['closed_count']),
+            'rated_count': int(row['rated_count']),
+            'avg_rating': float(row['avg_rating']) if row['avg_rating'] else 0,
+            'distribution': {
+                '5': int(row['r5']),
+                '4': int(row['r4']),
+                '3': int(row['r3']),
+                '2': int(row['r2']),
+                '1': int(row['r1']),
+            }
+        }, default=str),
+        'isBase64Encoded': False
+    }
 
 
 def create_ticket(event: Dict[str, Any], user_data: Dict[str, Any]) -> Dict[str, Any]:

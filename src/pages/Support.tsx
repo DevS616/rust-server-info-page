@@ -9,6 +9,7 @@ import Footer from '@/components/Footer';
 import TelegramSection from '@/components/support/TelegramSection';
 import TicketForm from '@/components/support/TicketForm';
 import TicketsList from '@/components/support/TicketsList';
+import SupportStats from '@/components/support/SupportStats';
 import { apiCache } from '@/utils/apiCache';
 
 const API_BASE = 'https://functions.poehali.dev';
@@ -265,6 +266,8 @@ const Support = () => {
               onNewTicket={() => setShowForm(true)}
             />
           )}
+
+          {!showForm && <SupportStats token={token} />}
         </div>
       </main>
       <Footer />
