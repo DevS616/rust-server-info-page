@@ -109,7 +109,10 @@ const ComplaintsList = ({ complaints, loading, onNewComplaint, onOpen }: Complai
                       {getAgainstLabel(c.complaint_against)}
                     </span>
                   </div>
-                  <h3 className="text-lg font-semibold text-white mb-2">{c.subject}</h3>
+                  <div className="flex items-center gap-2 mb-2">
+                    <h3 className="text-lg font-semibold text-white">{c.subject}</h3>
+                    <span className="text-xs text-slate-500 flex-shrink-0">#{c.id}</span>
+                  </div>
                   <div className="flex items-center gap-4 text-sm text-slate-400">
                     <span className="flex items-center gap-1">
                       <Icon name="Calendar" size={14} />

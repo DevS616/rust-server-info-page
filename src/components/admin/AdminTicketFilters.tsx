@@ -26,6 +26,7 @@ export const useTicketFilters = () => {
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(t => 
+        String(t.id).includes(query) ||
         t.subject.toLowerCase().includes(query) ||
         t.steam_username.toLowerCase().includes(query) ||
         t.steam_id.includes(query)
@@ -42,10 +43,11 @@ export const useTicketFilters = () => {
       case 'unread_desc':
         filtered.sort((a, b) => (b.unread_count || 0) - (a.unread_count || 0));
         break;
-      case 'status':
+      case 'status': {
         const statusOrder: Record<string, number> = { open: 1, pending: 2, answered: 3, closed: 4 };
         filtered.sort((a, b) => (statusOrder[a.status] || 99) - (statusOrder[b.status] || 99));
         break;
+      }
       case 'messages_desc':
         filtered.sort((a, b) => b.message_count - a.message_count);
         break;

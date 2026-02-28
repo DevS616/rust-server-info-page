@@ -234,7 +234,10 @@ const Complaints = () => {
                   <Icon name={selectedComplaint.complaint_against === 'admin' ? 'Shield' : 'User'} className="text-white" size={18} />
                 </div>
                 <div className="flex-1">
-                  <h2 className="text-xl font-bold text-white mb-1">{selectedComplaint.subject}</h2>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h2 className="text-xl font-bold text-white">{selectedComplaint.subject}</h2>
+                    <span className="text-sm text-slate-500 flex-shrink-0">#{selectedComplaint.id}</span>
+                  </div>
                   <div className="flex gap-2 flex-wrap">
                     <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(selectedComplaint.status)}`}>
                       {getStatusText(selectedComplaint.status)}

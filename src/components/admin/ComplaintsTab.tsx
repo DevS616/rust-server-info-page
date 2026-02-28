@@ -155,9 +155,13 @@ const ComplaintsTab = ({ token }: ComplaintsTabProps) => {
   const filteredComplaints = complaints.filter((c) => {
     if (filterStatus !== 'all' && c.status !== filterStatus) return false;
     if (filterAgainst !== 'all' && c.complaint_against !== filterAgainst) return false;
-    if (searchQuery) {
+    if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      if (!c.subject.toLowerCase().includes(q) && !c.steam_username?.toLowerCase().includes(q)) return false;
+      const matchId = String(c.id).includes(q);
+      const matchSubject = c.subject.toLowerCase().includes(q);
+      const matchNick = c.steam_username?.toLowerCase().includes(q);
+      const matchSteamId = c.steam_id?.includes(q);
+      if (!matchId && !matchSubject && !matchNick && !matchSteamId) return false;
     }
     return true;
   });
@@ -299,10 +303,10 @@ const ComplaintsTab = ({ token }: ComplaintsTabProps) => {
     <div>
       <div className="flex flex-wrap gap-3 mb-4 items-center">
         <Input
-          placeholder="Поиск по теме или нику..."
+          placeholder="Поиск по ID, теме, нику, Steam ID..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-64"
+          className="w-72"
         />
         <Select value={filterStatus} onValueChange={setFilterStatus}>
           <SelectTrigger className="w-36">
@@ -370,8 +374,24 @@ const ComplaintsTab = ({ token }: ComplaintsTabProps) => {
                       </span>
                     )}
                   </div>
-                  <p className="font-medium text-sm truncate">{c.subject}</p>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <p className="font-medium text-sm truncate">{c.subject}</p>
+                    <span className="text-xs text-muted-foreground flex-shrink-0">#{c.id}</span>
+                  </div>
                   <p className="text-xs text-muted-foreground">{c.steam_username} · {new Date(c.created_at).toLocaleString('ru-RU')}</p>
+                  {c.steam_id && (
+                    <div className="flex items-center gap-1 mt-0.5" onClick={(e) => e.stopPropagation()}>
+                      <p className="text-xs text-muted-foreground">Steam ID: {c.steam_id}</p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-4 w-4 p-0"
+                        onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(c.steam_id); }}
+                      >
+                        <Icon name="Copy" size={10} />
+                      </Button>
+                    </div>
+                  )}
                 </div>
                 <Icon name="ChevronRight" size={18} className="text-muted-foreground flex-shrink-0" />
               </div>
