@@ -389,25 +389,28 @@ def add_reply(complaint_id: str, event: Dict[str, Any], user_data: Dict[str, Any
 
     msg_e = escape_sql(message)
     f = f"'{escape_sql(file_url)}'" if file_url else 'NULL'
-    is_admin_reply = 'TRUE' if can_reply and not is_author else 'FALSE'
+    is_mod_reply = can_reply and not is_author
+    is_admin_reply = 'TRUE' if is_mod_reply else 'FALSE'
 
-    # Для модератора сохраняем steam_id
+    # Для модератора сохраняем steam_id; для AdminPanel user_id = NULL
     mod_steam = user_data.get('steam_id', '')
-    mod_steam_sql = f"'{escape_sql(str(mod_steam))}'" if mod_steam and can_reply and not is_author else 'NULL'
+    mod_steam_sql = f"'{escape_sql(str(mod_steam))}'" if mod_steam and is_mod_reply else 'NULL'
+    uid_sql = 'NULL' if (is_mod_reply and not user_id) else str(user_id if user_id else 'NULL')
 
     cur.execute(
         f"INSERT INTO complaint_messages (complaint_id, user_id, message, file_url, is_admin_reply, moderator_steam_id) "
-        f"VALUES ({cid}, {user_id if user_id else 0}, '{msg_e}', {f}, {is_admin_reply}, {mod_steam_sql}) RETURNING *"
+        f"VALUES ({cid}, {uid_sql}, '{msg_e}', {f}, {is_admin_reply}, {mod_steam_sql}) RETURNING *"
     )
     msg = cur.fetchone()
 
-    new_status = 'in_progress' if (can_reply and not is_author) else complaint['status']
+    new_status = 'in_progress' if is_mod_reply else complaint['status']
     cur.execute(f"UPDATE complaints SET updated_at=CURRENT_TIMESTAMP, status='{new_status}' WHERE id={cid}")
     conn.commit(); cur.close(); conn.close()
 
     msg_dict = dict(msg)
-    if can_reply and not is_author:
-        msg_dict['admin_name'] = user_data.get('mod_name', 'Администратор')
+    if is_mod_reply:
+        display_name = user_data.get('mod_name') or user_data.get('full_name', 'Администратор')
+        msg_dict['admin_name'] = display_name
     return ok_response({'message': msg_dict}, 201)
 
 
@@ -432,7 +435,8 @@ def close_complaint(complaint_id: str, user_data: Dict[str, Any]) -> Dict[str, A
         cur.close(); conn.close()
         return error_response('Forbidden', 403)
 
-    # Сохраняем кто закрыл (steam_id модератора/adminpanel) — нужно для рейтинга
+    # Сохраняем steam_id того кто закрыл — для рейтинга.
+    # AdminPanel-admin не имеет steam_id, поэтому closed_by остаётся NULL (рейтинг не предлагается)
     closer_steam = user_data.get('steam_id', '')
     closed_by_sql = f"'{escape_sql(str(closer_steam))}'" if closer_steam and not is_author else 'NULL'
 

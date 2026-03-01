@@ -28,18 +28,18 @@ const ComplaintForm = ({ token, isBlocked, onCreated, onCancel }: ComplaintFormP
   });
   const [uploading, setUploading] = useState(false);
 
-  const ALLOWED_TYPES = ['image/jpeg','image/png','image/gif','image/webp','image/bmp','video/mp4','video/webm','video/mov','video/avi','video/mkv','video/quicktime'];
-  const MAX_FILE_SIZE = 100 * 1024 * 1024;
+  const ALLOWED_TYPES = ['image/jpeg','image/png','image/gif','image/webp','image/bmp','video/mp4','video/webm','video/quicktime'];
+  const MAX_FILE_SIZE = 20 * 1024 * 1024;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       if (!ALLOWED_TYPES.includes(file.type)) {
-        toast({ title: 'Ошибка', description: 'Допустимы только фото (JPG, PNG, GIF, WEBP) и видео (MP4, MOV, AVI, MKV)', variant: 'destructive' });
+        toast({ title: 'Ошибка', description: 'Допустимы только фото (JPG, PNG, GIF, WEBP) и видео (MP4, MOV, WEBM)', variant: 'destructive' });
         return;
       }
       if (file.size > MAX_FILE_SIZE) {
-        toast({ title: 'Ошибка', description: 'Размер файла не должен превышать 100 МБ', variant: 'destructive' });
+        toast({ title: 'Ошибка', description: 'Размер файла не должен превышать 20 МБ', variant: 'destructive' });
         return;
       }
       setFormData({ ...formData, file });
@@ -177,7 +177,7 @@ const ComplaintForm = ({ token, isBlocked, onCreated, onCancel }: ComplaintFormP
             />
           </label>
           <p className="text-xs text-slate-500 mt-1">
-            Фото: JPG, PNG, GIF, WEBP · Видео: MP4, MOV, AVI, MKV · Макс. 100 МБ
+            Фото: JPG, PNG, GIF, WEBP · Видео: MP4, MOV, WEBM · Макс. 20 МБ
           </p>
           {formData.file && (
             <Button

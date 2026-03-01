@@ -174,6 +174,11 @@ const AppealForm = memo(({ token, onCreated, onCancel }: {
           reader.onload = (e) => resolve((e.target?.result as string).split(',')[1]);
           reader.readAsDataURL(file!);
         });
+        if (file.size > 20 * 1024 * 1024) {
+          toast({ title: 'Ошибка', description: 'Файл не должен превышать 20 МБ', variant: 'destructive' });
+          setUploading(false);
+          return;
+        }
         const up = await fetch('https://functions.poehali.dev/b36ed6dc-c690-4e62-b1e9-e3dd1b1d15c5', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'X-Auth-Token': token },
@@ -446,6 +451,11 @@ const ComplaintDetail = memo(({
 
     let file_url = '';
     if (replyFile) {
+      if (replyFile.size > 20 * 1024 * 1024) {
+        toast({ title: 'Ошибка', description: 'Файл не должен превышать 20 МБ', variant: 'destructive' });
+        setSending(false);
+        return;
+      }
       try {
         const base64 = await new Promise<string>((resolve) => {
           const reader = new FileReader();
