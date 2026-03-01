@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, memo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -15,6 +15,7 @@ const STEAM_AUTH_URL = 'https://functions.poehali.dev/560196bb-a6d4-41dc-9b1c-00
 interface Complaint {
   id: number;
   complaint_against: string;
+  complaint_type?: string;
   subject: string;
   reason: string;
   file_url: string | null;
@@ -39,23 +40,142 @@ interface Message {
   admin_name?: string;
 }
 
-const STATUS_CONFIG: Record<string, { color: string; label: string; icon: string }> = {
-  open:        { color: 'bg-green-500/20 text-green-400 border-green-500/30',    label: 'Открыта',   icon: 'CircleDot' },
-  in_progress: { color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30', label: 'В работе',  icon: 'Clock' },
-  closed:      { color: 'bg-slate-500/20 text-slate-400 border-slate-500/30',    label: 'Закрыта',   icon: 'CheckCircle' },
+const STATUS_CONFIG: Record<string, { color: string; label: string }> = {
+  open:        { color: 'bg-green-500/20 text-green-400 border-green-500/30',    label: 'Открыта' },
+  in_progress: { color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30', label: 'В работе' },
+  closed:      { color: 'bg-slate-500/20 text-slate-400 border-slate-500/30',    label: 'Закрыта' },
 };
 
 const getStatus = (s: string) => STATUS_CONFIG[s] ?? STATUS_CONFIG.closed;
 
+const TYPE_CONFIG: Record<string, { color: string; label: string; icon: string }> = {
+  complaint: { color: 'bg-blue-500/20 text-blue-400 border-blue-500/30',   label: 'Жалоба',     icon: 'AlertTriangle' },
+  appeal:    { color: 'bg-orange-500/20 text-orange-400 border-orange-500/30', label: 'Апелляция', icon: 'Scale' },
+};
+
+const getType = (t?: string) => TYPE_CONFIG[t || 'complaint'] ?? TYPE_CONFIG.complaint;
+
+/* ─── Форма апелляции ─── */
+const AppealForm = memo(({ token, onCreated, onCancel }: {
+  token: string;
+  onCreated: () => void;
+  onCancel: () => void;
+}) => {
+  const { toast } = useToast();
+  const [subject, setSubject] = useState('');
+  const [reason, setReason] = useState('');
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!subject.trim() || !reason.trim()) {
+      toast({ title: 'Ошибка', description: 'Заполните все поля', variant: 'destructive' });
+      return;
+    }
+    setUploading(true);
+    let file_url = '';
+
+    if (file) {
+      try {
+        const base64 = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve((e.target?.result as string).split(',')[1]);
+          reader.readAsDataURL(file!);
+        });
+        const up = await fetch('https://functions.poehali.dev/b36ed6dc-c690-4e62-b1e9-e3dd1b1d15c5', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Auth-Token': token },
+          body: JSON.stringify({ file: base64, filename: file.name, content_type: file.type }),
+        });
+        if (up.ok) { const d = await up.json(); file_url = d.url || ''; }
+      } catch { /* ignore */ }
+    }
+
+    try {
+      const res = await fetch(`${COMPLAINTS_API}/?action=create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Auth-Token': token },
+        body: JSON.stringify({ complaint_type: 'appeal', complaint_against: 'player', subject: subject.trim(), reason: reason.trim(), file_url }),
+      });
+      if (res.ok) {
+        toast({ title: 'Апелляция подана', description: 'Администраторы рассмотрят ваше обращение' });
+        onCreated();
+      } else {
+        const err = await res.json();
+        toast({ title: 'Ошибка', description: err.error || 'Не удалось подать апелляцию', variant: 'destructive' });
+      }
+    } catch { /* ignore */ }
+    finally { setUploading(false); }
+  };
+
+  return (
+    <Card className="p-6 bg-gradient-to-br from-slate-900 to-slate-800 border-orange-500/30">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-yellow-500 rounded-lg flex items-center justify-center">
+          <Icon name="Scale" className="text-white" size={20} />
+        </div>
+        <div>
+          <h2 className="text-xl font-bold text-white">Оспорить блокировку</h2>
+          <p className="text-slate-400 text-sm">Апелляция к администрации сервера</p>
+        </div>
+      </div>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="text-slate-300 text-sm mb-2 block">Тема апелляции *</label>
+          <input
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            placeholder="Кратко: за что заблокировали и почему считаете это ошибкой"
+            maxLength={200}
+            className="w-full px-3 py-2 rounded-md bg-slate-800 border border-slate-600 text-white placeholder:text-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50"
+          />
+        </div>
+        <div>
+          <label className="text-slate-300 text-sm mb-2 block">Описание ситуации *</label>
+          <Textarea
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="Опишите подробно: когда и за что получили бан, ваш Steam ID, ник, доказательства невиновности..."
+            rows={5}
+            maxLength={2000}
+            className="bg-slate-800 border-slate-600 text-white placeholder:text-slate-500"
+          />
+          <p className="text-xs text-slate-500 mt-1">{reason.length}/2000</p>
+        </div>
+        <div>
+          <label className="flex items-center gap-2 p-3 border-2 border-dashed border-slate-600 rounded-lg cursor-pointer hover:border-orange-500 transition-colors">
+            <Icon name="Paperclip" size={18} className="text-slate-400" />
+            <span className="text-slate-400 text-sm">{file ? file.name : 'Прикрепить доказательство (фото/видео)'}</span>
+            <input type="file" accept="image/*,video/mp4,video/webm,video/quicktime" className="hidden"
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+          </label>
+        </div>
+        <div className="flex gap-3 pt-2">
+          <Button type="submit" disabled={uploading}
+            className="flex-1 bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-white">
+            {uploading
+              ? <><Icon name="Loader2" size={16} className="mr-2 animate-spin" />Отправка...</>
+              : <><Icon name="Send" size={16} className="mr-2" />Подать апелляцию</>
+            }
+          </Button>
+          <Button type="button" variant="outline" onClick={onCancel} className="border-slate-600 text-slate-300">Отмена</Button>
+        </div>
+      </form>
+    </Card>
+  );
+});
+
 /* ─── View: список жалоб ─── */
-function ComplaintsList({
-  complaints, isAdmin, onOpen, onNew,
+const ComplaintsList = memo(({
+  complaints, isAdmin, onOpen, onNew, onAppeal,
 }: {
   complaints: Complaint[];
   isAdmin: boolean;
   onOpen: (c: Complaint) => void;
   onNew: () => void;
-}) {
+  onAppeal: () => void;
+}) => {
   const [tab, setTab] = useState<'all' | 'mine'>('all');
 
   const visible = tab === 'mine' ? complaints.filter(c => c.is_own) : complaints;
@@ -64,19 +184,28 @@ function ComplaintsList({
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white">Жалобы</h1>
+          <h1 className="text-3xl font-bold text-white">Жалобы и апелляции</h1>
           <p className="text-slate-400 text-sm mt-1">Публичные обращения игроков</p>
         </div>
-        <Button
-          onClick={onNew}
-          className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white"
-        >
-          <Icon name="Plus" size={16} className="mr-2" />
-          Подать жалобу
-        </Button>
+        <div className="flex gap-2 flex-wrap">
+          <Button
+            onClick={onAppeal}
+            variant="outline"
+            className="border-orange-500/50 text-orange-400 hover:bg-orange-500/10 hover:border-orange-400"
+          >
+            <Icon name="Scale" size={16} className="mr-2" />
+            Оспорить блокировку
+          </Button>
+          <Button
+            onClick={onNew}
+            className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white"
+          >
+            <Icon name="Plus" size={16} className="mr-2" />
+            Подать жалобу
+          </Button>
+        </div>
       </div>
 
-      {/* Табы */}
       <div className="flex gap-2">
         <button
           onClick={() => setTab('all')}
@@ -84,7 +213,7 @@ function ComplaintsList({
             tab === 'all' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'
           }`}
         >
-          Все жалобы <span className="ml-1 text-xs opacity-70">{complaints.length}</span>
+          Все <span className="ml-1 text-xs opacity-70">{complaints.length}</span>
         </button>
         <button
           onClick={() => setTab('mine')}
@@ -92,19 +221,20 @@ function ComplaintsList({
             tab === 'mine' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'
           }`}
         >
-          Мои жалобы <span className="ml-1 text-xs opacity-70">{complaints.filter(c => c.is_own).length}</span>
+          Мои <span className="ml-1 text-xs opacity-70">{complaints.filter(c => c.is_own).length}</span>
         </button>
       </div>
 
       {visible.length === 0 ? (
         <Card className="p-10 text-center bg-slate-900 border-slate-700">
           <Icon name="Inbox" size={40} className="text-slate-600 mx-auto mb-3" />
-          <p className="text-slate-400">Жалоб пока нет</p>
+          <p className="text-slate-400">Обращений пока нет</p>
         </Card>
       ) : (
         <div className="space-y-3">
           {visible.map(c => {
             const st = getStatus(c.status);
+            const tp = getType(c.complaint_type);
             return (
               <Card
                 key={c.id}
@@ -130,10 +260,13 @@ function ComplaintsList({
                         <span className="px-2 py-0.5 rounded text-xs bg-purple-500/20 text-purple-400 border border-purple-500/30 flex-shrink-0">Адм.</span>
                       )}
                     </div>
-                    <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 flex-wrap">
+                    <div className="flex items-center gap-2 mt-1 text-xs text-slate-500 flex-wrap">
                       <span>{c.steam_username || 'Игрок'}</span>
                       <span>·</span>
-                      <span>{c.complaint_against === 'admin' ? 'На администратора' : 'На игрока'}</span>
+                      {c.complaint_type === 'appeal'
+                        ? <span>Апелляция</span>
+                        : <span>{c.complaint_against === 'admin' ? 'На администратора' : 'На игрока'}</span>
+                      }
                       <span>·</span>
                       <span>{new Date(c.created_at).toLocaleDateString('ru-RU')}</span>
                       {c.message_count > 0 && (
@@ -141,9 +274,10 @@ function ComplaintsList({
                       )}
                     </div>
                   </div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-semibold border flex-shrink-0 ${st.color}`}>
-                    {st.label}
-                  </span>
+                  <div className="flex flex-col gap-1 items-end flex-shrink-0">
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold border ${tp.color}`}>{tp.label}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold border ${st.color}`}>{st.label}</span>
+                  </div>
                 </div>
               </Card>
             );
@@ -152,22 +286,18 @@ function ComplaintsList({
       )}
     </div>
   );
-}
+});
 
 /* ─── View: просмотр жалобы ─── */
-function ComplaintDetail({
-  complaint: initialComplaint,
-  token,
-  isAdmin,
-  onBack,
-  onClosed,
+const ComplaintDetail = memo(({
+  complaint: initialComplaint, token, isAdmin, onBack, onClosed,
 }: {
   complaint: Complaint;
   token: string;
   isAdmin: boolean;
   onBack: () => void;
   onClosed: (id: number) => void;
-}) {
+}) => {
   const { toast } = useToast();
   const [complaint, setComplaint] = useState(initialComplaint);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -179,6 +309,7 @@ function ComplaintDetail({
 
   const canReply = (complaint.is_own || isAdmin) && complaint.status !== 'closed';
   const canClose = (complaint.is_own || isAdmin) && complaint.status !== 'closed';
+  const tp = getType(complaint.complaint_type);
 
   useEffect(() => {
     (async () => {
@@ -197,7 +328,7 @@ function ComplaintDetail({
   }, [complaint.id, token]);
 
   const handleClose = async () => {
-    if (!window.confirm('Закрыть жалобу? Дальнейшие ответы будут недоступны.')) return;
+    if (!window.confirm('Закрыть обращение? Дальнейшие ответы будут недоступны.')) return;
     setClosing(true);
     try {
       const res = await fetch(`${COMPLAINTS_API}/?action=close&complaint_id=${complaint.id}`, {
@@ -208,7 +339,7 @@ function ComplaintDetail({
         const data = await res.json();
         setComplaint(data.complaint);
         onClosed(complaint.id);
-        toast({ title: 'Жалоба закрыта' });
+        toast({ title: 'Обращение закрыто' });
       }
     } catch { /* ignore */ }
     finally { setClosing(false); }
@@ -260,14 +391,18 @@ function ComplaintDetail({
     <div className="max-w-4xl mx-auto space-y-4">
       <Button onClick={onBack} variant="outline" className="border-slate-700 text-white hover:bg-slate-800">
         <Icon name="ArrowLeft" size={16} className="mr-2" />
-        Назад к жалобам
+        Назад
       </Button>
 
       <Card className="p-6 bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700">
         <div className="flex items-start justify-between gap-4 mb-4">
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-red-600 to-orange-500 rounded-lg flex items-center justify-center flex-shrink-0">
-              <Icon name={complaint.complaint_against === 'admin' ? 'Shield' : 'User'} className="text-white" size={18} />
+            <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+              complaint.complaint_type === 'appeal'
+                ? 'bg-gradient-to-br from-orange-500 to-yellow-500'
+                : 'bg-gradient-to-br from-red-600 to-orange-500'
+            }`}>
+              <Icon name={tp.icon as Parameters<typeof Icon>[0]['name']} className="text-white" size={18} />
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
@@ -275,10 +410,13 @@ function ComplaintDetail({
                 <span className="text-slate-500 text-sm">#{complaint.id}</span>
               </div>
               <div className="flex gap-2 mt-1 flex-wrap">
+                <span className={`px-3 py-0.5 rounded-full text-xs font-semibold border ${tp.color}`}>{tp.label}</span>
                 <span className={`px-3 py-0.5 rounded-full text-xs font-semibold border ${st.color}`}>{st.label}</span>
-                <span className="px-3 py-0.5 rounded-full text-xs bg-slate-700 text-slate-300 border border-slate-600">
-                  На: {complaint.complaint_against === 'admin' ? 'Администратора' : 'Игрока'}
-                </span>
+                {complaint.complaint_type !== 'appeal' && (
+                  <span className="px-3 py-0.5 rounded-full text-xs bg-slate-700 text-slate-300 border border-slate-600">
+                    На: {complaint.complaint_against === 'admin' ? 'Администратора' : 'Игрока'}
+                  </span>
+                )}
                 {complaint.steam_username && (
                   <span className="text-xs text-slate-500 self-center">от {complaint.steam_username}</span>
                 )}
@@ -302,7 +440,6 @@ function ComplaintDetail({
           )}
         </div>
 
-        {/* Сообщения */}
         {loadingMsgs ? (
           <div className="flex justify-center py-8">
             <Icon name="Loader2" size={24} className="animate-spin text-slate-500" />
@@ -352,7 +489,6 @@ function ComplaintDetail({
           </div>
         )}
 
-        {/* Форма ответа */}
         {canReply ? (
           <div className="border-t border-slate-700 pt-4 space-y-3">
             <Textarea
@@ -395,14 +531,14 @@ function ComplaintDetail({
           <div className="border-t border-slate-700 pt-4">
             <p className="text-center text-slate-500 text-sm flex items-center justify-center gap-2">
               <Icon name="Lock" size={14} />
-              Жалоба закрыта. Ответы недоступны.
+              Обращение закрыто. Ответы недоступны.
             </p>
           </div>
         ) : null}
       </Card>
     </div>
   );
-}
+});
 
 /* ─── Главная страница ─── */
 const Complaints = () => {
@@ -416,6 +552,7 @@ const Complaints = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [showAppeal, setShowAppeal] = useState(false);
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
 
   useEffect(() => {
@@ -447,10 +584,10 @@ const Complaints = () => {
       if (dashRes.ok) {
         const data = await dashRes.json();
         setIsBlocked(data.is_blocked || false);
-        setIsAdmin(prev => prev || data.is_admin || false);
+        setIsAdmin(prev => prev || data.complaint_access || data.is_admin || false);
       }
     } catch {
-      toast({ title: 'Ошибка', description: 'Не удалось загрузить жалобы', variant: 'destructive' });
+      toast({ title: 'Ошибка', description: 'Не удалось загрузить обращения', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -473,12 +610,9 @@ const Complaints = () => {
 
   const handleClosed = useCallback((id: number) => {
     setComplaints(prev => prev.map(c => c.id === id ? { ...c, status: 'closed' } : c));
-    if (selectedComplaint?.id === id) {
-      setSelectedComplaint(prev => prev ? { ...prev, status: 'closed' } : prev);
-    }
-  }, [selectedComplaint]);
+    setSelectedComplaint(prev => prev ? { ...prev, status: 'closed' } : prev);
+  }, []);
 
-  // Не авторизован
   if (!token) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex flex-col">
@@ -489,8 +623,8 @@ const Complaints = () => {
               <div className="w-20 h-20 bg-gradient-to-br from-red-600 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-6">
                 <Icon name="AlertTriangle" className="text-white" size={40} />
               </div>
-              <h1 className="text-3xl font-bold text-white mb-4">Жалобы</h1>
-              <p className="text-slate-400 mb-8">Авторизуйтесь через Steam, чтобы просматривать и подавать жалобы</p>
+              <h1 className="text-3xl font-bold text-white mb-4">Жалобы и апелляции</h1>
+              <p className="text-slate-400 mb-8">Авторизуйтесь через Steam, чтобы просматривать обращения и подавать жалобы</p>
               <Button onClick={handleLogin} className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-6 text-lg">
                 <Icon name="LogIn" size={20} className="mr-2" />
                 Войти через Steam
@@ -510,6 +644,14 @@ const Complaints = () => {
         {loading ? (
           <div className="flex justify-center items-center py-32">
             <Icon name="Loader2" size={32} className="animate-spin text-slate-500" />
+          </div>
+        ) : showAppeal ? (
+          <div className="max-w-4xl mx-auto">
+            <AppealForm
+              token={token}
+              onCreated={() => { setShowAppeal(false); loadList(token); }}
+              onCancel={() => setShowAppeal(false)}
+            />
           </div>
         ) : showForm ? (
           <div className="max-w-4xl mx-auto">
@@ -541,6 +683,7 @@ const Complaints = () => {
               isAdmin={isAdmin}
               onOpen={setSelectedComplaint}
               onNew={() => setShowForm(true)}
+              onAppeal={() => setShowAppeal(true)}
             />
           </>
         )}
