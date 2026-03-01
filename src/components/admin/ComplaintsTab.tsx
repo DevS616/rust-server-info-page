@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -175,22 +175,23 @@ const ComplaintsTab = ({ token }: ComplaintsTabProps) => {
   const [filterType, setFilterType] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Определяем роль при монтировании — независимо от загрузки жалоб
+  useEffect(() => {
+    fetch(`${COMPLAINTS_API}/?action=public_list`, { headers: { 'X-Auth-Token': token } })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setIsSuperadmin(data.is_superadmin || false); })
+      .catch(() => {});
+  }, [token]);
+
   const load = async () => {
     setLoading(true);
     try {
-      const [listRes, pubRes] = await Promise.all([
-        fetch(`${COMPLAINTS_API}/?action=list`, { headers: { 'X-Auth-Token': token } }),
-        fetch(`${COMPLAINTS_API}/?action=public_list`, { headers: { 'X-Auth-Token': token } }),
-      ]);
-      if (listRes.ok) {
-        const data = await listRes.json();
+      const res = await fetch(`${COMPLAINTS_API}/?action=list`, { headers: { 'X-Auth-Token': token } });
+      if (res.ok) {
+        const data = await res.json();
         setComplaints(data.complaints || []);
-        setLoaded(true);
       }
-      if (pubRes.ok) {
-        const data = await pubRes.json();
-        setIsSuperadmin(data.is_superadmin || false);
-      }
+      setLoaded(true);
     } finally {
       setLoading(false);
     }
@@ -325,12 +326,15 @@ const ComplaintsTab = ({ token }: ComplaintsTabProps) => {
 
   if (!loaded) {
     return (
-      <div className="text-center py-12">
-        <p className="text-muted-foreground mb-4">Нажмите кнопку для загрузки жалоб</p>
-        <Button onClick={load} disabled={loading}>
-          {loading ? <Icon name="Loader2" size={16} className="mr-2 animate-spin" /> : <Icon name="RefreshCw" size={16} className="mr-2" />}
-          Загрузить жалобы
-        </Button>
+      <div>
+        {isSuperadmin && <AdminAccessSection token={token} />}
+        <div className="text-center py-12">
+          <p className="text-muted-foreground mb-4">Нажмите кнопку для загрузки жалоб</p>
+          <Button onClick={load} disabled={loading}>
+            {loading ? <Icon name="Loader2" size={16} className="mr-2 animate-spin" /> : <Icon name="RefreshCw" size={16} className="mr-2" />}
+            Загрузить жалобы
+          </Button>
+        </div>
       </div>
     );
   }
