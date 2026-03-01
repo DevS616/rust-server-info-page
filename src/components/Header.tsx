@@ -49,7 +49,7 @@ const Header = ({ onOpenBonus, onOpenTelegram, bonusAvailable }: HeaderProps = {
             alt="DevilRust" 
             className="h-8 w-auto group-hover:drop-shadow-[0_0_12px_rgba(255,68,0,0.6)] transition-all"
           />
-          <span className="text-2xl font-bold tracking-wide" style={{fontFamily: 'Nunito, sans-serif', fontStyle: 'italic'}}>DEVILRUST</span>
+          <span className="text-2xl font-bold tracking-wide font-nunito-italic">DEVILRUST</span>
         </a>
 
         <nav className="hidden md:flex items-center space-x-6">
@@ -97,7 +97,7 @@ const Header = ({ onOpenBonus, onOpenTelegram, bonusAvailable }: HeaderProps = {
           </SheetTrigger>
           <SheetContent side="right" className="w-[300px] sm:w-[400px]">
             <SheetHeader>
-              <SheetTitle className="text-left" style={{fontFamily: 'Nunito, sans-serif', fontStyle: 'italic'}}>DEVILRUST</SheetTitle>
+              <SheetTitle className="text-left font-nunito-italic">DEVILRUST</SheetTitle>
             </SheetHeader>
             <nav className="flex flex-col space-y-4 mt-8">
               <a 

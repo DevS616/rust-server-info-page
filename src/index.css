@@ -38,6 +38,13 @@
   }
 }
 
+@layer components {
+  .font-nunito-italic {
+    font-family: "Nunito", sans-serif;
+    font-style: italic;
+  }
+}
+
 @layer base {
   * {
     @apply border-border;
@@ -74,6 +81,7 @@
 @layer utilities {
   .animate-fade-in {
     animation: fadeIn 0.6s ease-out;
+    will-change: opacity, transform;
   }
 
   @keyframes fadeIn {
@@ -93,6 +101,10 @@
       0 0 40px rgba(255, 68, 0, 0.3);
   }
 
+  .hero-glow-text {
+    filter: drop-shadow(0 0 25px rgba(255, 68, 0, 0.5));
+  }
+
   .glow-border {
     box-shadow:
       0 0 20px rgba(255, 68, 0, 0.3),
@@ -106,7 +118,11 @@
       rgba(0, 0, 0, 0.3) 100%
     );
     border: 1px solid rgba(255, 68, 0, 0.2);
-    transition: all 0.3s ease;
+    transition:
+      border-color 0.3s ease,
+      box-shadow 0.3s ease,
+      transform 0.3s ease;
+    will-change: transform;
   }
 
   .game-card:hover {
@@ -210,21 +226,16 @@
   .diamond-shine {
     background: linear-gradient(
       135deg,
-      #ea580c 0%,
-      #f97316 25%,
-      #fb923c 40%,
-      #fbbf24 50%,
-      #fcd34d 55%,
-      #fbbf24 60%,
-      #fb923c 70%,
-      #f97316 85%,
-      #ea580c 100%
+      #c2410c 0%,
+      #ea580c 30%,
+      #f97316 50%,
+      #ea580c 70%,
+      #c2410c 100%
     );
-    background-size: 400% 400%;
-    animation:
-      diamondShine 6s ease-in-out infinite,
-      diamondPulse 4s ease-in-out infinite;
+    background-size: 200% 200%;
+    animation: diamondShine 4s ease-in-out infinite;
     position: relative;
+    will-change: background-position;
   }
 
   .diamond-shine::before {
@@ -232,34 +243,32 @@
     position: absolute;
     top: 0;
     left: -100%;
-    width: 100%;
+    width: 60%;
     height: 100%;
     background: linear-gradient(
       90deg,
       transparent,
-      rgba(255, 255, 255, 0.5),
-      rgba(254, 240, 138, 0.6),
-      rgba(255, 255, 255, 0.5),
+      rgba(255, 255, 255, 0.15),
       transparent
     );
-    animation: diamondShine 6s ease-in-out infinite;
+    animation: shimmerSlide 4s ease-in-out infinite;
+    will-change: transform;
   }
 
-  .diamond-shine::after {
-    content: "✦";
-    position: absolute;
-    top: 10%;
-    right: 15%;
-    color: rgba(255, 255, 255, 0.8);
-    font-size: 12px;
-    animation: sparkle 4s ease-in-out infinite;
+  @keyframes shimmerSlide {
+    0% {
+      transform: translateX(-100%);
+    }
+    60%,
+    100% {
+      transform: translateX(300%);
+    }
   }
 
   .diamond-shine:hover {
-    animation:
-      diamondShine 3s ease-in-out infinite,
-      diamondPulse 2s ease-in-out infinite;
-    transform: scale(1.05);
+    animation: diamondShine 2s ease-in-out infinite;
+    transform: scale(1.03);
+    transition: transform 0.2s ease;
   }
 
   @keyframes floatCoin {
@@ -364,6 +373,42 @@
     animation: coinFallScreen 4s linear infinite;
   }
 
+  /* Coin rain overlay — pure CSS, no JS per-element */
+  .coin-rain-overlay {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 50;
+    overflow: hidden;
+  }
+
+  .coin-rain-overlay::before,
+  .coin-rain-overlay::after {
+    content: "💰";
+    position: absolute;
+    font-size: 20px;
+    opacity: 0.12;
+    animation: coinFallScreen 3s linear infinite;
+    will-change: transform;
+  }
+
+  .coin-rain-overlay::before {
+    left: 15%;
+    animation-delay: 0s;
+    font-size: 24px;
+  }
+
+  .coin-rain-overlay::after {
+    left: 70%;
+    animation-delay: 1.5s;
+    font-size: 18px;
+  }
+
+  /* Optimized holiday particle animations — pre-computed positions, no JS random */
+  .holiday-particle {
+    will-change: transform, opacity;
+  }
+
   @keyframes slideInUp {
     from {
       opacity: 0;
@@ -385,6 +430,7 @@
   }
 
   .server-card-visible {
-    animation: slideInUp 0.6s ease-out forwards;
+    animation: slideInUp 0.5s ease-out forwards;
+    will-change: opacity, transform;
   }
 }
