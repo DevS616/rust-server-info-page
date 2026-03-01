@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -10,7 +10,6 @@ import TelegramSection from '@/components/support/TelegramSection';
 import TicketForm from '@/components/support/TicketForm';
 import TicketsList from '@/components/support/TicketsList';
 import SupportStats from '@/components/support/SupportStats';
-
 
 const API_BASE = 'https://functions.poehali.dev';
 
@@ -47,11 +46,11 @@ const Support = () => {
     const urlToken = searchParams.get('token');
     const storedToken = localStorage.getItem('support_token');
     const redirectTicket = localStorage.getItem('redirect_to_ticket');
-    
+
     if (urlToken) {
       localStorage.setItem('support_token', urlToken);
       setToken(urlToken);
-      
+
       try {
         const payload = JSON.parse(atob(urlToken.split('.')[1]));
         localStorage.setItem('steam_user', JSON.stringify({
@@ -60,10 +59,8 @@ const Support = () => {
           userId: payload.user_id,
           avatar: payload.avatar || ''
         }));
-      } catch (e) {
-        console.error('Failed to decode token:', e);
-      }
-      
+      } catch { /* ignore */ }
+
       if (redirectTicket) {
         localStorage.removeItem('redirect_to_ticket');
         navigate(`/support/ticket/${redirectTicket}`, { replace: true });
@@ -72,7 +69,6 @@ const Support = () => {
       }
     } else if (storedToken) {
       setToken(storedToken);
-      
       if (redirectTicket) {
         localStorage.removeItem('redirect_to_ticket');
         navigate(`/support/ticket/${redirectTicket}`, { replace: true });
@@ -80,81 +76,71 @@ const Support = () => {
     }
   }, [searchParams, navigate]);
 
-  useEffect(() => {
-    loadServers();
-    if (token) {
-      loadDashboard();
-    } else {
-      setLoading(false);
-    }
-  }, [token]);
-
-  const loadServers = async () => {
+  const loadServers = useCallback(async () => {
     try {
       const res = await fetch(`${API_BASE}/cd63f370-b8ea-4adc-ace4-a274aa6f6e34/?active=true`);
       if (res.ok) {
         const data = await res.json();
         setServers(data.servers || []);
       }
-    } catch (error) {
-      console.error('Failed to load servers:', error);
-    }
-  };
+    } catch { /* ignore */ }
+  }, []);
 
-  const loadDashboard = async () => {
+  const loadDashboard = useCallback(async (currentToken: string) => {
     try {
       const res = await fetch(`${API_BASE}/887805c0-0d3a-4f32-8436-1ba1adda4a4f/?action=dashboard`, {
-        headers: { 'X-Auth-Token': token! }
+        headers: { 'X-Auth-Token': currentToken }
       });
-      
+
       if (res.ok) {
         const data = await res.json();
         setTickets(data.tickets || []);
         setIsBlocked(data.is_blocked);
         setTelegramLinked(data.telegram_linked || false);
         setTelegramUsername(data.telegram_username || null);
-        
+
         if (data.is_blocked) {
-          toast({ 
-            title: 'Аккаунт заблокирован', 
-            description: 'Вам запрещено создавать тикеты в техподдержке', 
+          toast({
+            title: 'Аккаунт заблокирован',
+            description: 'Вам запрещено создавать тикеты в техподдержке',
             variant: 'destructive',
             duration: 10000
           });
         }
       }
-    } catch (error) {
-      console.error('Failed to load dashboard:', error);
-    } finally {
+    } catch { /* ignore */ }
+    finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
-  const loadTickets = async () => {
-    await loadDashboard();
-  };
+  useEffect(() => {
+    loadServers();
+    if (token) {
+      loadDashboard(token);
+    } else {
+      setLoading(false);
+    }
+  }, [token, loadServers, loadDashboard]);
 
-  const handleSteamLogin = () => {
-    const baseUrl = window.location.origin;
-    window.location.href = `${API_BASE}/560196bb-a6d4-41dc-9b1c-0008c13bece3/?base_url=${encodeURIComponent(baseUrl)}`;
-  };
+  const handleSteamLogin = useCallback(() => {
+    window.location.href = `${API_BASE}/560196bb-a6d4-41dc-9b1c-0008c13bece3/?base_url=${encodeURIComponent(window.location.origin)}`;
+  }, []);
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     localStorage.removeItem('support_token');
     localStorage.removeItem('steam_user');
     setToken(null);
-    setUser(null);
     setTickets([]);
-  };
+  }, []);
 
-  const handleTicketCreated = async () => {
+  const handleTicketCreated = useCallback(() => {
     setShowForm(false);
-    // Не загружаем сразу, пользователь увидит новый тикет при обновлении страницы
-    toast({ 
-      title: 'Успешно!', 
-      description: 'Обращение создано. Обновите страницу чтобы увидеть его в списке.' 
+    toast({
+      title: 'Успешно!',
+      description: 'Обращение создано. Обновите страницу чтобы увидеть его в списке.'
     });
-  };
+  }, [toast]);
 
   if (!token) {
     return (
@@ -170,7 +156,7 @@ const Support = () => {
               <p className="text-slate-400 mb-8">
                 Авторизуйтесь через Steam, чтобы создать обращение
               </p>
-              <Button 
+              <Button
                 onClick={handleSteamLogin}
                 className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-6 text-lg"
               >
@@ -194,7 +180,7 @@ const Support = () => {
             <h1 className="text-4xl font-bold text-white">Техподдержка</h1>
             <div className="flex items-center gap-2">
               <Button
-                onClick={() => loadDashboard()}
+                onClick={() => loadDashboard(token)}
                 variant="outline"
                 disabled={loading}
                 className="border-slate-700 text-white hover:bg-slate-800"
@@ -202,7 +188,7 @@ const Support = () => {
                 <Icon name={loading ? 'Loader2' : 'RefreshCw'} size={16} className={`mr-2 ${loading ? 'animate-spin' : ''}`} />
                 Обновить
               </Button>
-              <Button 
+              <Button
                 onClick={handleLogout}
                 variant="outline"
                 className="border-slate-700 text-white hover:bg-slate-800"
@@ -213,18 +199,15 @@ const Support = () => {
             </div>
           </div>
 
-          <TelegramSection 
-            token={token} 
+          <TelegramSection
+            token={token}
             initialLinked={telegramLinked}
             initialUsername={telegramUsername}
-            onStatusChange={() => {
-              apiCache.invalidate('dashboard');
-              loadDashboard(false);
-            }}
+            onStatusChange={() => loadDashboard(token)}
           />
 
           {showForm ? (
-            <TicketForm 
+            <TicketForm
               token={token}
               servers={servers}
               isBlocked={isBlocked}
@@ -232,7 +215,7 @@ const Support = () => {
               onCancel={() => setShowForm(false)}
             />
           ) : (
-            <TicketsList 
+            <TicketsList
               tickets={tickets}
               loading={loading}
               onNewTicket={() => setShowForm(true)}

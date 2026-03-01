@@ -1,5 +1,5 @@
+import { memo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
 
 interface BonusSelectionModalProps {
@@ -58,9 +58,11 @@ const BonusSelectionModal = ({
             
             <div className="flex flex-col items-center gap-4">
               <div className="relative w-32 h-32">
-                <img 
+                <img
                   src="https://cdn.poehali.dev/projects/14cc16e7-6bfa-466f-b030-aa09db74a13a/bucket/03ad2c4b-4248-46e3-9ca3-53b41a565bb1.png"
                   alt="Колесо фортуны"
+                  loading="lazy"
+                  decoding="async"
                   className={`w-full h-full object-contain ${dailyAvailable ? 'drop-shadow-[0_0_20px_rgba(245,158,11,0.7)]' : 'opacity-50 grayscale'}`}
                 />
               </div>
@@ -111,9 +113,11 @@ const BonusSelectionModal = ({
             
             <div className="flex flex-col items-center gap-4">
               <div className="relative w-32 h-32">
-                <img 
+                <img
                   src="https://cdn.poehali.dev/projects/14cc16e7-6bfa-466f-b030-aa09db74a13a/bucket/6f5700c1-cece-4c29-b20d-2f0db0ba1703.png"
                   alt="Крейт"
+                  loading="lazy"
+                  decoding="async"
                   className={`w-full h-full object-contain ${weeklyAvailable ? 'drop-shadow-[0_0_20px_rgba(168,85,247,0.7)]' : 'opacity-50 grayscale'}`}
                 />
               </div>
@@ -144,4 +148,4 @@ const BonusSelectionModal = ({
   );
 };
 
-export default BonusSelectionModal;
+export default memo(BonusSelectionModal);

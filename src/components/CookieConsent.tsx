@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, memo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -15,10 +15,10 @@ const CookieConsent = () => {
     }
   }, []);
 
-  const handleAccept = () => {
+  const handleAccept = useCallback(() => {
     localStorage.setItem('cookieConsent', 'accepted');
     setIsVisible(false);
-  };
+  }, []);
 
   if (!isVisible) return null;
 
@@ -161,4 +161,4 @@ const CookieConsent = () => {
   );
 };
 
-export default CookieConsent;
+export default memo(CookieConsent);

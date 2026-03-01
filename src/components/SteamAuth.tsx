@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, memo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -26,7 +26,6 @@ const SteamAuth = () => {
       const token = localStorage.getItem('support_token');
       
       if (token && isTokenExpired(token)) {
-        console.log('Token expired, clearing user data');
         localStorage.removeItem('steam_user');
         localStorage.removeItem('support_token');
         setUser(null);
@@ -52,9 +51,7 @@ const SteamAuth = () => {
           }
           
           setUser(userData);
-        } catch (e) {
-          console.error('Failed to parse steam_user:', e);
-        }
+        } catch { /* ignore */ }
       } else {
         setUser(null);
       }
@@ -71,19 +68,18 @@ const SteamAuth = () => {
     };
   }, []);
 
-  const handleLogin = () => {
+  const handleLogin = useCallback(() => {
     const currentUrl = encodeURIComponent(window.location.origin);
-    const authUrl = `https://functions.poehali.dev/560196bb-a6d4-41dc-9b1c-0008c13bece3/?base_url=${currentUrl}`;
-    window.location.href = authUrl;
-  };
+    window.location.href = `https://functions.poehali.dev/560196bb-a6d4-41dc-9b1c-0008c13bece3/?base_url=${currentUrl}`;
+  }, []);
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     localStorage.removeItem('steam_user');
     localStorage.removeItem('support_token');
     localStorage.removeItem('bonus_after_auth');
     setUser(null);
     window.location.reload();
-  };
+  }, []);
 
   if (!user) {
     return (
@@ -117,4 +113,4 @@ const SteamAuth = () => {
   );
 };
 
-export default SteamAuth;
+export default memo(SteamAuth);

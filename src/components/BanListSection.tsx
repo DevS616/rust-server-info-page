@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
@@ -24,115 +24,119 @@ interface Ban {
   steamIdHistory: string;
 }
 
+const CACHE_KEY = 'banlist_cache';
+const CACHE_DURATION = 12 * 60 * 60 * 1000;
+
+const getLatestNickname = (nameHistory: string): string => {
+  try {
+    const history = JSON.parse(nameHistory);
+    if (Array.isArray(history) && history.length > 0) {
+      return history[history.length - 1].value || 'Неизвестно';
+    }
+  } catch { /* ignore */ }
+  return 'Неизвестно';
+};
+
+const formatDate = (timestamp: string): string => {
+  try {
+    const date = new Date(parseFloat(timestamp) * 1000);
+    return date.toLocaleString('ru-RU', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    });
+  } catch { return 'Навсегда'; }
+};
+
+/* Memoised row — prevents re-render of every row on hover */
+const BanRow = memo(({ ban, onDetails }: { ban: Ban; onDetails: (b: Ban) => void }) => (
+  <tr className="hover:bg-primary/5 transition-colors">
+    <td className="px-6 py-4 text-sm text-foreground font-medium">
+      {getLatestNickname(ban.nameHistory)}
+    </td>
+    <td className="px-6 py-4 text-sm text-muted-foreground font-mono">{ban.steamid}</td>
+    <td className="px-6 py-4 text-sm text-muted-foreground">
+      {ban.permanent === '1'
+        ? <span className="text-destructive font-semibold">Навсегда</span>
+        : formatDate(ban.timeUnbanned)}
+    </td>
+    <td className="px-6 py-4 text-sm text-muted-foreground">{ban.reason || 'Не указана'}</td>
+    <td className="px-6 py-4 text-center">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => onDetails(ban)}
+        className="border-primary/30 hover:border-primary hover:bg-primary/10"
+      >
+        <Icon name="Info" className="h-4 w-4 mr-1" />
+        Подробнее
+      </Button>
+    </td>
+  </tr>
+));
+BanRow.displayName = 'BanRow';
+
 const BanListSection = () => {
   const [bans, setBans] = useState<Ban[]>([]);
-  const [filteredBans, setFilteredBans] = useState<Ban[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [selectedBan, setSelectedBan] = useState<Ban | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  useEffect(() => {
-    fetchBans();
-  }, []);
-
-  useEffect(() => {
-    if (searchQuery.trim() === '') {
-      setFilteredBans(bans);
-    } else {
-      const query = searchQuery.toLowerCase();
-      const filtered = bans.filter(ban => {
-        const nickname = getLatestNickname(ban.nameHistory).toLowerCase();
-        const steamid = ban.steamid.toLowerCase();
-        return nickname.includes(query) || steamid.includes(query);
-      });
-      setFilteredBans(filtered);
-    }
+  /* Filtering with useMemo — no separate filteredBans state */
+  const filteredBans = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return bans;
+    return bans.filter(ban => {
+      const nickname = getLatestNickname(ban.nameHistory).toLowerCase();
+      return nickname.includes(q) || ban.steamid.toLowerCase().includes(q);
+    });
   }, [searchQuery, bans]);
 
-  const fetchBans = async (skipCache = false) => {
-    const CACHE_KEY = 'banlist_cache';
-    const CACHE_DURATION = 12 * 60 * 60 * 1000;
-    
+  const fetchBans = useCallback(async (skipCache = false) => {
     if (!skipCache) {
-      const cached = localStorage.getItem(CACHE_KEY);
-      if (cached) {
-        try {
+      try {
+        const cached = localStorage.getItem(CACHE_KEY);
+        if (cached) {
           const { data, timestamp } = JSON.parse(cached);
           if (Date.now() - timestamp < CACHE_DURATION) {
             setBans(data.bans || []);
-            setFilteredBans(data.bans || []);
             setLoading(false);
             return;
           }
-        } catch (e) {
-          console.error('Failed to parse banlist cache:', e);
         }
-      }
+      } catch { /* ignore */ }
     }
-    
+
+    setLoading(true);
     try {
-      setLoading(true);
       const response = await fetch('https://functions.poehali.dev/00e6cb95-28f5-49b7-b342-db4f9ae8ffd1');
       const data = await response.json();
       setBans(data.bans || []);
-      setFilteredBans(data.bans || []);
-      
-      localStorage.setItem(CACHE_KEY, JSON.stringify({
-        data,
-        timestamp: Date.now()
-      }));
-    } catch (error) {
-      console.error('Failed to fetch bans:', error);
+      localStorage.setItem(CACHE_KEY, JSON.stringify({ data, timestamp: Date.now() }));
+    } catch {
       setBans([]);
-      setFilteredBans([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const getLatestNickname = (nameHistory: string): string => {
-    try {
-      const history = JSON.parse(nameHistory);
-      if (Array.isArray(history) && history.length > 0) {
-        return history[history.length - 1].value || 'Неизвестно';
-      }
-    } catch {
-      return 'Неизвестно';
-    }
-    return 'Неизвестно';
-  };
+  useEffect(() => { fetchBans(); }, [fetchBans]);
 
-  const formatDate = (timestamp: string): string => {
-    try {
-      const date = new Date(parseFloat(timestamp) * 1000);
-      return date.toLocaleString('ru-RU', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-    } catch {
-      return 'Навсегда';
-    }
-  };
-
-  const handleShowDetails = (ban: Ban) => {
+  const handleShowDetails = useCallback((ban: Ban) => {
     setSelectedBan(ban);
     setIsDialogOpen(true);
-  };
+  }, []);
 
-  const copyToClipboard = (text: string) => {
+  const copyToClipboard = useCallback((text: string) => {
     navigator.clipboard.writeText(text);
-  };
+  }, []);
 
   return (
     <section className="py-20 min-h-screen bg-background relative">
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-gradient-to-b from-primary/10 via-transparent to-background" />
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-[128px]" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-destructive/10 rounded-full blur-[128px]" />
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-[128px] will-change-transform" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-destructive/10 rounded-full blur-[128px] will-change-transform" />
       </div>
 
       <div className="container relative z-10">
@@ -148,7 +152,7 @@ const BanListSection = () => {
         <div className="mb-8 max-w-2xl mx-auto">
           <div className="flex gap-2">
             <div className="relative flex-1">
-              <Icon name="Search" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
+              <Icon name="Search" className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-5 w-5" />
               <Input
                 type="text"
                 placeholder="Поиск по никнейму или Steam ID..."
@@ -170,7 +174,7 @@ const BanListSection = () => {
 
         {loading ? (
           <div className="flex justify-center items-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
           </div>
         ) : (
           <div className="bg-card/50 backdrop-blur-sm rounded-lg border border-primary/20 overflow-hidden shadow-lg">
@@ -178,21 +182,14 @@ const BanListSection = () => {
               <table className="w-full">
                 <thead className="bg-primary/10 border-b border-primary/20">
                   <tr>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-foreground uppercase tracking-wider">
-                      Никнейм
-                    </th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-foreground uppercase tracking-wider">
-                      Steam ID
-                    </th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-foreground uppercase tracking-wider">
-                      Срок истечения
-                    </th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-foreground uppercase tracking-wider">
-                      Причина
-                    </th>
-                    <th className="px-6 py-4 text-center text-sm font-semibold text-foreground uppercase tracking-wider">
-                      Действия
-                    </th>
+                    {['Никнейм', 'Steam ID', 'Срок истечения', 'Причина', 'Действия'].map((h, i) => (
+                      <th
+                        key={h}
+                        className={`px-6 py-4 text-sm font-semibold text-foreground uppercase tracking-wider ${i === 4 ? 'text-center' : 'text-left'}`}
+                      >
+                        {h}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-primary/10">
@@ -204,35 +201,7 @@ const BanListSection = () => {
                     </tr>
                   ) : (
                     filteredBans.map((ban) => (
-                      <tr key={ban.id} className="hover:bg-primary/5 transition-colors">
-                        <td className="px-6 py-4 text-sm text-foreground font-medium">
-                          {getLatestNickname(ban.nameHistory)}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-muted-foreground font-mono">
-                          {ban.steamid}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-muted-foreground">
-                          {ban.permanent === '1' ? (
-                            <span className="text-destructive font-semibold">Навсегда</span>
-                          ) : (
-                            formatDate(ban.timeUnbanned)
-                          )}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-muted-foreground">
-                          {ban.reason || 'Не указана'}
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleShowDetails(ban)}
-                            className="border-primary/30 hover:border-primary hover:bg-primary/10"
-                          >
-                            <Icon name="Info" className="h-4 w-4 mr-1" />
-                            Подробнее
-                          </Button>
-                        </td>
-                      </tr>
+                      <BanRow key={ban.id} ban={ban} onDetails={handleShowDetails} />
                     ))
                   )}
                 </tbody>
@@ -262,11 +231,7 @@ const BanListSection = () => {
                   <p className="text-sm text-muted-foreground mb-1">Steam ID</p>
                   <div className="flex items-center gap-2">
                     <p className="font-mono text-sm">{selectedBan.steamid}</p>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => copyToClipboard(selectedBan.steamid)}
-                    >
+                    <Button variant="ghost" size="sm" onClick={() => copyToClipboard(selectedBan.steamid)}>
                       <Icon name="Copy" className="h-4 w-4" />
                     </Button>
                   </div>
@@ -286,11 +251,9 @@ const BanListSection = () => {
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Срок истечения</p>
                   <p className="text-sm">
-                    {selectedBan.permanent === '1' ? (
-                      <span className="text-destructive font-semibold">Навсегда</span>
-                    ) : (
-                      formatDate(selectedBan.timeUnbanned)
-                    )}
+                    {selectedBan.permanent === '1'
+                      ? <span className="text-destructive font-semibold">Навсегда</span>
+                      : formatDate(selectedBan.timeUnbanned)}
                   </p>
                 </div>
               </div>
@@ -306,4 +269,4 @@ const BanListSection = () => {
   );
 };
 
-export default BanListSection;
+export default memo(BanListSection);

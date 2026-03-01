@@ -17,8 +17,7 @@ export const decodeToken = (token: string): TokenPayload | null => {
         .join('')
     );
     return JSON.parse(jsonPayload);
-  } catch (e) {
-    console.error('Failed to decode token:', e);
+  } catch {
     return null;
   }
 };
@@ -49,14 +48,12 @@ export const refreshTokenIfNeeded = async (): Promise<boolean> => {
   }
   
   if (isTokenExpired(token)) {
-    console.log('Token expired, clearing auth data');
     localStorage.removeItem('support_token');
     localStorage.removeItem('steam_user');
     return false;
   }
   
   if (isTokenExpiringSoon(token, 7)) {
-    console.log('Token expiring soon, silent refresh recommended');
     return true;
   }
   

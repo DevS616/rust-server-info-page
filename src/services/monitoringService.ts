@@ -82,9 +82,7 @@ class MonitoringService {
           this.notify();
           return;
         }
-      } catch (e) {
-        console.error('Failed to parse monitoring cache:', e);
-      }
+      } catch { /* ignore stale cache */ }
     }
 
     this.isFetching = true;
@@ -110,11 +108,8 @@ class MonitoringService {
         
         this.notify();
       }
-    } catch (error) {
-      if (!this.useFallback) {
-        console.warn('Используются резервные данные');
-        this.useFallback = true;
-      }
+    } catch {
+      this.useFallback = true;
     } finally {
       this.isFetching = false;
     }
@@ -122,7 +117,6 @@ class MonitoringService {
 
   private startAutoFetch(): void {
     let lastFetchTime = Date.now();
-    const MIN_FETCH_INTERVAL = 30 * 60 * 1000;
 
     this.fetchData();
     this.fetchInterval = window.setInterval(() => {
