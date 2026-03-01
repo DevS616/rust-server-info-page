@@ -12,13 +12,15 @@ def escape_sql(value: str) -> str:
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
     API для работы с жалобами.
-    POST ?action=create - создание новой жалобы
-    GET ?action=dashboard - дашборд пользователя
-    GET ?action=list - список всех жалоб (только для админов)
-    GET ?complaint_id=X - детали жалобы
-    POST ?action=reply&complaint_id=X - добавить ответ
-    PUT ?action=status&complaint_id=X - изменить статус (только для админов)
-    DELETE ?complaint_id=X - удалить жалобу (только для админов)
+    POST ?action=create          — создание жалобы (авторизован)
+    GET  ?action=dashboard       — мои жалобы (авторизован)
+    GET  ?action=public_list     — все жалобы публично (авторизован)
+    GET  ?complaint_id=X         — детали жалобы (авторизован, автор или любой авторизованный)
+    POST ?action=reply&complaint_id=X — добавить ответ (автор или admin)
+    PUT  ?action=close&complaint_id=X — закрыть тему (автор своей или admin любой)
+    PUT  ?action=status&complaint_id=X — изменить статус (только admin)
+    DELETE ?complaint_id=X       — удалить жалобу (только admin)
+    POST ?action=block_user      — заблокировать пользователя (только admin)
     """
     method = event.get('httpMethod', 'GET')
 
@@ -42,6 +44,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     if not user_data:
         return error_response('Unauthorized', 401)
 
+    # Обогащаем user_data флагом is_admin из таблицы admins по steam_id
+    user_data = enrich_with_admin_status(user_data)
+
     params = event.get('queryStringParameters') or {}
     action = params.get('action', '')
     complaint_id = params.get('complaint_id', '')
@@ -50,12 +55,16 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         return create_complaint(event, user_data)
     elif method == 'GET' and action == 'dashboard':
         return get_dashboard(user_data)
+    elif method == 'GET' and action == 'public_list':
+        return get_public_list(user_data)
     elif method == 'GET' and action == 'list':
         return list_complaints(user_data)
     elif method == 'GET' and complaint_id:
         return get_complaint_details(complaint_id, user_data)
     elif method == 'POST' and action == 'reply' and complaint_id:
         return add_reply(complaint_id, event, user_data)
+    elif method == 'PUT' and action == 'close' and complaint_id:
+        return close_complaint(complaint_id, user_data)
     elif method == 'PUT' and action == 'status' and complaint_id:
         return update_status(complaint_id, event, user_data)
     elif method == 'DELETE' and complaint_id:
@@ -77,11 +86,43 @@ def verify_token(token: Optional[str]) -> Optional[Dict[str, Any]]:
         return None
 
 
+def enrich_with_admin_status(user_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Проверяет, является ли пользователь администратором по steam_id в таблице admins."""
+    steam_id = str(user_data.get('steam_id', ''))
+    if not steam_id:
+        return user_data
+    try:
+        conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute(f"SELECT id, full_name, role FROM admins WHERE steam_id = '{escape_sql(steam_id)}'")
+        admin = cur.fetchone()
+        cur.close()
+        conn.close()
+        if admin:
+            user_data = dict(user_data)
+            user_data['is_admin'] = True
+            user_data['admin_id'] = int(admin['id'])
+            user_data['admin_name'] = admin['full_name'] or 'Администратор'
+            user_data['admin_role'] = admin['role']
+    except:
+        pass
+    return user_data
+
+
 def error_response(message: str, status: int = 400) -> Dict[str, Any]:
     return {
         'statusCode': status,
         'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
         'body': json.dumps({'error': message}),
+        'isBase64Encoded': False
+    }
+
+
+def ok_response(data: dict, status: int = 200) -> Dict[str, Any]:
+    return {
+        'statusCode': status,
+        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+        'body': json.dumps(data, default=str),
         'isBase64Encoded': False
     }
 
@@ -132,12 +173,7 @@ def create_complaint(event: Dict[str, Any], user_data: Dict[str, Any]) -> Dict[s
     cur.close()
     conn.close()
 
-    return {
-        'statusCode': 201,
-        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-        'body': json.dumps({'complaint': dict(complaint), 'message': dict(first_message)}, default=str),
-        'isBase64Encoded': False
-    }
+    return ok_response({'complaint': dict(complaint), 'message': dict(first_message)}, 201)
 
 
 def get_dashboard(user_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -167,15 +203,45 @@ def get_dashboard(user_data: Dict[str, Any]) -> Dict[str, Any]:
     cur.close()
     conn.close()
 
-    return {
-        'statusCode': 200,
-        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-        'body': json.dumps({
-            'is_blocked': user['is_blocked'],
-            'complaints': [dict(c) for c in complaints]
-        }, default=str),
-        'isBase64Encoded': False
-    }
+    return ok_response({
+        'is_blocked': user['is_blocked'],
+        'is_admin': user_data.get('is_admin', False),
+        'complaints': [dict(c) for c in complaints]
+    })
+
+
+def get_public_list(user_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Возвращает публичный список всех жалоб для авторизованных пользователей."""
+    conn = psycopg2.connect(os.environ['DATABASE_URL'])
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    user_id = int(user_data['user_id'])
+    is_admin = user_data.get('is_admin', False)
+
+    cur.execute(f"""
+        SELECT c.id, c.complaint_against, c.subject, c.status, c.created_at, c.updated_at,
+               c.user_id,
+               u.steam_username, u.steam_avatar,
+               (SELECT COUNT(*) FROM complaint_messages WHERE complaint_id = c.id) as message_count,
+               (c.user_id = {user_id}) as is_own
+        FROM complaints c
+        LEFT JOIN users u ON c.user_id = u.id
+        ORDER BY
+            CASE WHEN c.status = 'open' THEN 0
+                 WHEN c.status = 'in_progress' THEN 1
+                 ELSE 2 END,
+            c.created_at DESC
+    """)
+    complaints = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return ok_response({
+        'complaints': [dict(c) for c in complaints],
+        'is_admin': is_admin,
+        'current_user_id': user_id
+    })
 
 
 def list_complaints(user_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -198,12 +264,7 @@ def list_complaints(user_data: Dict[str, Any]) -> Dict[str, Any]:
     cur.close()
     conn.close()
 
-    return {
-        'statusCode': 200,
-        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-        'body': json.dumps({'complaints': [dict(c) for c in complaints]}, default=str),
-        'isBase64Encoded': False
-    }
+    return ok_response({'complaints': [dict(c) for c in complaints]})
 
 
 def get_complaint_details(complaint_id: str, user_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -227,11 +288,7 @@ def get_complaint_details(complaint_id: str, user_data: Dict[str, Any]) -> Dict[
         conn.close()
         return error_response('Complaint not found', 404)
 
-    if not is_admin and int(complaint['user_id']) != user_id:
-        cur.close()
-        conn.close()
-        return error_response('Forbidden', 403)
-
+    # Любой авторизованный пользователь может просматривать жалобы
     cur.execute(f"""
         SELECT cm.*, u.steam_username as user_name, u.steam_avatar as user_avatar,
                a.full_name as admin_name
@@ -246,12 +303,10 @@ def get_complaint_details(complaint_id: str, user_data: Dict[str, Any]) -> Dict[
     cur.close()
     conn.close()
 
-    return {
-        'statusCode': 200,
-        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-        'body': json.dumps({'complaint': dict(complaint), 'messages': [dict(m) for m in messages]}, default=str),
-        'isBase64Encoded': False
-    }
+    complaint_dict = dict(complaint)
+    complaint_dict['is_own'] = (int(complaint['user_id']) == user_id)
+
+    return ok_response({'complaint': complaint_dict, 'messages': [dict(m) for m in messages]})
 
 
 def add_reply(complaint_id: str, event: Dict[str, Any], user_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -277,6 +332,12 @@ def add_reply(complaint_id: str, event: Dict[str, Any], user_data: Dict[str, Any
         conn.close()
         return error_response('Complaint not found', 404)
 
+    if complaint['status'] == 'closed':
+        cur.close()
+        conn.close()
+        return error_response('Жалоба закрыта. Отвечать нельзя.', 403)
+
+    # Отвечать может: автор жалобы или админ
     if not is_admin and int(complaint['user_id']) != user_id:
         cur.close()
         conn.close()
@@ -284,26 +345,68 @@ def add_reply(complaint_id: str, event: Dict[str, Any], user_data: Dict[str, Any
 
     message_e = escape_sql(message)
     file_sql = f"'{escape_sql(file_url)}'" if file_url else 'NULL'
-    admin_reply = 'TRUE' if is_admin else 'FALSE'
+    is_admin_reply = 'TRUE' if is_admin else 'FALSE'
+    # Для is_admin_reply используем admin_id если есть, иначе user_id
+    writer_id = user_data.get('admin_id', user_id) if is_admin else user_id
 
     cur.execute(
         f"INSERT INTO complaint_messages (complaint_id, user_id, message, file_url, is_admin_reply) "
-        f"VALUES ({cid}, {user_id}, '{message_e}', {file_sql}, {admin_reply}) RETURNING *"
+        f"VALUES ({cid}, {writer_id}, '{message_e}', {file_sql}, {is_admin_reply}) RETURNING *"
     )
     msg = cur.fetchone()
 
-    cur.execute(f"UPDATE complaints SET updated_at = CURRENT_TIMESTAMP, status = CASE WHEN '{admin_reply}' = 'TRUE' THEN 'in_progress' ELSE status END WHERE id = {cid}")
+    new_status = 'in_progress' if is_admin else complaint['status']
+    cur.execute(f"UPDATE complaints SET updated_at = CURRENT_TIMESTAMP, status = '{new_status}' WHERE id = {cid}")
 
     conn.commit()
     cur.close()
     conn.close()
 
-    return {
-        'statusCode': 201,
-        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-        'body': json.dumps({'message': dict(msg)}, default=str),
-        'isBase64Encoded': False
-    }
+    msg_dict = dict(msg)
+    if is_admin:
+        msg_dict['admin_name'] = user_data.get('admin_name', 'Администратор')
+    else:
+        msg_dict['user_name'] = user_data.get('username', '')
+
+    return ok_response({'message': msg_dict}, 201)
+
+
+def close_complaint(complaint_id: str, user_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Закрыть жалобу может автор (своя) или любой администратор."""
+    conn = psycopg2.connect(os.environ['DATABASE_URL'])
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    user_id = int(user_data['user_id'])
+    is_admin = user_data.get('is_admin', False)
+    cid = int(complaint_id)
+
+    cur.execute(f"SELECT * FROM complaints WHERE id = {cid}")
+    complaint = cur.fetchone()
+
+    if not complaint:
+        cur.close()
+        conn.close()
+        return error_response('Complaint not found', 404)
+
+    if complaint['status'] == 'closed':
+        cur.close()
+        conn.close()
+        return error_response('Жалоба уже закрыта', 400)
+
+    # Закрыть может: автор (только свою) или любой admin
+    if not is_admin and int(complaint['user_id']) != user_id:
+        cur.close()
+        conn.close()
+        return error_response('Forbidden', 403)
+
+    cur.execute(f"UPDATE complaints SET status = 'closed', updated_at = CURRENT_TIMESTAMP WHERE id = {cid} RETURNING *")
+    updated = cur.fetchone()
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return ok_response({'complaint': dict(updated)})
 
 
 def update_status(complaint_id: str, event: Dict[str, Any], user_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -327,12 +430,7 @@ def update_status(complaint_id: str, event: Dict[str, Any], user_data: Dict[str,
     cur.close()
     conn.close()
 
-    return {
-        'statusCode': 200,
-        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-        'body': json.dumps({'complaint': dict(complaint)}, default=str),
-        'isBase64Encoded': False
-    }
+    return ok_response({'complaint': dict(complaint)})
 
 
 def delete_complaint(complaint_id: str, user_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -350,12 +448,7 @@ def delete_complaint(complaint_id: str, user_data: Dict[str, Any]) -> Dict[str, 
     cur.close()
     conn.close()
 
-    return {
-        'statusCode': 200,
-        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-        'body': json.dumps({'success': True}),
-        'isBase64Encoded': False
-    }
+    return ok_response({'success': True})
 
 
 def block_user(event: Dict[str, Any], user_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -382,9 +475,4 @@ def block_user(event: Dict[str, Any], user_data: Dict[str, Any]) -> Dict[str, An
     if not user:
         return error_response('User not found', 404)
 
-    return {
-        'statusCode': 200,
-        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-        'body': json.dumps({'user': dict(user)}, default=str),
-        'isBase64Encoded': False
-    }
+    return ok_response({'user': dict(user)})
