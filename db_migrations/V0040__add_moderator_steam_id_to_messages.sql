@@ -1,0 +1,1 @@
+ALTER TABLE complaint_messages ADD COLUMN IF NOT EXISTS moderator_steam_id VARCHAR(50) NULL;

@@ -4,25 +4,26 @@ import jwt
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from typing import Dict, Any, Optional
-from datetime import datetime
 
 def escape_sql(value: str) -> str:
     return value.replace("'", "''")
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
-    API для работы с жалобами и апелляциями.
-    POST ?action=create          — создание (тип: complaint/appeal)
-    GET  ?action=dashboard       — мои жалобы
-    GET  ?action=public_list     — все жалобы публично (авторизован)
-    GET  ?complaint_id=X         — детали жалобы
-    POST ?action=reply&complaint_id=X — добавить ответ (автор или admin с complaint_access)
-    PUT  ?action=close&complaint_id=X — закрыть (автор своей или admin с complaint_access)
-    PUT  ?action=status&complaint_id=X — изменить статус (admin с complaint_access)
-    DELETE ?complaint_id=X       — удалить (суперадмин)
-    POST ?action=block_user      — заблокировать (суперадмин)
-    GET  ?action=list_admins     — список админов с complaint_access (суперадмин)
-    PUT  ?action=set_complaint_access — выдать/забрать доступ (суперадмин)
+    API жалоб и апелляций.
+    GET  ?action=public_list         — список всех (авторизован)
+    GET  ?action=dashboard           — мои жалобы
+    GET  ?action=list                — все жалобы (adminpanel)
+    GET  ?action=list_moderators     — список модераторов (adminpanel)
+    POST ?action=add_moderator       — добавить модератора (adminpanel)
+    DELETE ?action=remove_moderator&mod_id=X — удалить модератора (adminpanel)
+    POST ?action=create              — создать жалобу/апелляцию
+    GET  ?complaint_id=X             — детали
+    POST ?action=reply&complaint_id=X
+    PUT  ?action=close&complaint_id=X
+    PUT  ?action=status&complaint_id=X
+    DELETE ?complaint_id=X
+    POST ?action=block_user
     """
     method = event.get('httpMethod', 'GET')
 
@@ -46,7 +47,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     if not user_data:
         return error_response('Unauthorized', 401)
 
-    user_data = enrich_with_admin_status(user_data)
+    # Определяем права
+    user_data = enrich_permissions(user_data)
 
     params = event.get('queryStringParameters') or {}
     action = params.get('action', '')
@@ -60,10 +62,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         return get_public_list(user_data)
     elif method == 'GET' and action == 'list':
         return list_complaints(user_data)
-    elif method == 'GET' and action == 'list_admins':
-        return list_admins_access(user_data)
-    elif method == 'PUT' and action == 'set_complaint_access':
-        return set_complaint_access(event, user_data)
+    elif method == 'GET' and action == 'list_moderators':
+        return list_moderators(user_data)
+    elif method == 'POST' and action == 'add_moderator':
+        return add_moderator(event, user_data)
+    elif method == 'DELETE' and action == 'remove_moderator':
+        return remove_moderator(params, user_data)
     elif method == 'GET' and complaint_id:
         return get_complaint_details(complaint_id, user_data)
     elif method == 'POST' and action == 'reply' and complaint_id:
@@ -84,65 +88,51 @@ def verify_token(token: Optional[str]) -> Optional[Dict[str, Any]]:
     if not token:
         return None
     try:
-        secret = os.environ['JWT_SECRET']
-        payload = jwt.decode(token, secret, algorithms=['HS256'])
+        payload = jwt.decode(token, os.environ['JWT_SECRET'], algorithms=['HS256'])
         return payload
     except:
         return None
 
 
-def enrich_with_admin_status(user_data: Dict[str, Any]) -> Dict[str, Any]:
+def enrich_permissions(user_data: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Устанавливает is_admin, complaint_access, is_superadmin.
-    Случай 1: AdminPanel JWT (admin_id в токене) — ищем по admin_id.
-    Случай 2: Steam JWT (steam_id в токене) — ищем по steam_id.
+    Устанавливает поля: is_adminpanel, can_reply, can_close, is_moderator, mod_name.
+    Источник прав:
+      - AdminPanel JWT (admin_id есть) → полный доступ
+      - Steam JWT → ищем steam_id в complaint_moderators
     """
     user_data = dict(user_data)
 
-    # Случай 1: AdminPanel JWT
-    admin_id_from_token = user_data.get('admin_id')
-    if admin_id_from_token and user_data.get('is_admin'):
+    # AdminPanel JWT — полный доступ
+    if user_data.get('admin_id') and user_data.get('is_admin'):
+        user_data['is_adminpanel'] = True
+        user_data['can_reply'] = True
+        user_data['can_close'] = True
+        user_data['is_moderator'] = True
+        user_data['mod_name'] = user_data.get('full_name', 'Администратор')
+        if not user_data.get('user_id'):
+            user_data['user_id'] = 0
+        return user_data
+
+    # Steam JWT — проверяем complaint_moderators
+    steam_id = str(user_data.get('steam_id', ''))
+    if steam_id:
         try:
             conn = psycopg2.connect(os.environ['DATABASE_URL'])
             cur = conn.cursor(cursor_factory=RealDictCursor)
-            cur.execute(f"SELECT id, full_name, role, complaint_access FROM admins WHERE id = {int(admin_id_from_token)}")
-            admin = cur.fetchone()
+            cur.execute(f"SELECT * FROM complaint_moderators WHERE steam_id = '{escape_sql(steam_id)}'")
+            mod = cur.fetchone()
             cur.close()
             conn.close()
-            if admin:
-                is_superadmin = admin['role'] == 'superadmin'
-                user_data['complaint_access'] = bool(admin['complaint_access']) or is_superadmin
-                user_data['is_superadmin'] = is_superadmin
-                user_data['admin_id'] = int(admin['id'])
-                user_data['admin_name'] = admin['full_name'] or 'Администратор'
-                user_data['admin_role'] = admin['role']
-                if not user_data.get('user_id'):
-                    user_data['user_id'] = 0
+            if mod:
+                user_data['is_moderator'] = True
+                user_data['can_reply'] = bool(mod['can_reply'])
+                user_data['can_close'] = bool(mod['can_close'])
+                user_data['mod_name'] = mod['name']
+                user_data['admin_id'] = None  # нет admin_id у Steam-модератора
         except:
             pass
-        return user_data
 
-    # Случай 2: Steam JWT
-    steam_id = str(user_data.get('steam_id', ''))
-    if not steam_id:
-        return user_data
-    try:
-        conn = psycopg2.connect(os.environ['DATABASE_URL'])
-        cur = conn.cursor(cursor_factory=RealDictCursor)
-        cur.execute(f"SELECT id, full_name, role, complaint_access FROM admins WHERE steam_id = '{escape_sql(steam_id)}'")
-        admin = cur.fetchone()
-        cur.close()
-        conn.close()
-        if admin:
-            is_superadmin = admin['role'] == 'superadmin'
-            user_data['is_admin'] = True
-            user_data['complaint_access'] = bool(admin['complaint_access']) or is_superadmin
-            user_data['is_superadmin'] = is_superadmin
-            user_data['admin_id'] = int(admin['id'])
-            user_data['admin_name'] = admin['full_name'] or 'Администратор'
-            user_data['admin_role'] = admin['role']
-    except:
-        pass
     return user_data
 
 
@@ -164,407 +154,327 @@ def ok_response(data: dict, status: int = 200) -> Dict[str, Any]:
     }
 
 
-def create_complaint(event: Dict[str, Any], user_data: Dict[str, Any]) -> Dict[str, Any]:
+# ── Управление модераторами (только AdminPanel) ──────────────────────────────
+
+def list_moderators(user_data: Dict[str, Any]) -> Dict[str, Any]:
+    if not user_data.get('is_adminpanel'):
+        return error_response('Forbidden', 403)
+    conn = psycopg2.connect(os.environ['DATABASE_URL'])
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    cur.execute("SELECT * FROM complaint_moderators ORDER BY created_at DESC")
+    mods = cur.fetchall()
+    cur.close()
+    conn.close()
+    return ok_response({'moderators': [dict(m) for m in mods]})
+
+
+def add_moderator(event: Dict[str, Any], user_data: Dict[str, Any]) -> Dict[str, Any]:
+    if not user_data.get('is_adminpanel'):
+        return error_response('Forbidden', 403)
     body = json.loads(event.get('body', '{}'))
-    complaint_against = body.get('complaint_against', '').strip()
-    subject = body.get('subject', '').strip()
-    reason = body.get('reason', '').strip()
-    file_url = body.get('file_url', '').strip()
-    complaint_type = body.get('complaint_type', 'complaint').strip()
+    steam_id = str(body.get('steam_id', '')).strip()
+    name = str(body.get('name', '')).strip()
+    can_reply = bool(body.get('can_reply', True))
+    can_close = bool(body.get('can_close', True))
 
-    if complaint_type not in ('complaint', 'appeal'):
-        complaint_type = 'complaint'
-
-    if not subject or not reason:
-        return error_response('subject and reason are required')
-
-    # Для жалобы complaint_against обязателен
-    if complaint_type == 'complaint' and not complaint_against:
-        return error_response('complaint_against is required for complaints')
-
-    if complaint_against and complaint_against not in ('admin', 'player'):
-        return error_response('complaint_against must be admin or player')
-
-    if not complaint_against:
-        complaint_against = 'player'
+    if not steam_id or not name:
+        return error_response('steam_id and name are required')
 
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor(cursor_factory=RealDictCursor)
-
-    user_id = int(user_data['user_id'])
-    cur.execute(f"SELECT is_blocked FROM users WHERE id = {user_id}")
-    user = cur.fetchone()
-
-    if user and user['is_blocked']:
-        cur.close()
-        conn.close()
-        return error_response('Ваш аккаунт заблокирован.', 403)
-
-    subject_e = escape_sql(subject)
-    reason_e = escape_sql(reason)
-    file_sql = f"'{escape_sql(file_url)}'" if file_url else 'NULL'
-    type_e = escape_sql(complaint_type)
-
+    sid = escape_sql(steam_id)
+    nm = escape_sql(name)
+    cr = 'TRUE' if can_reply else 'FALSE'
+    cc = 'TRUE' if can_close else 'FALSE'
     cur.execute(
-        f"INSERT INTO complaints (user_id, complaint_against, subject, reason, file_url, complaint_type) "
-        f"VALUES ({user_id}, '{complaint_against}', '{subject_e}', '{reason_e}', {file_sql}, '{type_e}') RETURNING *"
+        f"INSERT INTO complaint_moderators (steam_id, name, can_reply, can_close) "
+        f"VALUES ('{sid}', '{nm}', {cr}, {cc}) "
+        f"ON CONFLICT (steam_id) DO UPDATE SET name='{nm}', can_reply={cr}, can_close={cc} "
+        f"RETURNING *"
     )
-    complaint = cur.fetchone()
-    complaint_id = int(complaint['id'])
-
-    cur.execute(
-        f"INSERT INTO complaint_messages (complaint_id, user_id, message, file_url) "
-        f"VALUES ({complaint_id}, {user_id}, '{reason_e}', {file_sql}) RETURNING *"
-    )
-    first_message = cur.fetchone()
-
+    mod = cur.fetchone()
     conn.commit()
     cur.close()
     conn.close()
+    return ok_response({'moderator': dict(mod)}, 201)
 
+
+def remove_moderator(params: Dict[str, Any], user_data: Dict[str, Any]) -> Dict[str, Any]:
+    if not user_data.get('is_adminpanel'):
+        return error_response('Forbidden', 403)
+    mod_id = params.get('mod_id', '')
+    if not mod_id:
+        return error_response('mod_id is required')
+    conn = psycopg2.connect(os.environ['DATABASE_URL'])
+    cur = conn.cursor()
+    cur.execute(f"DELETE FROM complaint_moderators WHERE id = {int(mod_id)}")
+    conn.commit()
+    cur.close()
+    conn.close()
+    return ok_response({'success': True})
+
+
+# ── Пользовательские действия ─────────────────────────────────────────────────
+
+def create_complaint(event: Dict[str, Any], user_data: Dict[str, Any]) -> Dict[str, Any]:
+    body = json.loads(event.get('body', '{}'))
+    complaint_against = str(body.get('complaint_against', '')).strip()
+    subject = str(body.get('subject', '')).strip()
+    reason = str(body.get('reason', '')).strip()
+    file_url = str(body.get('file_url', '')).strip()
+    complaint_type = str(body.get('complaint_type', 'complaint')).strip()
+
+    if complaint_type not in ('complaint', 'appeal'):
+        complaint_type = 'complaint'
+    if not subject or not reason:
+        return error_response('subject and reason are required')
+    if complaint_type == 'complaint' and not complaint_against:
+        return error_response('complaint_against is required for complaints')
+    if not complaint_against:
+        complaint_against = 'player'
+    if complaint_against not in ('admin', 'player'):
+        return error_response('complaint_against must be admin or player')
+
+    user_id = int(user_data.get('user_id', 0))
+    if not user_id:
+        return error_response('Forbidden', 403)
+
+    conn = psycopg2.connect(os.environ['DATABASE_URL'])
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    cur.execute(f"SELECT is_blocked FROM users WHERE id = {user_id}")
+    user = cur.fetchone()
+    if user and user['is_blocked']:
+        cur.close(); conn.close()
+        return error_response('Ваш аккаунт заблокирован.', 403)
+
+    s = escape_sql(subject); r = escape_sql(reason)
+    f = f"'{escape_sql(file_url)}'" if file_url else 'NULL'
+    t = escape_sql(complaint_type); ca = escape_sql(complaint_against)
+
+    cur.execute(
+        f"INSERT INTO complaints (user_id, complaint_against, subject, reason, file_url, complaint_type) "
+        f"VALUES ({user_id}, '{ca}', '{s}', '{r}', {f}, '{t}') RETURNING *"
+    )
+    complaint = cur.fetchone()
+    cid = int(complaint['id'])
+    cur.execute(
+        f"INSERT INTO complaint_messages (complaint_id, user_id, message, file_url) "
+        f"VALUES ({cid}, {user_id}, '{r}', {f}) RETURNING *"
+    )
+    first_message = cur.fetchone()
+    conn.commit(); cur.close(); conn.close()
     return ok_response({'complaint': dict(complaint), 'message': dict(first_message)}, 201)
 
 
 def get_dashboard(user_data: Dict[str, Any]) -> Dict[str, Any]:
+    user_id = int(user_data.get('user_id', 0))
+    if not user_id:
+        return error_response('Forbidden', 403)
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor(cursor_factory=RealDictCursor)
-
-    user_id = int(user_data['user_id'])
-
     cur.execute(f"SELECT is_blocked FROM users WHERE id = {user_id}")
     user = cur.fetchone()
-
     if not user:
-        cur.close()
-        conn.close()
+        cur.close(); conn.close()
         return error_response('User not found', 404)
-
     cur.execute(f"""
         SELECT c.*,
-               (SELECT COUNT(*) FROM complaint_messages WHERE complaint_id = c.id) as message_count,
-               (SELECT COUNT(*) FROM complaint_messages WHERE complaint_id = c.id AND is_admin_reply = TRUE) as unread_count
-        FROM complaints c
-        WHERE c.user_id = {user_id}
-        ORDER BY c.created_at DESC
+               (SELECT COUNT(*) FROM complaint_messages WHERE complaint_id = c.id) as message_count
+        FROM complaints c WHERE c.user_id = {user_id} ORDER BY c.created_at DESC
     """)
     complaints = cur.fetchall()
-
-    cur.close()
-    conn.close()
-
+    cur.close(); conn.close()
     return ok_response({
         'is_blocked': user['is_blocked'],
-        'is_admin': user_data.get('is_admin', False),
-        'complaint_access': user_data.get('complaint_access', False),
+        'is_moderator': user_data.get('is_moderator', False),
         'complaints': [dict(c) for c in complaints]
     })
 
 
 def get_public_list(user_data: Dict[str, Any]) -> Dict[str, Any]:
-    """Возвращает публичный список всех жалоб и апелляций."""
+    user_id = int(user_data.get('user_id', 0))
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor(cursor_factory=RealDictCursor)
-
-    user_id = int(user_data['user_id'])
-    is_admin = user_data.get('complaint_access', False)
-
     cur.execute(f"""
-        SELECT c.id, c.complaint_against, c.subject, c.status, c.created_at, c.updated_at,
-               c.user_id, c.complaint_type,
+        SELECT c.id, c.complaint_against, c.complaint_type, c.subject, c.status,
+               c.created_at, c.updated_at, c.user_id,
                u.steam_username, u.steam_avatar,
                (SELECT COUNT(*) FROM complaint_messages WHERE complaint_id = c.id) as message_count,
                (c.user_id = {user_id}) as is_own
-        FROM complaints c
-        LEFT JOIN users u ON c.user_id = u.id
-        ORDER BY
-            CASE WHEN c.status = 'open' THEN 0
-                 WHEN c.status = 'in_progress' THEN 1
-                 ELSE 2 END,
-            c.created_at DESC
+        FROM complaints c LEFT JOIN users u ON c.user_id = u.id
+        ORDER BY CASE WHEN c.status='open' THEN 0 WHEN c.status='in_progress' THEN 1 ELSE 2 END, c.created_at DESC
     """)
     complaints = cur.fetchall()
-
-    cur.close()
-    conn.close()
-
+    cur.close(); conn.close()
     return ok_response({
         'complaints': [dict(c) for c in complaints],
-        'is_admin': is_admin,
-        'is_superadmin': user_data.get('is_superadmin', False),
-        'current_user_id': user_id
+        'is_moderator': user_data.get('is_moderator', False),
+        'is_adminpanel': user_data.get('is_adminpanel', False),
     })
 
 
 def list_complaints(user_data: Dict[str, Any]) -> Dict[str, Any]:
-    if not user_data.get('complaint_access') and not user_data.get('is_superadmin'):
+    if not user_data.get('is_adminpanel') and not user_data.get('is_moderator'):
         return error_response('Forbidden', 403)
-
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor(cursor_factory=RealDictCursor)
-
-    cur.execute(f"""
-        SELECT c.*,
-               u.steam_username, u.steam_avatar, u.steam_id, u.is_blocked as user_is_blocked,
+    cur.execute("""
+        SELECT c.*, u.steam_username, u.steam_avatar, u.steam_id, u.is_blocked as user_is_blocked,
                (SELECT COUNT(*) FROM complaint_messages WHERE complaint_id = c.id) as message_count
-        FROM complaints c
-        LEFT JOIN users u ON c.user_id = u.id
-        ORDER BY c.created_at DESC
+        FROM complaints c LEFT JOIN users u ON c.user_id = u.id ORDER BY c.created_at DESC
     """)
     complaints = cur.fetchall()
-
-    cur.close()
-    conn.close()
-
+    cur.close(); conn.close()
     return ok_response({'complaints': [dict(c) for c in complaints]})
 
 
-def list_admins_access(user_data: Dict[str, Any]) -> Dict[str, Any]:
-    """Список всех администраторов с флагом complaint_access. Только суперадмин."""
-    if not user_data.get('is_superadmin'):
-        return error_response('Forbidden', 403)
-
-    conn = psycopg2.connect(os.environ['DATABASE_URL'])
-    cur = conn.cursor(cursor_factory=RealDictCursor)
-
-    cur.execute("SELECT id, full_name, email, role, steam_id, complaint_access FROM admins ORDER BY role DESC, full_name ASC")
-    admins = cur.fetchall()
-
-    cur.close()
-    conn.close()
-
-    return ok_response({'admins': [dict(a) for a in admins]})
-
-
-def set_complaint_access(event: Dict[str, Any], user_data: Dict[str, Any]) -> Dict[str, Any]:
-    """Выдать или забрать complaint_access у администратора. Только суперадмин."""
-    if not user_data.get('is_superadmin'):
-        return error_response('Forbidden', 403)
-
-    body = json.loads(event.get('body', '{}'))
-    admin_id = body.get('admin_id')
-    access = body.get('access', False)
-
-    if not admin_id:
-        return error_response('admin_id is required')
-
-    conn = psycopg2.connect(os.environ['DATABASE_URL'])
-    cur = conn.cursor(cursor_factory=RealDictCursor)
-
-    access_val = 'TRUE' if access else 'FALSE'
-    cur.execute(f"UPDATE admins SET complaint_access = {access_val} WHERE id = {int(admin_id)} RETURNING id, full_name, role, complaint_access")
-    admin = cur.fetchone()
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    if not admin:
-        return error_response('Admin not found', 404)
-
-    return ok_response({'admin': dict(admin)})
-
-
 def get_complaint_details(complaint_id: str, user_data: Dict[str, Any]) -> Dict[str, Any]:
+    user_id = int(user_data.get('user_id', 0))
+    cid = int(complaint_id)
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor(cursor_factory=RealDictCursor)
-
-    user_id = int(user_data.get('user_id') or user_data.get('id') or 0)
-    cid = int(complaint_id)
-
     cur.execute(f"""
         SELECT c.*, u.steam_username, u.steam_avatar, u.steam_id, u.is_blocked as user_is_blocked
-        FROM complaints c
-        LEFT JOIN users u ON c.user_id = u.id
-        WHERE c.id = {cid}
+        FROM complaints c LEFT JOIN users u ON c.user_id = u.id WHERE c.id = {cid}
     """)
     complaint = cur.fetchone()
-
     if not complaint:
-        cur.close()
-        conn.close()
+        cur.close(); conn.close()
         return error_response('Complaint not found', 404)
-
     cur.execute(f"""
         SELECT cm.*, u.steam_username as user_name, u.steam_avatar as user_avatar,
-               a.full_name as admin_name
+               m.name as admin_name
         FROM complaint_messages cm
         LEFT JOIN users u ON cm.user_id = u.id AND cm.is_admin_reply = FALSE
-        LEFT JOIN admins a ON cm.user_id = a.id AND cm.is_admin_reply = TRUE
-        WHERE cm.complaint_id = {cid}
-        ORDER BY cm.created_at ASC
+        LEFT JOIN complaint_moderators m ON cm.moderator_steam_id = m.steam_id AND cm.is_admin_reply = TRUE
+        WHERE cm.complaint_id = {cid} ORDER BY cm.created_at ASC
     """)
     messages = cur.fetchall()
-
-    cur.close()
-    conn.close()
-
-    complaint_dict = dict(complaint)
-    complaint_dict['is_own'] = (int(complaint['user_id']) == user_id)
-
-    return ok_response({'complaint': complaint_dict, 'messages': [dict(m) for m in messages]})
+    cur.close(); conn.close()
+    d = dict(complaint)
+    d['is_own'] = (int(complaint['user_id']) == user_id)
+    return ok_response({'complaint': d, 'messages': [dict(m) for m in messages]})
 
 
 def add_reply(complaint_id: str, event: Dict[str, Any], user_data: Dict[str, Any]) -> Dict[str, Any]:
     body = json.loads(event.get('body', '{}'))
-    message = body.get('message', '').strip()
-    file_url = body.get('file_url', '').strip()
-
+    message = str(body.get('message', '')).strip()
+    file_url = str(body.get('file_url', '')).strip()
     if not message:
         return error_response('Message is required')
 
-    conn = psycopg2.connect(os.environ['DATABASE_URL'])
-    cur = conn.cursor(cursor_factory=RealDictCursor)
-
-    user_id = int(user_data['user_id'])
-    has_complaint_access = user_data.get('complaint_access', False)
+    user_id = int(user_data.get('user_id', 0))
+    can_reply = user_data.get('can_reply', False)
     cid = int(complaint_id)
 
+    conn = psycopg2.connect(os.environ['DATABASE_URL'])
+    cur = conn.cursor(cursor_factory=RealDictCursor)
     cur.execute(f"SELECT * FROM complaints WHERE id = {cid}")
     complaint = cur.fetchone()
-
     if not complaint:
-        cur.close()
-        conn.close()
+        cur.close(); conn.close()
         return error_response('Complaint not found', 404)
-
     if complaint['status'] == 'closed':
-        cur.close()
-        conn.close()
+        cur.close(); conn.close()
         return error_response('Жалоба закрыта. Отвечать нельзя.', 403)
 
-    if not has_complaint_access and int(complaint['user_id']) != user_id:
-        cur.close()
-        conn.close()
+    is_author = (int(complaint['user_id']) == user_id)
+    if not can_reply and not is_author:
+        cur.close(); conn.close()
         return error_response('Forbidden', 403)
 
-    message_e = escape_sql(message)
-    file_sql = f"'{escape_sql(file_url)}'" if file_url else 'NULL'
-    is_admin_reply = 'TRUE' if has_complaint_access else 'FALSE'
-    writer_id = user_data.get('admin_id', user_id) if has_complaint_access else user_id
+    msg_e = escape_sql(message)
+    f = f"'{escape_sql(file_url)}'" if file_url else 'NULL'
+    is_admin_reply = 'TRUE' if can_reply and not is_author else 'FALSE'
+
+    # Для модератора сохраняем steam_id
+    mod_steam = user_data.get('steam_id', '')
+    mod_steam_sql = f"'{escape_sql(str(mod_steam))}'" if mod_steam and can_reply and not is_author else 'NULL'
 
     cur.execute(
-        f"INSERT INTO complaint_messages (complaint_id, user_id, message, file_url, is_admin_reply) "
-        f"VALUES ({cid}, {writer_id}, '{message_e}', {file_sql}, {is_admin_reply}) RETURNING *"
+        f"INSERT INTO complaint_messages (complaint_id, user_id, message, file_url, is_admin_reply, moderator_steam_id) "
+        f"VALUES ({cid}, {user_id if user_id else 0}, '{msg_e}', {f}, {is_admin_reply}, {mod_steam_sql}) RETURNING *"
     )
     msg = cur.fetchone()
 
-    new_status = 'in_progress' if has_complaint_access else complaint['status']
-    cur.execute(f"UPDATE complaints SET updated_at = CURRENT_TIMESTAMP, status = '{new_status}' WHERE id = {cid}")
-
-    conn.commit()
-    cur.close()
-    conn.close()
+    new_status = 'in_progress' if (can_reply and not is_author) else complaint['status']
+    cur.execute(f"UPDATE complaints SET updated_at=CURRENT_TIMESTAMP, status='{new_status}' WHERE id={cid}")
+    conn.commit(); cur.close(); conn.close()
 
     msg_dict = dict(msg)
-    if has_complaint_access:
-        msg_dict['admin_name'] = user_data.get('admin_name', 'Администратор')
-    else:
-        msg_dict['user_name'] = user_data.get('username', '')
-
+    if can_reply and not is_author:
+        msg_dict['admin_name'] = user_data.get('mod_name', 'Администратор')
     return ok_response({'message': msg_dict}, 201)
 
 
 def close_complaint(complaint_id: str, user_data: Dict[str, Any]) -> Dict[str, Any]:
-    """Закрыть жалобу: автор (своя) или admin с complaint_access (любая)."""
-    conn = psycopg2.connect(os.environ['DATABASE_URL'])
-    cur = conn.cursor(cursor_factory=RealDictCursor)
-
-    user_id = int(user_data['user_id'])
-    has_complaint_access = user_data.get('complaint_access', False)
+    user_id = int(user_data.get('user_id', 0))
+    can_close = user_data.get('can_close', False)
     cid = int(complaint_id)
 
+    conn = psycopg2.connect(os.environ['DATABASE_URL'])
+    cur = conn.cursor(cursor_factory=RealDictCursor)
     cur.execute(f"SELECT * FROM complaints WHERE id = {cid}")
     complaint = cur.fetchone()
-
     if not complaint:
-        cur.close()
-        conn.close()
+        cur.close(); conn.close()
         return error_response('Complaint not found', 404)
-
     if complaint['status'] == 'closed':
-        cur.close()
-        conn.close()
+        cur.close(); conn.close()
         return error_response('Жалоба уже закрыта', 400)
 
-    if not has_complaint_access and int(complaint['user_id']) != user_id:
-        cur.close()
-        conn.close()
+    is_author = (user_id and int(complaint['user_id']) == user_id)
+    if not can_close and not is_author:
+        cur.close(); conn.close()
         return error_response('Forbidden', 403)
 
-    cur.execute(f"UPDATE complaints SET status = 'closed', updated_at = CURRENT_TIMESTAMP WHERE id = {cid} RETURNING *")
+    cur.execute(f"UPDATE complaints SET status='closed', updated_at=CURRENT_TIMESTAMP WHERE id={cid} RETURNING *")
     updated = cur.fetchone()
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
+    conn.commit(); cur.close(); conn.close()
     return ok_response({'complaint': dict(updated)})
 
 
 def update_status(complaint_id: str, event: Dict[str, Any], user_data: Dict[str, Any]) -> Dict[str, Any]:
-    if not user_data.get('complaint_access'):
+    if not user_data.get('can_close') and not user_data.get('is_adminpanel'):
         return error_response('Forbidden', 403)
-
     body = json.loads(event.get('body', '{}'))
-    status = body.get('status', '').strip()
-
+    status = str(body.get('status', '')).strip()
     if status not in ('open', 'in_progress', 'closed'):
         return error_response('Invalid status')
-
+    cid = int(complaint_id)
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor(cursor_factory=RealDictCursor)
-    cid = int(complaint_id)
-
-    cur.execute(f"UPDATE complaints SET status = '{status}', updated_at = CURRENT_TIMESTAMP WHERE id = {cid} RETURNING *")
+    cur.execute(f"UPDATE complaints SET status='{status}', updated_at=CURRENT_TIMESTAMP WHERE id={cid} RETURNING *")
     complaint = cur.fetchone()
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
+    conn.commit(); cur.close(); conn.close()
     return ok_response({'complaint': dict(complaint)})
 
 
 def delete_complaint(complaint_id: str, user_data: Dict[str, Any]) -> Dict[str, Any]:
-    if not user_data.get('is_superadmin') and not user_data.get('complaint_access'):
+    if not user_data.get('is_adminpanel'):
         return error_response('Forbidden', 403)
-
+    cid = int(complaint_id)
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor()
-    cid = int(complaint_id)
-
     cur.execute(f"DELETE FROM complaint_messages WHERE complaint_id = {cid}")
     cur.execute(f"DELETE FROM complaints WHERE id = {cid}")
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
+    conn.commit(); cur.close(); conn.close()
     return ok_response({'success': True})
 
 
 def block_user(event: Dict[str, Any], user_data: Dict[str, Any]) -> Dict[str, Any]:
-    if not user_data.get('complaint_access'):
+    if not user_data.get('is_adminpanel'):
         return error_response('Forbidden', 403)
-
     body = json.loads(event.get('body', '{}'))
     target_user_id = body.get('user_id')
-    block = body.get('block', True)
-
+    block = bool(body.get('block', True))
     if not target_user_id:
         return error_response('user_id is required')
-
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor(cursor_factory=RealDictCursor)
-
-    cur.execute(f"UPDATE users SET is_blocked = {str(block).upper()} WHERE id = {int(target_user_id)} RETURNING id, steam_username, is_blocked")
+    cur.execute(f"UPDATE users SET is_blocked={'TRUE' if block else 'FALSE'} WHERE id={int(target_user_id)} RETURNING id, steam_username, is_blocked")
     user = cur.fetchone()
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
+    conn.commit(); cur.close(); conn.close()
     if not user:
         return error_response('User not found', 404)
-
     return ok_response({'user': dict(user)})
