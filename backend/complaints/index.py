@@ -68,6 +68,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         return add_moderator(event, user_data)
     elif method == 'DELETE' and action == 'remove_moderator':
         return remove_moderator(params, user_data)
+    elif method == 'POST' and action == 'rate' and complaint_id:
+        return rate_complaint(complaint_id, event, user_data)
     elif method == 'GET' and complaint_id:
         return get_complaint_details(complaint_id, user_data)
     elif method == 'POST' and action == 'reply' and complaint_id:
@@ -343,7 +345,9 @@ def get_complaint_details(complaint_id: str, user_data: Dict[str, Any]) -> Dict[
         return error_response('Complaint not found', 404)
     cur.execute(f"""
         SELECT cm.*, u.steam_username as user_name, u.steam_avatar as user_avatar,
-               m.name as admin_name
+               m.name as admin_name,
+               CASE WHEN m.rating_count > 0 THEN ROUND(m.rating_sum::numeric / m.rating_count, 1) ELSE NULL END as mod_rating,
+               m.rating_count as mod_rating_count
         FROM complaint_messages cm
         LEFT JOIN users u ON cm.user_id = u.id AND cm.is_admin_reply = FALSE
         LEFT JOIN complaint_moderators m ON cm.moderator_steam_id = m.steam_id AND cm.is_admin_reply = TRUE
@@ -428,8 +432,67 @@ def close_complaint(complaint_id: str, user_data: Dict[str, Any]) -> Dict[str, A
         cur.close(); conn.close()
         return error_response('Forbidden', 403)
 
-    cur.execute(f"UPDATE complaints SET status='closed', updated_at=CURRENT_TIMESTAMP WHERE id={cid} RETURNING *")
+    # Сохраняем кто закрыл (steam_id модератора/adminpanel) — нужно для рейтинга
+    closer_steam = user_data.get('steam_id', '')
+    closed_by_sql = f"'{escape_sql(str(closer_steam))}'" if closer_steam and not is_author else 'NULL'
+
+    cur.execute(
+        f"UPDATE complaints SET status='closed', updated_at=CURRENT_TIMESTAMP, "
+        f"closed_by_steam_id={closed_by_sql} WHERE id={cid} RETURNING *"
+    )
     updated = cur.fetchone()
+    conn.commit(); cur.close(); conn.close()
+    return ok_response({'complaint': dict(updated)})
+
+
+def rate_complaint(complaint_id: str, event: Dict[str, Any], user_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Оценка закрытой жалобы автором — обновляет рейтинг модератора."""
+    user_id = int(user_data.get('user_id', 0))
+    if not user_id:
+        return error_response('Forbidden', 403)
+
+    body = json.loads(event.get('body', '{}'))
+    rating = int(body.get('rating', 0))
+    comment = str(body.get('comment', '')).strip()
+
+    if rating < 1 or rating > 5:
+        return error_response('Rating must be 1-5')
+
+    cid = int(complaint_id)
+    conn = psycopg2.connect(os.environ['DATABASE_URL'])
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    cur.execute(f"SELECT * FROM complaints WHERE id = {cid}")
+    complaint = cur.fetchone()
+    if not complaint:
+        cur.close(); conn.close()
+        return error_response('Complaint not found', 404)
+    if int(complaint['user_id']) != user_id:
+        cur.close(); conn.close()
+        return error_response('Forbidden', 403)
+    if complaint['status'] != 'closed':
+        cur.close(); conn.close()
+        return error_response('Можно оценивать только закрытые темы', 400)
+    if complaint.get('rating'):
+        cur.close(); conn.close()
+        return error_response('Вы уже оценили это обращение', 400)
+
+    comment_sql = f"'{escape_sql(comment)}'" if comment else 'NULL'
+    cur.execute(
+        f"UPDATE complaints SET rating={rating}, rating_comment={comment_sql}, "
+        f"rated_at=CURRENT_TIMESTAMP WHERE id={cid} RETURNING *"
+    )
+    updated = cur.fetchone()
+
+    # Обновляем рейтинг модератора (если жалобу закрыл модератор из complaint_moderators)
+    mod_steam = complaint.get('closed_by_steam_id', '')
+    if mod_steam:
+        sid = escape_sql(str(mod_steam))
+        cur.execute(
+            f"UPDATE complaint_moderators SET rating_sum = rating_sum + {rating}, "
+            f"rating_count = rating_count + 1 WHERE steam_id = '{sid}'"
+        )
+
     conn.commit(); cur.close(); conn.close()
     return ok_response({'complaint': dict(updated)})
 

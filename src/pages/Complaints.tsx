@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/Header';
@@ -27,6 +28,10 @@ interface Complaint {
   steam_avatar?: string;
   is_own?: boolean;
   user_id?: number;
+  closed_by_steam_id?: string | null;
+  rating?: number | null;
+  rating_comment?: string | null;
+  rated_at?: string | null;
 }
 
 interface Message {
@@ -38,6 +43,8 @@ interface Message {
   user_name?: string;
   user_avatar?: string;
   admin_name?: string;
+  mod_rating?: number | null;
+  mod_rating_count?: number | null;
 }
 
 const STATUS_CONFIG: Record<string, { color: string; label: string }> = {
@@ -54,6 +61,90 @@ const TYPE_CONFIG: Record<string, { color: string; label: string; icon: string }
 };
 
 const getType = (t?: string) => TYPE_CONFIG[t || 'complaint'] ?? TYPE_CONFIG.complaint;
+
+const RATING_LABELS: Record<number, string> = { 1: 'Очень плохо', 2: 'Плохо', 3: 'Удовлетворительно', 4: 'Хорошо', 5: 'Отлично' };
+
+/* ─── Модалка оценки ─── */
+const RatingModal = memo(({ open, onClose, onSubmit, subject }: {
+  open: boolean;
+  onClose: () => void;
+  onSubmit: (rating: number, comment: string) => Promise<void>;
+  subject: string;
+}) => {
+  const [rating, setRating] = useState(0);
+  const [hovered, setHovered] = useState(0);
+  const [comment, setComment] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!rating) return;
+    setSubmitting(true);
+    try { await onSubmit(rating, comment); onClose(); }
+    finally { setSubmitting(false); }
+  };
+
+  const handleClose = () => {
+    if (!submitting) { setRating(0); setHovered(0); setComment(''); onClose(); }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700 text-white">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold">Оцените качество ответа</DialogTitle>
+          <DialogDescription className="text-slate-400">{subject}</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-6 py-4">
+          <div className="text-center">
+            <p className="text-sm text-slate-400 mb-3">Насколько вы довольны решением вашего обращения?</p>
+            <div className="flex justify-center gap-2">
+              {[1,2,3,4,5].map(star => (
+                <button key={star} onClick={() => setRating(star)}
+                  onMouseEnter={() => setHovered(star)} onMouseLeave={() => setHovered(0)}
+                  className="transition-transform hover:scale-110" disabled={submitting}>
+                  <Icon name="Star" size={40}
+                    className={star <= (hovered || rating) ? 'text-yellow-500 fill-yellow-500' : 'text-slate-600'} />
+                </button>
+              ))}
+            </div>
+            {rating > 0 && <p className="text-sm text-slate-400 mt-2">{RATING_LABELS[rating]}</p>}
+          </div>
+          <div>
+            <p className="text-slate-300 text-sm mb-2">Комментарий (необязательно)</p>
+            <Textarea value={comment} onChange={e => setComment(e.target.value)}
+              placeholder="Расскажите подробнее о вашем опыте..."
+              className="bg-slate-800 border-slate-700 text-white min-h-[100px]" disabled={submitting} />
+          </div>
+          <div className="flex gap-3">
+            <Button onClick={handleClose} variant="outline"
+              className="flex-1 border-slate-700 text-white hover:bg-slate-800" disabled={submitting}>
+              Пропустить
+            </Button>
+            <Button onClick={handleSubmit} disabled={!rating || submitting}
+              className="flex-1 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800">
+              {submitting
+                ? <><Icon name="Loader2" size={16} className="mr-2 animate-spin" />Отправка...</>
+                : <><Icon name="Check" size={16} className="mr-2" />Отправить оценку</>}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+});
+
+/* ─── Звёзды (отображение) ─── */
+const StarDisplay = ({ rating, count }: { rating: number; count: number }) => (
+  <div className="flex items-center gap-1.5">
+    <div className="flex gap-0.5">
+      {[1,2,3,4,5].map(s => (
+        <Icon key={s} name="Star" size={12}
+          className={s <= Math.round(rating) ? 'text-yellow-500 fill-yellow-500' : 'text-slate-600'} />
+      ))}
+    </div>
+    <span className="text-xs text-slate-400">{rating.toFixed(1)} ({count})</span>
+  </div>
+);
 
 /* ─── Форма апелляции ─── */
 const AppealForm = memo(({ token, onCreated, onCancel }: {
@@ -306,10 +397,14 @@ const ComplaintDetail = memo(({
   const [sending, setSending] = useState(false);
   const [closing, setClosing] = useState(false);
   const [loadingMsgs, setLoadingMsgs] = useState(true);
+  const [showRating, setShowRating] = useState(false);
 
   const canReply = (complaint.is_own || isAdmin) && complaint.status !== 'closed';
   const canClose = (complaint.is_own || isAdmin) && complaint.status !== 'closed';
   const tp = getType(complaint.complaint_type);
+  // Показываем промпт если: автор, закрыта модератором (есть closed_by_steam_id), ещё не оценена
+  const showRatingPrompt = complaint.is_own && complaint.status === 'closed'
+    && !!complaint.closed_by_steam_id && !complaint.rating && !showRating;
 
   useEffect(() => {
     (async () => {
@@ -387,8 +482,29 @@ const ComplaintDetail = memo(({
 
   const st = getStatus(complaint.status);
 
+  const handleRate = async (rating: number, comment: string) => {
+    try {
+      const res = await fetch(`${COMPLAINTS_API}/?action=rate&complaint_id=${complaint.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Auth-Token': token },
+        body: JSON.stringify({ rating, comment }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setComplaint(data.complaint);
+        toast({ title: 'Спасибо! Ваша оценка отправлена' });
+      }
+    } catch { /* ignore */ }
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-4">
+      <RatingModal
+        open={showRating}
+        onClose={() => setShowRating(false)}
+        onSubmit={handleRate}
+        subject={complaint.subject}
+      />
       <Button onClick={onBack} variant="outline" className="border-slate-700 text-white hover:bg-slate-800">
         <Icon name="ArrowLeft" size={16} className="mr-2" />
         Назад
@@ -462,12 +578,17 @@ const ComplaintDetail = memo(({
                       ? 'bg-gradient-to-br from-purple-900/60 to-blue-900/60 border border-purple-500/30 text-white'
                       : 'bg-slate-800 border border-slate-700 text-slate-200'
                   }`}>
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <span className={`text-xs font-semibold ${msg.is_admin_reply ? 'text-purple-300' : 'text-slate-400'}`}>
-                        {msg.is_admin_reply ? (msg.admin_name || 'Администратор') : (msg.user_name || 'Игрок')}
-                      </span>
-                      {msg.is_admin_reply && (
-                        <span className="text-xs px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">Администратор</span>
+                    <div className="flex flex-col gap-0.5 mb-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`text-xs font-semibold ${msg.is_admin_reply ? 'text-purple-300' : 'text-slate-400'}`}>
+                          {msg.is_admin_reply ? (msg.admin_name || 'Администратор') : (msg.user_name || 'Игрок')}
+                        </span>
+                        {msg.is_admin_reply && (
+                          <span className="text-xs px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">Администратор</span>
+                        )}
+                      </div>
+                      {msg.is_admin_reply && msg.mod_rating != null && msg.mod_rating_count != null && (
+                        <StarDisplay rating={Number(msg.mod_rating)} count={msg.mod_rating_count} />
                       )}
                     </div>
                     <p className="whitespace-pre-wrap break-words">{msg.message}</p>
@@ -528,7 +649,43 @@ const ComplaintDetail = memo(({
             </div>
           </div>
         ) : complaint.status === 'closed' ? (
-          <div className="border-t border-slate-700 pt-4">
+          <div className="border-t border-slate-700 pt-4 space-y-3">
+            {/* Приглашение оценить — для автора, если закрыл модератор */}
+            {showRatingPrompt && (
+              <div className="rounded-lg bg-yellow-500/10 border border-yellow-500/30 p-4 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <Icon name="Star" size={20} className="text-yellow-400 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-white">Оцените качество ответа</p>
+                    <p className="text-xs text-slate-400">Ваша оценка помогает улучшить работу администраторов</p>
+                  </div>
+                </div>
+                <Button onClick={() => setShowRating(true)} size="sm"
+                  className="bg-yellow-500 hover:bg-yellow-600 text-black flex-shrink-0">
+                  Оценить
+                </Button>
+              </div>
+            )}
+            {/* Уже выставленная оценка */}
+            {complaint.rating && (
+              <div className="rounded-lg bg-slate-800/60 border border-slate-700 p-3 flex items-center gap-3">
+                <Icon name="Star" size={16} className="text-yellow-400 flex-shrink-0" />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <div className="flex gap-0.5">
+                      {[1,2,3,4,5].map(s => (
+                        <Icon key={s} name="Star" size={14}
+                          className={s <= complaint.rating! ? 'text-yellow-500 fill-yellow-500' : 'text-slate-600'} />
+                      ))}
+                    </div>
+                    <span className="text-xs text-slate-400">{RATING_LABELS[complaint.rating]}</span>
+                  </div>
+                  {complaint.rating_comment && (
+                    <p className="text-xs text-slate-400 mt-1">"{complaint.rating_comment}"</p>
+                  )}
+                </div>
+              </div>
+            )}
             <p className="text-center text-slate-500 text-sm flex items-center justify-center gap-2">
               <Icon name="Lock" size={14} />
               Обращение закрыто. Ответы недоступны.
