@@ -112,6 +112,7 @@ def admin_login(event: Dict[str, Any]) -> Dict[str, Any]:
         'admin_id': admin['id'],
         'email': admin['email'],
         'full_name': admin['full_name'],
+        'role': admin['role'] or 'admin',
         'is_admin': True,
         'exp': datetime.utcnow() + timedelta(days=7)
     }

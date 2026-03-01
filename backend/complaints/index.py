@@ -92,7 +92,37 @@ def verify_token(token: Optional[str]) -> Optional[Dict[str, Any]]:
 
 
 def enrich_with_admin_status(user_data: Dict[str, Any]) -> Dict[str, Any]:
-    """Проверяет является ли пользователь администратором по steam_id. Устанавливает is_admin, complaint_access, is_superadmin."""
+    """
+    Устанавливает is_admin, complaint_access, is_superadmin.
+    Случай 1: AdminPanel JWT (admin_id в токене) — ищем по admin_id.
+    Случай 2: Steam JWT (steam_id в токене) — ищем по steam_id.
+    """
+    user_data = dict(user_data)
+
+    # Случай 1: AdminPanel JWT
+    admin_id_from_token = user_data.get('admin_id')
+    if admin_id_from_token and user_data.get('is_admin'):
+        try:
+            conn = psycopg2.connect(os.environ['DATABASE_URL'])
+            cur = conn.cursor(cursor_factory=RealDictCursor)
+            cur.execute(f"SELECT id, full_name, role, complaint_access FROM admins WHERE id = {int(admin_id_from_token)}")
+            admin = cur.fetchone()
+            cur.close()
+            conn.close()
+            if admin:
+                is_superadmin = admin['role'] == 'superadmin'
+                user_data['complaint_access'] = bool(admin['complaint_access']) or is_superadmin
+                user_data['is_superadmin'] = is_superadmin
+                user_data['admin_id'] = int(admin['id'])
+                user_data['admin_name'] = admin['full_name'] or 'Администратор'
+                user_data['admin_role'] = admin['role']
+                if not user_data.get('user_id'):
+                    user_data['user_id'] = 0
+        except:
+            pass
+        return user_data
+
+    # Случай 2: Steam JWT
     steam_id = str(user_data.get('steam_id', ''))
     if not steam_id:
         return user_data
@@ -104,11 +134,9 @@ def enrich_with_admin_status(user_data: Dict[str, Any]) -> Dict[str, Any]:
         cur.close()
         conn.close()
         if admin:
-            user_data = dict(user_data)
             is_superadmin = admin['role'] == 'superadmin'
-            complaint_access = bool(admin['complaint_access']) or is_superadmin
             user_data['is_admin'] = True
-            user_data['complaint_access'] = complaint_access
+            user_data['complaint_access'] = bool(admin['complaint_access']) or is_superadmin
             user_data['is_superadmin'] = is_superadmin
             user_data['admin_id'] = int(admin['id'])
             user_data['admin_name'] = admin['full_name'] or 'Администратор'
