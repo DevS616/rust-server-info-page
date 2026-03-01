@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import RulesModal from '@/components/RulesModal';
 
 const Footer = () => {
@@ -18,7 +18,7 @@ const Footer = () => {
                 alt="DevilRust" 
                 className="h-6 w-auto group-hover:drop-shadow-[0_0_8px_rgba(255,68,0,0.8)] transition-all"
               />
-              <span className="text-xl font-bold tracking-wide" style={{fontFamily: 'Nunito, sans-serif', fontStyle: 'italic'}}>DevilRust</span>
+              <span className="text-xl font-bold tracking-wide font-nunito-italic">DevilRust</span>
             </a>
             <p className="text-sm text-muted-foreground">Лучшие Rust серверы в СНГ. Присоединяйтесь к лучшему проекту уже сегодня!</p>
           </div>
@@ -119,4 +119,4 @@ const Footer = () => {
   );
 };
 
-export default Footer;
+export default memo(Footer);

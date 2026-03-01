@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
 
@@ -72,58 +72,25 @@ const PromotionModal = () => {
   useEffect(() => {
     if (!promotionData) return;
     
-    console.log('PromotionModal: useEffect started');
-    console.log('Promotion enabled:', promotionData.enabled);
-    
-    if (!promotionData.enabled) {
-      console.log('PromotionModal: disabled, exiting');
-      return;
-    }
+    if (!promotionData.enabled) return;
 
     const now = new Date().getTime();
     const start = new Date(promotionData.startDate).getTime();
     const end = new Date(promotionData.endDate).getTime();
 
-    console.log('PromotionModal dates:', {
-      now: new Date(now).toISOString(),
-      start: new Date(start).toISOString(),
-      end: new Date(end).toISOString(),
-      isActive: now >= start && now <= end
-    });
-
     const checkPromotion = () => {
-      if (now < start) {
-        console.log('PromotionModal: not started yet');
-        return false;
-      }
-      
-      if (now > end) {
-        console.log('PromotionModal: already ended');
-        return false;
-      }
+      if (now < start || now > end) return false;
 
       const hiddenUntil = localStorage.getItem('promotion_hidden_until');
       if (hiddenUntil) {
         const hiddenTime = parseInt(hiddenUntil);
-        if (now < hiddenTime) {
-          console.log('PromotionModal: hidden until', new Date(hiddenTime).toISOString());
-          return false;
-        } else {
-          localStorage.removeItem('promotion_hidden_until');
-        }
+        if (now < hiddenTime) return false;
+        localStorage.removeItem('promotion_hidden_until');
       }
 
-      const cookieName = promotionData.behavior.cookieName;
-      const seen = localStorage.getItem(cookieName);
-      
-      console.log('PromotionModal: showOnce:', promotionData.behavior.showOnce, 'seen:', seen);
-      
-      if (promotionData.behavior.showOnce && seen) {
-        console.log('PromotionModal: already shown, skipping');
-        return false;
-      }
+      const seen = localStorage.getItem(promotionData.behavior.cookieName);
+      if (promotionData.behavior.showOnce && seen) return false;
 
-      console.log('PromotionModal: should show');
       return true;
     };
 
@@ -150,11 +117,7 @@ const PromotionModal = () => {
     updateTimer();
 
     if (checkPromotion()) {
-      console.log('PromotionModal: opening in 1 second');
-      setTimeout(() => {
-        console.log('PromotionModal: opening now');
-        setIsOpen(true);
-      }, 1000);
+      setTimeout(() => setIsOpen(true), 1000);
     }
 
     const timer = setInterval(() => {
@@ -399,4 +362,4 @@ const PromotionModal = () => {
   );
 };
 
-export default PromotionModal;
+export default memo(PromotionModal);

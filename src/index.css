@@ -373,6 +373,32 @@
     animation: coinFallScreen 4s linear infinite;
   }
 
+  /* Bonus button gradient animation */
+  @keyframes bonusGradient {
+    0%,
+    100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+  @keyframes bonusPulse {
+    0%,
+    100% {
+      box-shadow: 0 0 20px rgba(245, 158, 11, 0.5);
+    }
+    50% {
+      box-shadow: 0 0 40px rgba(245, 158, 11, 0.8);
+    }
+  }
+  .bonus-btn-active {
+    animation:
+      bonusGradient 3s ease infinite,
+      bonusPulse 2s ease-in-out infinite;
+    will-change: background-position, box-shadow;
+  }
+
   /* Coin rain overlay — pure CSS, no JS per-element */
   .coin-rain-overlay {
     position: fixed;
@@ -406,6 +432,25 @@
 
   /* Optimized holiday particle animations — pre-computed positions, no JS random */
   .holiday-particle {
+    will-change: transform, opacity;
+  }
+
+  /* TelegramWidget firework — CSS vars driven, no JS random */
+  @keyframes tg-firework {
+    0% {
+      transform: translate(-50%, -50%) rotate(var(--angle)) translateX(0);
+      opacity: 1;
+      scale: 1;
+    }
+    100% {
+      transform: translate(-50%, -50%) rotate(var(--angle))
+        translateX(var(--distance, 40px));
+      opacity: 0;
+      scale: 0.3;
+    }
+  }
+  .tg-firework {
+    animation: tg-firework 0.8s ease-out forwards;
     will-change: transform, opacity;
   }
 

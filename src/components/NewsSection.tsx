@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
@@ -95,9 +95,11 @@ const NewsSection = () => {
             <Card key={item.id} className="group hover:shadow-lg transition-all duration-300 hover:scale-[1.02] border-muted overflow-hidden">
               {item.image_url && (
                 <div className="w-full h-48 overflow-hidden">
-                  <img 
-                    src={item.image_url} 
+                  <img
+                    src={item.image_url}
                     alt={item.title}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                 </div>
@@ -105,7 +107,7 @@ const NewsSection = () => {
               <CardHeader>
                 <div className="flex items-start justify-between gap-4 mb-2">
                   <div className="p-3 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                    <Icon name={item.icon} className="h-6 w-6 text-primary" />
+                    <Icon name={item.icon as Parameters<typeof Icon>[0]['name']} className="h-6 w-6 text-primary" />
                   </div>
                   <Badge variant="outline" className={categoryConfig[item.category].color}>
                     {categoryConfig[item.category].label}
@@ -147,4 +149,4 @@ const NewsSection = () => {
   );
 };
 
-export default NewsSection;
+export default memo(NewsSection);

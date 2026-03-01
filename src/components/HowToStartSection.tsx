@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Icon from '@/components/ui/icon';
@@ -157,4 +157,4 @@ const HowToStartSection = () => {
   );
 };
 
-export default HowToStartSection;
+export default memo(HowToStartSection);

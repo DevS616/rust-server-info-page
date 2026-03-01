@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -22,7 +22,20 @@ import Privacy from "./pages/Privacy";
 import UserAgreement from "./pages/UserAgreement";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,
+    },
+  },
+});
+
+const CACHE_KEY = 'maintenance_cache';
+const CACHE_DURATION = 2 * 60 * 60 * 1000;
+const MIN_CHECK_INTERVAL = 2 * 60 * 60 * 1000;
+const POLL_INTERVAL = 30 * 60 * 1000;
+const VISIBILITY_THRESHOLD = 10 * 60 * 1000;
 
 const AppContent = () => {
   const location = useLocation();
@@ -30,98 +43,83 @@ const AppContent = () => {
   const [maintenanceTitle, setMaintenanceTitle] = useState('');
   const [maintenanceSubtitle, setMaintenanceSubtitle] = useState('');
   const [loading, setLoading] = useState(true);
-  const [maintenanceCheckEnabled, setMaintenanceCheckEnabled] = useState(() => {
-    return localStorage.getItem('maintenanceCheckEnabled') !== 'false';
-  });
+  const [maintenanceCheckEnabled] = useState(
+    () => localStorage.getItem('maintenanceCheckEnabled') !== 'false'
+  );
   const isAdminPath = location.pathname.startsWith('/admin');
 
   useEffect(() => {
     refreshTokenIfNeeded();
   }, []);
 
-  useEffect(() => {
-    if (!maintenanceCheckEnabled) {
-      setLoading(false);
-      return;
-    }
+  const checkMaintenance = useCallback(async (skipCache = false) => {
+    if (document.hidden) return;
 
-    let lastCheckTime = 0;
-    const MIN_CHECK_INTERVAL = 2 * 60 * 60 * 1000;
-    const CACHE_KEY = 'maintenance_cache';
-    const CACHE_DURATION = 2 * 60 * 60 * 1000;
+    const now = Date.now();
 
-    const checkMaintenance = async (skipCache = false) => {
-      if (document.hidden) return;
-      
-      const now = Date.now();
-      if (!skipCache && now - lastCheckTime < MIN_CHECK_INTERVAL) {
-        return;
-      }
-      
+    if (!skipCache) {
       const cached = localStorage.getItem(CACHE_KEY);
-      if (!skipCache && cached) {
+      if (cached) {
         try {
           const { data, timestamp } = JSON.parse(cached);
           if (now - timestamp < CACHE_DURATION) {
             setIsMaintenance(data.is_maintenance);
-            setMaintenanceTitle(data.maintenance_title);
-            setMaintenanceSubtitle(data.maintenance_subtitle);
+            setMaintenanceTitle(data.maintenance_title ?? '');
+            setMaintenanceSubtitle(data.maintenance_subtitle ?? '');
             setLoading(false);
             return;
           }
-        } catch (e) {
-          console.error('Failed to parse maintenance cache:', e);
-        }
+        } catch { /* ignore */ }
       }
-      
+    }
+
+    try {
+      const res = await fetch('https://functions.poehali.dev/1ad77753-040f-405c-8e61-7230f64e30e9/');
+      if (res.ok) {
+        const data = await res.json();
+        setIsMaintenance(data.is_maintenance);
+        setMaintenanceTitle(data.maintenance_title ?? '');
+        setMaintenanceSubtitle(data.maintenance_subtitle ?? '');
+        localStorage.setItem(CACHE_KEY, JSON.stringify({ data, timestamp: now }));
+        window.dispatchEvent(new CustomEvent('holidayChanged', { detail: data.active_holiday || null }));
+      }
+    } catch { /* ignore */ }
+    finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!maintenanceCheckEnabled) { setLoading(false); return; }
+
+    let lastCheckTime = 0;
+
+    const run = async (skipCache = false) => {
+      const now = Date.now();
+      if (!skipCache && now - lastCheckTime < MIN_CHECK_INTERVAL) return;
       lastCheckTime = now;
-      
-      try {
-        const res = await fetch('https://functions.poehali.dev/1ad77753-040f-405c-8e61-7230f64e30e9/');
-        if (res.ok) {
-          const data = await res.json();
-          setIsMaintenance(data.is_maintenance);
-          setMaintenanceTitle(data.maintenance_title);
-          setMaintenanceSubtitle(data.maintenance_subtitle);
-          
-          localStorage.setItem(CACHE_KEY, JSON.stringify({
-            data,
-            timestamp: now
-          }));
-          
-          window.dispatchEvent(new CustomEvent('holidayChanged', { detail: data.active_holiday || null }));
-        }
-      } catch (error) {
-        console.error('Failed to check maintenance:', error);
-      } finally {
-        setLoading(false);
-      }
+      await checkMaintenance(skipCache);
     };
 
-    checkMaintenance();
-    const interval = setInterval(() => checkMaintenance(true), 30 * 60 * 1000);
-    
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        const now = Date.now();
-        if (now - lastCheckTime >= 10 * 60 * 1000) {
-          checkMaintenance();
-        }
-      }
+    run();
+    const interval = setInterval(() => run(true), POLL_INTERVAL);
+
+    const handleVisibility = () => {
+      if (!document.hidden && Date.now() - lastCheckTime >= VISIBILITY_THRESHOLD) run();
     };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+    document.addEventListener('visibilitychange', handleVisibility);
+
     return () => {
       clearInterval(interval);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [maintenanceCheckEnabled]);
+  }, [maintenanceCheckEnabled, checkMaintenance]);
 
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
           <p className="text-muted-foreground">Загрузка...</p>
         </div>
       </div>
@@ -134,6 +132,10 @@ const AppContent = () => {
 
   return (
     <>
+      <TelegramWidget />
+      <PromotionModal />
+      <HolidayEffects />
+      <CookieConsent />
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/banlist" element={<BanList />} />
@@ -156,10 +158,6 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <TelegramWidget />
-      <PromotionModal />
-      <HolidayEffects />
-      <CookieConsent />
       <BrowserRouter>
         <AppContent />
       </BrowserRouter>

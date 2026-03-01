@@ -1,12 +1,17 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, memo } from 'react';
+
+const COLORS = ['#FFD700', '#FFA500', '#FF6347', '#FF4500'];
+
+/* Deterministic seed-based pseudo-random (no Math.random in render/init) */
+const seededValue = (i: number, offset: number) => ((Math.sin(i * 7.3 + offset) + 1) / 2);
 
 const ChristmasGarland = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const rafRef = useRef<number>(0);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
@@ -15,97 +20,82 @@ const ChristmasGarland = () => {
       canvas.height = 50;
     };
     resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
+    window.addEventListener('resize', resizeCanvas, { passive: true });
 
-    const lights: Array<{
-      x: number;
-      y: number;
-      color: string;
-      brightness: number;
-      phase: number;
-      speed: number;
-    }> = [];
+    type Light = { x: number; y: number; color: string; brightness: number; phase: number; speed: number };
+    let lights: Light[] = [];
 
-    const colors = ['#FFD700', '#FFA500', '#FF6347', '#FF4500'];
-    
-    const numLights = Math.floor(canvas.width / 50);
-    for (let i = 0; i < numLights; i++) {
-      const x = (i / (numLights - 1)) * canvas.width;
-      const y = 15 + Math.sin(i * 0.6) * 8;
-      lights.push({
-        x,
-        y,
-        color: colors[i % colors.length],
-        brightness: Math.random(),
-        phase: Math.random() * Math.PI * 2,
-        speed: 0.02 + Math.random() * 0.03,
-      });
-    }
+    const buildLights = () => {
+      const num = Math.floor(canvas.width / 50);
+      lights = Array.from({ length: num }, (_, i) => ({
+        x: num > 1 ? (i / (num - 1)) * canvas.width : canvas.width / 2,
+        y: 15 + Math.sin(i * 0.6) * 8,
+        color: COLORS[i % COLORS.length],
+        brightness: seededValue(i, 0),
+        phase: seededValue(i, 1) * Math.PI * 2,
+        speed: 0.02 + seededValue(i, 2) * 0.03,
+      }));
+    };
+    buildLights();
 
     const drawWire = () => {
-      ctx.strokeStyle = 'rgba(101, 67, 33, 0.5)';
+      if (!lights.length) return;
+      ctx.strokeStyle = 'rgba(101,67,33,0.5)';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(0, lights[0].y);
-      
-      for (let i = 0; i < lights.length; i++) {
-        ctx.lineTo(lights[i].x, lights[i].y);
-      }
+      ctx.moveTo(lights[0].x, lights[0].y);
+      lights.forEach(l => ctx.lineTo(l.x, l.y));
       ctx.stroke();
     };
 
-    const drawLight = (light: typeof lights[0]) => {
-      const glowSize = 20 + light.brightness * 15;
-      
-      const gradient = ctx.createRadialGradient(light.x, light.y, 0, light.x, light.y, glowSize);
-      gradient.addColorStop(0, `${light.color}${Math.floor(light.brightness * 180 + 75).toString(16)}`);
-      gradient.addColorStop(0.4, `${light.color}44`);
-      gradient.addColorStop(1, `${light.color}00`);
-      
-      ctx.fillStyle = gradient;
-      ctx.fillRect(light.x - glowSize, light.y - glowSize, glowSize * 2, glowSize * 2);
-      
-      ctx.fillStyle = light.color;
-      ctx.globalAlpha = light.brightness * 0.8 + 0.2;
+    const drawLight = (l: Light) => {
+      const glowSize = 20 + l.brightness * 15;
+      const grad = ctx.createRadialGradient(l.x, l.y, 0, l.x, l.y, glowSize);
+      grad.addColorStop(0, `${l.color}${Math.floor(l.brightness * 180 + 75).toString(16).padStart(2, '0')}`);
+      grad.addColorStop(0.4, `${l.color}44`);
+      grad.addColorStop(1, `${l.color}00`);
+      ctx.fillStyle = grad;
+      ctx.fillRect(l.x - glowSize, l.y - glowSize, glowSize * 2, glowSize * 2);
+
+      ctx.fillStyle = l.color;
+      ctx.globalAlpha = l.brightness * 0.8 + 0.2;
       ctx.beginPath();
-      ctx.ellipse(light.x, light.y, 6, 9, 0, 0, Math.PI * 2);
+      ctx.ellipse(l.x, l.y, 6, 9, 0, 0, Math.PI * 2);
       ctx.fill();
-      
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+
+      ctx.fillStyle = 'rgba(255,255,255,0.6)';
       ctx.beginPath();
-      ctx.ellipse(light.x - 2, light.y - 3, 2, 3, 0, 0, Math.PI * 2);
+      ctx.ellipse(l.x - 2, l.y - 3, 2, 3, 0, 0, Math.PI * 2);
       ctx.fill();
-      
       ctx.globalAlpha = 1;
     };
 
     let lastFrame = 0;
-    const frameDelay = 1000 / 30;
-    
-    const animate = (timestamp: number) => {
-      if (timestamp - lastFrame < frameDelay) {
-        requestAnimationFrame(animate);
-        return;
+    const FRAME_DELAY = 1000 / 30;
+
+    const animate = (ts: number) => {
+      if (ts - lastFrame >= FRAME_DELAY) {
+        lastFrame = ts;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawWire();
+        lights.forEach(l => {
+          l.brightness = (Math.sin(l.phase) + 1) / 2;
+          l.phase += l.speed;
+          drawLight(l);
+        });
       }
-      
-      lastFrame = timestamp;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      drawWire();
-      
-      lights.forEach((light) => {
-        light.brightness = (Math.sin(light.phase) + 1) / 2;
-        light.phase += light.speed;
-        drawLight(light);
-      });
-      
-      requestAnimationFrame(animate);
+      rafRef.current = requestAnimationFrame(animate);
     };
 
-    requestAnimationFrame(animate);
+    rafRef.current = requestAnimationFrame(animate);
+
+    const handleResize = () => { resizeCanvas(); buildLights(); };
+    window.addEventListener('resize', handleResize, { passive: true });
 
     return () => {
+      cancelAnimationFrame(rafRef.current);
       window.removeEventListener('resize', resizeCanvas);
+      window.removeEventListener('resize', handleResize);
     };
   }, []);
 
@@ -114,13 +104,10 @@ const ChristmasGarland = () => {
       <canvas
         ref={canvasRef}
         className="w-full"
-        style={{ 
-          height: '50px',
-          mixBlendMode: 'screen'
-        }}
+        style={{ height: '50px', mixBlendMode: 'screen' }}
       />
     </div>
   );
 };
 
-export default ChristmasGarland;
+export default memo(ChristmasGarland);

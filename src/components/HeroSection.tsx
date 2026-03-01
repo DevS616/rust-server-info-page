@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, memo } from 'react';
+import { useState, useEffect, useRef, memo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
 import {
@@ -10,83 +10,88 @@ import {
 import { monitoringService } from '@/services/monitoringService';
 import serversData from '@/data/servers.json';
 
+interface ServerEntry {
+  ip: string;
+  port: number;
+  players: number;
+  playersMax: number;
+}
+
+const allServers = [...serversData.pveServers, ...serversData.pvpServers];
+
 const HeroSection = () => {
   const [totalPlayers, setTotalPlayers] = useState<number | null>(null);
   const [displayPlayers, setDisplayPlayers] = useState<number>(0);
   const [onlineServersCount, setOnlineServersCount] = useState<number>(0);
   const [coinRain, setCoinRain] = useState(false);
   const lastVendingSound = useRef(0);
+  const displayPlayersRef = useRef(0);
 
-  const playVendingSound = () => {
+  const playVendingSound = useCallback(() => {
     const now = Date.now();
     if (now - lastVendingSound.current < 1000) return;
-    
     lastVendingSound.current = now;
-    
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    
+
+    const AudioCtxCtor = window.AudioContext ||
+      (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioCtxCtor) return;
+    const audioContext = new AudioCtxCtor();
+
     const playTone = (freq: number, startTime: number, duration: number, volume: number) => {
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
-      
       oscillator.connect(gainNode);
       gainNode.connect(audioContext.destination);
-      
       oscillator.frequency.setValueAtTime(freq, startTime);
       gainNode.gain.setValueAtTime(volume, startTime);
       gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
-      
       oscillator.start(startTime);
       oscillator.stop(startTime + duration);
     };
-    
+
     playTone(600, audioContext.currentTime, 0.08, 0.2);
     playTone(800, audioContext.currentTime + 0.08, 0.08, 0.15);
     playTone(1000, audioContext.currentTime + 0.16, 0.12, 0.1);
-  };
+  }, []);
 
   useEffect(() => {
     const unsubscribe = monitoringService.subscribe((data) => {
       if (data?.result === 'success' && data.data?.total?.players !== undefined) {
         setTotalPlayers(data.data.total.players);
-        
-        const allServers = [...serversData.pveServers, ...serversData.pvpServers];
+
         let onlineCount = 0;
-        
-        data.data.servers.forEach((server: any) => {
+        data.data.servers.forEach((server: ServerEntry) => {
           const serverIp = `${server.ip}:${server.port}`;
-          const matchedServer = allServers.find(s => s.serverIp === serverIp);
-          
-          if (matchedServer && server.playersMax > 0) {
-            onlineCount++;
-          }
+          const matched = allServers.find(s => s.serverIp === serverIp);
+          if (matched && server.playersMax > 0) onlineCount++;
         });
-        
         setOnlineServersCount(onlineCount);
       }
     });
-    
     return unsubscribe;
   }, []);
 
   useEffect(() => {
     if (totalPlayers === null) return;
-    
-    const duration = 1000;
+    const start = displayPlayersRef.current;
+    const diff = totalPlayers - start;
     const steps = 25;
-    const increment = (totalPlayers - displayPlayers) / steps;
-    let currentStep = 0;
-    
+    const interval = 1000 / steps;
+    let step = 0;
+
     const timer = setInterval(() => {
-      currentStep++;
-      if (currentStep >= steps) {
+      step++;
+      if (step >= steps) {
+        displayPlayersRef.current = totalPlayers;
         setDisplayPlayers(totalPlayers);
         clearInterval(timer);
       } else {
-        setDisplayPlayers(prev => Math.round(prev + increment));
+        const next = Math.round(start + (diff * step) / steps);
+        displayPlayersRef.current = next;
+        setDisplayPlayers(next);
       }
-    }, duration / steps);
-    
+    }, interval);
+
     return () => clearInterval(timer);
   }, [totalPlayers]);
 
@@ -105,44 +110,40 @@ const HeroSection = () => {
               Добро пожаловать на
               <span className="block text-primary mt-2 hero-glow-text">DevilRust</span>
             </h1>
-            <p className="mx-auto max-w-[700px] text-muted-foreground text-lg md:text-xl">9 уникальных серверов для каждого стиля игры. От хардкорно-ванильного опыта до безумно-модифицированного веселья</p>
+            <p className="mx-auto max-w-[700px] text-muted-foreground text-lg md:text-xl">
+              9 уникальных серверов для каждого стиля игры. От хардкорно-ванильного опыта до безумно-модифицированного веселья
+            </p>
           </div>
 
           <div className="flex flex-col items-center gap-4">
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button 
-                size="lg" 
+              <Button
+                size="lg"
                 className="text-lg shadow-lg shadow-primary/50 hover:shadow-primary/70 hover:scale-105 transition-all group"
-                onClick={(e) => {
-                  e.preventDefault();
-                  document.getElementById('how-to-start')?.scrollIntoView({ behavior: 'smooth' });
-                }}
+                onClick={() => document.getElementById('how-to-start')?.scrollIntoView({ behavior: 'smooth' })}
               >
                 <Icon name="Play" className="mr-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                 Как начать играть
               </Button>
-              <Button 
-                size="lg" 
-                variant="outline" 
+              <Button
+                size="lg"
+                variant="outline"
                 className="text-lg border-primary/30 hover:border-primary hover:bg-primary/10 h-auto"
-                onClick={(e) => {
-                  e.preventDefault();
-                  document.getElementById('servers')?.scrollIntoView({ behavior: 'smooth' });
-                }}
+                onClick={() => document.getElementById('servers')?.scrollIntoView({ behavior: 'smooth' })}
               >
                 <Icon name="Server" className="mr-2 h-5 w-5" />
                 Выбрать сервер
               </Button>
             </div>
-            <Button 
-              size="lg" 
-              variant="default" 
-              className="text-lg diamond-shine relative overflow-hidden border-0" 
+            <Button
+              size="lg"
+              variant="default"
+              className="text-lg diamond-shine relative overflow-hidden border-0"
               asChild
             >
-              <a 
-                href="https://devilrust.ru" 
-                target="_blank" 
+              <a
+                href="https://devilrust.ru"
+                target="_blank"
                 rel="noopener noreferrer"
                 onMouseEnter={() => setCoinRain(true)}
                 onMouseLeave={() => setCoinRain(false)}
@@ -159,7 +160,7 @@ const HeroSection = () => {
               <div className="text-4xl font-bold text-primary glow-text">{onlineServersCount || 9}</div>
               <div className="text-sm text-muted-foreground uppercase tracking-wider">Серверов онлайн</div>
             </div>
-<TooltipProvider>
+            <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div className="flex flex-col items-center p-4 rounded-lg glow-border bg-card/50 backdrop-blur-sm cursor-help">

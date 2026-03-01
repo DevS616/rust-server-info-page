@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Icon from '@/components/ui/icon';
 import DailyBonusWheel from './DailyBonusWheel';
 import WeeklyBonusCrate from './WeeklyBonusCrate';
@@ -10,12 +10,26 @@ interface DailyBonusButtonProps {
   onAvailabilityChange?: (available: boolean) => void;
 }
 
+const formatTime = (seconds: number) => {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  return `${h}ч ${m}м`;
+};
+
+const formatWeeklyTime = (seconds: number) => {
+  const d = Math.floor(seconds / 86400);
+  const h = Math.floor((seconds % 86400) / 3600);
+  return `${d}д ${h}ч`;
+};
+
+const CACHE_DURATION = 2 * 60 * 60 * 1000;
+
 const DailyBonusButton = ({ openFromMenu, onMenuOpenHandled, onAvailabilityChange }: DailyBonusButtonProps = {}) => {
   const [showSelection, setShowSelection] = useState(false);
   const [showDailyWheel, setShowDailyWheel] = useState(false);
   const [showWeeklyCrate, setShowWeeklyCrate] = useState(false);
-  const [dailyTimeLeft, setDailyTimeLeft] = useState<string>('');
-  const [weeklyTimeLeft, setWeeklyTimeLeft] = useState<string>('');
+  const [dailyTimeLeft, setDailyTimeLeft] = useState('');
+  const [weeklyTimeLeft, setWeeklyTimeLeft] = useState('');
   const [dailyCanClaim, setDailyCanClaim] = useState(false);
   const [weeklyCanClaim, setWeeklyCanClaim] = useState(false);
   const [steamId, setSteamId] = useState<string | null>(null);
@@ -24,214 +38,135 @@ const DailyBonusButton = ({ openFromMenu, onMenuOpenHandled, onAvailabilityChang
   const canClaimAny = dailyCanClaim || weeklyCanClaim;
 
   useEffect(() => {
-    const user = localStorage.getItem('steam_user');
-    if (user) {
-      try {
+    try {
+      const user = localStorage.getItem('steam_user');
+      if (user) {
         const userData = JSON.parse(user);
         setSteamId(userData.steamId);
-      } catch (e) {
-        console.error('Failed to parse steam_user:', e);
+      } else {
+        setSteamId(null);
+        setDailyCanClaim(false);
+        setWeeklyCanClaim(false);
+        setDailyTimeLeft('');
+        setWeeklyTimeLeft('');
       }
-    } else {
-      // Если пользователь не авторизован, сбрасываем steamId
+    } catch {
       setSteamId(null);
-      // Сбрасываем состояния бонусов для неавторизованных
-      setDailyCanClaim(false);
-      setWeeklyCanClaim(false);
-      setDailyTimeLeft('');
-      setWeeklyTimeLeft('');
     }
   }, []);
 
-  // Проверка ежедневного бонуса
   useEffect(() => {
-    const checkDailyAvailability = async () => {
-      if (!steamId) {
-        // Для неавторизованных - не показываем кнопку как доступную
-        setDailyCanClaim(false);
-        return;
-      }
+    if (!steamId) { setDailyCanClaim(false); return; }
 
-      const cachedData = localStorage.getItem(`bonus_check_${steamId}`);
-      if (cachedData) {
-        const { can_claim, time_left, cached_at } = JSON.parse(cachedData);
-        const cacheAge = Date.now() - cached_at;
-        
-        if (cacheAge < 2 * 60 * 60 * 1000) {
-          setDailyCanClaim(can_claim);
-          
-          if (!can_claim && time_left) {
-            const remainingTime = time_left - Math.floor(cacheAge / 1000);
-            if (remainingTime > 0) {
-              const hours = Math.floor(remainingTime / 3600);
-              const minutes = Math.floor((remainingTime % 3600) / 60);
-              setDailyTimeLeft(`${hours}ч ${minutes}м`);
-              return;
+    const checkDaily = async () => {
+      const cacheKey = `bonus_check_${steamId}`;
+      try {
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+          const { can_claim, time_left, cached_at } = JSON.parse(cached);
+          const age = Date.now() - cached_at;
+          if (age < CACHE_DURATION) {
+            setDailyCanClaim(can_claim);
+            if (!can_claim && time_left) {
+              const remaining = time_left - Math.floor(age / 1000);
+              if (remaining > 0) { setDailyTimeLeft(formatTime(remaining)); return; }
             }
           }
         }
-      }
+      } catch { /* ignore */ }
 
       try {
-        const response = await fetch(
-          `https://functions.poehali.dev/2f8f1aed-8299-4c7c-b041-cfe28a3aa7f3/?steam_id=${steamId}`
-        );
-        
-        if (response.ok) {
-          const data = await response.json();
+        const res = await fetch(`https://functions.poehali.dev/2f8f1aed-8299-4c7c-b041-cfe28a3aa7f3/?steam_id=${steamId}`);
+        if (res.ok) {
+          const data = await res.json();
           setDailyCanClaim(data.can_claim);
-          
-          localStorage.setItem(`bonus_check_${steamId}`, JSON.stringify({
-            can_claim: data.can_claim,
-            time_left: data.time_left,
-            cached_at: Date.now()
-          }));
-          
-          if (!data.can_claim && data.time_left) {
-            const hours = Math.floor(data.time_left / 3600);
-            const minutes = Math.floor((data.time_left % 3600) / 60);
-            setDailyTimeLeft(`${hours}ч ${minutes}м`);
-          }
+          localStorage.setItem(cacheKey, JSON.stringify({ can_claim: data.can_claim, time_left: data.time_left, cached_at: Date.now() }));
+          if (!data.can_claim && data.time_left) setDailyTimeLeft(formatTime(data.time_left));
         }
-      } catch (error) {
-        console.error('Failed to check daily availability:', error);
-      }
+      } catch { /* ignore */ }
     };
 
-    checkDailyAvailability();
+    checkDaily();
   }, [steamId]);
 
-  // Проверка еженедельного бонуса
-  useEffect(() => {
-    const checkWeeklyAvailability = async () => {
-      if (!steamId) {
-        // Для неавторизованных - не показываем кнопку как доступную
-        setWeeklyCanClaim(false);
-        return;
-      }
+  const checkWeekly = useCallback(async () => {
+    if (!steamId) { setWeeklyCanClaim(false); return; }
+    const cacheKey = `weekly_bonus_check_${steamId}`;
 
-      const cachedData = localStorage.getItem(`weekly_bonus_check_${steamId}`);
-      if (cachedData) {
-        const { can_claim, time_left, cached_at } = JSON.parse(cachedData);
-        const cacheAge = Date.now() - cached_at;
-        
-        if (cacheAge < 2 * 60 * 60 * 1000) {
+    try {
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        const { can_claim, time_left, cached_at } = JSON.parse(cached);
+        const age = Date.now() - cached_at;
+        if (age < CACHE_DURATION) {
           setWeeklyCanClaim(can_claim);
-          
           if (!can_claim && time_left) {
-            const remainingTime = time_left - Math.floor(cacheAge / 1000);
-            if (remainingTime > 0) {
-              const days = Math.floor(remainingTime / 86400);
-              const hours = Math.floor((remainingTime % 86400) / 3600);
-              setWeeklyTimeLeft(`${days}д ${hours}ч`);
-              return;
-            }
+            const remaining = time_left - Math.floor(age / 1000);
+            if (remaining > 0) { setWeeklyTimeLeft(formatWeeklyTime(remaining)); return; }
           }
         }
       }
+    } catch { /* ignore */ }
 
-      try {
-        const response = await fetch(
-          `https://functions.poehali.dev/2f8f1aed-8299-4c7c-b041-cfe28a3aa7f3/?steam_id=${steamId}&bonus_type=weekly`
-        );
-        
-        if (response.ok) {
-          const data = await response.json();
-          setWeeklyCanClaim(data.can_claim);
-          
-          localStorage.setItem(`weekly_bonus_check_${steamId}`, JSON.stringify({
-            can_claim: data.can_claim,
-            time_left: data.time_left,
-            cached_at: Date.now()
-          }));
-          
-          if (!data.can_claim && data.time_left) {
-            const days = Math.floor(data.time_left / 86400);
-            const hours = Math.floor((data.time_left % 86400) / 3600);
-            setWeeklyTimeLeft(`${days}д ${hours}ч`);
-          }
-        }
-      } catch (error) {
-        console.error('Failed to check weekly availability:', error);
+    try {
+      const res = await fetch(`https://functions.poehali.dev/2f8f1aed-8299-4c7c-b041-cfe28a3aa7f3/?steam_id=${steamId}&bonus_type=weekly`);
+      if (res.ok) {
+        const data = await res.json();
+        setWeeklyCanClaim(data.can_claim);
+        localStorage.setItem(cacheKey, JSON.stringify({ can_claim: data.can_claim, time_left: data.time_left, cached_at: Date.now() }));
+        if (!data.can_claim && data.time_left) setWeeklyTimeLeft(formatWeeklyTime(data.time_left));
       }
-    };
-
-    checkWeeklyAvailability();
-    
-    // Слушаем событие обновления бонусов
-    const handleBonusUpdate = () => {
-      checkWeeklyAvailability();
-    };
-    
-    window.addEventListener('bonusUpdated', handleBonusUpdate);
-    return () => window.removeEventListener('bonusUpdated', handleBonusUpdate);
+    } catch { /* ignore */ }
   }, [steamId]);
+
+  useEffect(() => {
+    checkWeekly();
+    window.addEventListener('bonusUpdated', checkWeekly);
+    return () => window.removeEventListener('bonusUpdated', checkWeekly);
+  }, [checkWeekly]);
 
   useEffect(() => {
     setIsChecking(false);
-    
-    const shouldOpenBonus = localStorage.getItem('bonus_after_auth');
-    if (shouldOpenBonus === 'true' && canClaimAny) {
+    if (localStorage.getItem('bonus_after_auth') === 'true' && canClaimAny) {
       localStorage.removeItem('bonus_after_auth');
       setTimeout(() => setShowSelection(true), 100);
     }
-
     onAvailabilityChange?.(canClaimAny);
-  }, [dailyCanClaim, weeklyCanClaim, canClaimAny]);
+  }, [dailyCanClaim, weeklyCanClaim, canClaimAny, onAvailabilityChange]);
+
+  const handleButtonClick = useCallback(() => {
+    if (!steamId) {
+      const currentUrl = encodeURIComponent(window.location.origin);
+      localStorage.setItem('bonus_after_auth', 'true');
+      window.location.href = `https://functions.poehali.dev/560196bb-a6d4-41dc-9b1c-0008c13bece3/?base_url=${currentUrl}`;
+    } else {
+      setShowSelection(true);
+    }
+  }, [steamId]);
 
   useEffect(() => {
     if (openFromMenu && !isChecking) {
       handleButtonClick();
       onMenuOpenHandled?.();
     }
-  }, [openFromMenu]);
+  }, [openFromMenu, isChecking, handleButtonClick, onMenuOpenHandled]);
 
+  if (isChecking) return null;
 
-
-  if (isChecking) {
-    return null;
-  }
-
-  // Для неавторизованных показываем как доступный
   const isAvailable = !steamId || canClaimAny;
-  
-  // Определяем текст: "Открыть" для доступных, таймер для кулдауна
-  let displayText = 'Открыть';
-  if (steamId && !canClaimAny) {
-    // Показываем ближайший доступный таймер
-    displayText = dailyTimeLeft || weeklyTimeLeft || 'Открыть';
-  }
-
-  const handleButtonClick = () => {
-    if (!steamId) {
-      // Если не авторизован - сразу перенаправляем на авторизацию
-      const currentUrl = encodeURIComponent(window.location.origin);
-      const authUrl = `https://functions.poehali.dev/560196bb-a6d4-41dc-9b1c-0008c13bece3/?base_url=${currentUrl}`;
-      localStorage.setItem('bonus_after_auth', 'true');
-      window.location.href = authUrl;
-    } else {
-      // Если авторизован - показываем выбор бонусов
-      setShowSelection(true);
-    }
-  };
+  const displayText = steamId && !canClaimAny
+    ? (dailyTimeLeft || weeklyTimeLeft || 'Открыть')
+    : 'Открыть';
 
   return (
     <>
       <button
         onClick={handleButtonClick}
-        className={`
-          hidden md:flex fixed bottom-24 right-8 z-40 
-          px-6 py-4 rounded-2xl
-          font-bold text-lg
-          transition-all duration-300
-          ${isAvailable
-            ? 'bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 bg-[length:200%_100%] animate-gradient text-white shadow-[0_0_20px_rgba(245,158,11,0.6)] md:shadow-[0_0_30px_rgba(245,158,11,0.6)] hover:shadow-[0_0_40px_rgba(245,158,11,0.8)] md:hover:shadow-[0_0_50px_rgba(245,158,11,0.8)] hover:scale-105 md:hover:scale-110 cursor-pointer' 
+        className={`hidden md:flex fixed bottom-24 right-8 z-40 px-6 py-4 rounded-2xl font-bold text-lg transition-all duration-300 ${
+          isAvailable
+            ? 'bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 bg-[length:200%_100%] bonus-btn-active text-white hover:scale-110 cursor-pointer'
             : 'bg-gradient-to-r from-gray-600 to-gray-700 text-gray-200 cursor-pointer hover:scale-105'
-          }
-        `}
-        style={isAvailable ? {
-          animation: 'gradient 3s ease infinite, pulse 2s ease-in-out infinite'
-        } : undefined}
+        }`}
       >
         <div className="flex items-center gap-3">
           <div className={isAvailable ? 'animate-bounce' : ''}>
@@ -239,12 +174,10 @@ const DailyBonusButton = ({ openFromMenu, onMenuOpenHandled, onAvailabilityChang
           </div>
           <div className="flex flex-col items-start leading-tight">
             <span className="text-sm opacity-90">Бонусы</span>
-            <span className="text-xl font-black">
-              {displayText}
-            </span>
+            <span className="text-xl font-black">{displayText}</span>
           </div>
           {isAvailable && (
-            <div className="absolute -top-1.5 md:-top-2 -right-1.5 md:-right-2 bg-red-500 text-white text-[10px] md:text-xs font-bold px-1.5 md:px-2 py-0.5 md:py-1 rounded-full animate-pulse">
+            <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full animate-pulse">
               ПОЛУЧИ
             </div>
           )}
@@ -261,16 +194,8 @@ const DailyBonusButton = ({ openFromMenu, onMenuOpenHandled, onAvailabilityChang
         dailyTimeLeft={dailyTimeLeft}
         weeklyTimeLeft={weeklyTimeLeft}
       />
-
       <DailyBonusWheel isOpen={showDailyWheel} onClose={() => setShowDailyWheel(false)} />
       <WeeklyBonusCrate isOpen={showWeeklyCrate} onClose={() => setShowWeeklyCrate(false)} />
-      
-      <style>{`
-        @keyframes gradient {
-          0%, 100% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-        }
-      `}</style>
     </>
   );
 };
