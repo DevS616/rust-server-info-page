@@ -15,6 +15,8 @@ interface Moderator {
   name: string;
   can_reply: boolean;
   can_close: boolean;
+  rating_sum: number;
+  rating_count: number;
   created_at: string;
 }
 
@@ -203,10 +205,12 @@ function ModeratorsPanel({ token }: { token: string }) {
         </p>
       ) : (
         <div className="space-y-2">
-          {moderators.map(m => (
-            <div key={m.id} className="flex items-center justify-between py-2 px-3 rounded-lg bg-background/50 border border-border">
-              <div>
-                <div className="flex items-center gap-2">
+          {moderators.map(m => {
+            const avgRating = m.rating_count > 0 ? m.rating_sum / m.rating_count : null;
+            const ratingColor = avgRating === null ? '' : avgRating >= 4.5 ? 'text-green-400' : avgRating >= 3 ? 'text-yellow-400' : 'text-red-400';
+            return (<div key={m.id} className="flex items-center justify-between py-2 px-3 rounded-lg bg-background/50 border border-border">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-sm font-medium">{m.name}</span>
                   {m.can_reply && (
                     <span className="text-xs px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">Ответы</span>
@@ -215,17 +219,33 @@ function ModeratorsPanel({ token }: { token: string }) {
                     <span className="text-xs px-1.5 py-0.5 rounded bg-green-500/20 text-green-400 border border-green-500/30">Закрытие</span>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground mt-0.5">Steam ID: {m.steam_id}</p>
+                <div className="flex items-center gap-3 mt-0.5">
+                  <p className="text-xs text-muted-foreground">Steam ID: {m.steam_id}</p>
+                  {avgRating !== null ? (
+                    <div className="flex items-center gap-1">
+                      <div className="flex gap-0.5">
+                        {[1,2,3,4,5].map(s => (
+                          <Icon key={s} name="Star" size={10}
+                            className={s <= Math.round(avgRating) ? 'text-yellow-500 fill-yellow-500' : 'text-slate-600'} />
+                        ))}
+                      </div>
+                      <span className={`text-xs font-semibold ${ratingColor}`}>{avgRating.toFixed(1)}</span>
+                      <span className="text-xs text-muted-foreground">({m.rating_count} оц.)</span>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-muted-foreground italic">нет оценок</span>
+                  )}
+                </div>
               </div>
               <button
                 onClick={() => handleRemove(m.id)}
-                className="text-muted-foreground hover:text-destructive transition-colors p-1"
+                className="text-muted-foreground hover:text-destructive transition-colors p-1 flex-shrink-0"
                 title="Удалить"
               >
                 <Icon name="Trash2" size={15} />
               </button>
-            </div>
-          ))}
+            </div>);
+          })}
         </div>
       )}
     </Card>
