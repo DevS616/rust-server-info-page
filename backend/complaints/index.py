@@ -270,14 +270,22 @@ def create_complaint(event: Dict[str, Any], user_data: Dict[str, Any]) -> Dict[s
 
 def get_dashboard(user_data: Dict[str, Any]) -> Dict[str, Any]:
     user_id = int(user_data.get('user_id', 0))
+    is_moderator = user_data.get('is_moderator', False)
+
+    # Модераторы без user_id (Steam-аккаунт не в users) — возвращаем базовые данные
     if not user_id:
+        if is_moderator:
+            return ok_response({'is_blocked': False, 'is_moderator': True, 'complaints': []})
         return error_response('Forbidden', 403)
+
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor(cursor_factory=RealDictCursor)
     cur.execute(f"SELECT is_blocked FROM users WHERE id = {user_id}")
     user = cur.fetchone()
     if not user:
         cur.close(); conn.close()
+        if is_moderator:
+            return ok_response({'is_blocked': False, 'is_moderator': True, 'complaints': []})
         return error_response('User not found', 404)
     cur.execute(f"""
         SELECT c.*,
@@ -288,7 +296,7 @@ def get_dashboard(user_data: Dict[str, Any]) -> Dict[str, Any]:
     cur.close(); conn.close()
     return ok_response({
         'is_blocked': user['is_blocked'],
-        'is_moderator': user_data.get('is_moderator', False),
+        'is_moderator': is_moderator,
         'complaints': [dict(c) for c in complaints]
     })
 
@@ -345,7 +353,7 @@ def get_complaint_details(complaint_id: str, user_data: Dict[str, Any]) -> Dict[
         return error_response('Complaint not found', 404)
     cur.execute(f"""
         SELECT cm.*, u.steam_username as user_name, u.steam_avatar as user_avatar,
-               m.name as admin_name,
+               COALESCE(cm.admin_name, m.name) as admin_name,
                CASE WHEN m.rating_count > 0 THEN ROUND(m.rating_sum::numeric / m.rating_count, 1) ELSE NULL END as mod_rating,
                m.rating_count as mod_rating_count
         FROM complaint_messages cm
@@ -397,9 +405,15 @@ def add_reply(complaint_id: str, event: Dict[str, Any], user_data: Dict[str, Any
     mod_steam_sql = f"'{escape_sql(str(mod_steam))}'" if mod_steam and is_mod_reply else 'NULL'
     uid_sql = 'NULL' if (is_mod_reply and not user_id) else str(user_id if user_id else 'NULL')
 
+    display_name = ''
+    admin_name_sql = 'NULL'
+    if is_mod_reply:
+        display_name = user_data.get('mod_name') or user_data.get('full_name', 'Администратор')
+        admin_name_sql = f"'{escape_sql(display_name)}'"
+
     cur.execute(
-        f"INSERT INTO complaint_messages (complaint_id, user_id, message, file_url, is_admin_reply, moderator_steam_id) "
-        f"VALUES ({cid}, {uid_sql}, '{msg_e}', {f}, {is_admin_reply}, {mod_steam_sql}) RETURNING *"
+        f"INSERT INTO complaint_messages (complaint_id, user_id, message, file_url, is_admin_reply, moderator_steam_id, admin_name) "
+        f"VALUES ({cid}, {uid_sql}, '{msg_e}', {f}, {is_admin_reply}, {mod_steam_sql}, {admin_name_sql}) RETURNING *"
     )
     msg = cur.fetchone()
 
@@ -409,7 +423,6 @@ def add_reply(complaint_id: str, event: Dict[str, Any], user_data: Dict[str, Any
 
     msg_dict = dict(msg)
     if is_mod_reply:
-        display_name = user_data.get('mod_name') or user_data.get('full_name', 'Администратор')
         msg_dict['admin_name'] = display_name
     return ok_response({'message': msg_dict}, 201)
 

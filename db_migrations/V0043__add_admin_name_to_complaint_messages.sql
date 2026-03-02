@@ -1,0 +1,1 @@
+ALTER TABLE complaint_messages ADD COLUMN IF NOT EXISTS admin_name VARCHAR(200) NULL;

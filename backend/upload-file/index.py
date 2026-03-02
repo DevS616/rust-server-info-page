@@ -5,12 +5,9 @@ import boto3
 import uuid
 from typing import Dict, Any
 
-REGRU_ENDPOINT = 'https://s3.regru.cloud'
-REGRU_BUCKET = 'img.devilrust'
-
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     '''
-    Загрузка файлов в облако Reg.ru S3.
+    Загрузка файлов в S3 хранилище.
     POST / - загрузка файла (base64 в JSON body)
     Body: {"file": "base64_data", "filename": "original.png", "content_type": "image/png"}
     '''
@@ -46,14 +43,14 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     except Exception as e:
         return error_response(f'Invalid base64 data: {str(e)}')
 
-    if len(file_data) > 100 * 1024 * 1024:
-        return error_response('File size exceeds 100MB limit', 413)
+    if len(file_data) > 20 * 1024 * 1024:
+        return error_response('File size exceeds 20MB limit', 413)
 
     s3 = boto3.client(
         's3',
-        endpoint_url=REGRU_ENDPOINT,
-        aws_access_key_id=os.environ['REGRU_S3_ACCESS_KEY'],
-        aws_secret_access_key=os.environ['REGRU_S3_SECRET_KEY'],
+        endpoint_url='https://bucket.poehali.dev',
+        aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'],
+        aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'],
     )
 
     file_extension = filename.rsplit('.', 1)[-1] if '.' in filename else 'bin'
@@ -61,14 +58,13 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
     try:
         s3.put_object(
-            Bucket=REGRU_BUCKET,
+            Bucket='files',
             Key=unique_filename,
             Body=file_data,
             ContentType=content_type,
-            ACL='public-read'
         )
 
-        public_url = f"{REGRU_ENDPOINT}/{REGRU_BUCKET}/{unique_filename}"
+        public_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{unique_filename}"
 
         return {
             'statusCode': 200,

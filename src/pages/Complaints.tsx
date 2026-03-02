@@ -746,12 +746,12 @@ const Complaints = () => {
       if (pubRes.ok) {
         const data = await pubRes.json();
         setComplaints(data.complaints || []);
-        setIsAdmin(data.is_admin || false);
+        setIsAdmin(data.is_admin || data.is_moderator || false);
       }
       if (dashRes.ok) {
         const data = await dashRes.json();
         setIsBlocked(data.is_blocked || false);
-        setIsAdmin(prev => prev || data.complaint_access || data.is_admin || false);
+        setIsAdmin(prev => prev || data.is_moderator || data.complaint_access || data.is_admin || false);
       }
     } catch {
       toast({ title: 'Ошибка', description: 'Не удалось загрузить обращения', variant: 'destructive' });
