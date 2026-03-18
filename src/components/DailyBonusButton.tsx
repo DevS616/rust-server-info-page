@@ -22,7 +22,7 @@ const formatWeeklyTime = (seconds: number) => {
   return `${d}д ${h}ч`;
 };
 
-const CACHE_DURATION = 2 * 60 * 60 * 1000;
+const CACHE_DURATION = 5 * 60 * 1000;
 
 const DailyBonusButton = ({ openFromMenu, onMenuOpenHandled, onAvailabilityChange }: DailyBonusButtonProps = {}) => {
   const [showSelection, setShowSelection] = useState(false);
