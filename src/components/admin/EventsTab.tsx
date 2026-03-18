@@ -208,18 +208,13 @@ const EventsTab = ({ token }: EventsTabProps) => {
 
   const toggleServer = (serverName: string) => {
     setSelectedServers(prev => {
-      // Если были выбраны все (пустой массив), сначала заполняем всеми
-      if (prev.length === 0) {
-        return servers.map(s => s.name).filter(name => name !== serverName);
-      }
+      const currentSelection = prev.length === 0 ? servers.map(s => s.name) : prev;
       
-      if (prev.includes(serverName)) {
-        const newSelection = prev.filter(s => s !== serverName);
-        // Если сняли последний, возвращаемся к "все сервера"
-        return newSelection.length === 0 ? [] : newSelection;
+      if (currentSelection.includes(serverName)) {
+        const newSelection = currentSelection.filter(s => s !== serverName);
+        return newSelection.length === 0 ? servers.map(s => s.name) : newSelection;
       } else {
-        const newSelection = [...prev, serverName];
-        // Если выбрали все, сбрасываем в пустой массив ("все")
+        const newSelection = [...currentSelection, serverName];
         return newSelection.length === servers.length ? [] : newSelection;
       }
     });
