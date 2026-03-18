@@ -314,8 +314,7 @@ const EventsTab = ({ token }: EventsTabProps) => {
                           id={`server-${server.id}`}
                           checked={isServerSelected(server.name)}
                           onChange={() => toggleServer(server.name)}
-                          disabled={isAllSelected}
-                          className="w-4 h-4 rounded border-gray-300 disabled:opacity-50"
+                          className="w-4 h-4 rounded border-gray-300 cursor-pointer"
                         />
                         <Label htmlFor={`server-${server.id}`} className="cursor-pointer text-sm">
                           {server.name}
