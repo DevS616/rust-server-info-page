@@ -3,6 +3,7 @@
   "complaints": "https://functions.poehali.dev/76a02e7f-8572-4035-9cd5-8533e8fb1c6d",
   "events": "https://functions.poehali.dev/20b8d7e0-8c27-4631-9f36-7be6d0ffb6a1",
   "admin-bonus-info": "https://functions.poehali.dev/f39e2f41-ff45-4800-8907-0ee09e17d8c6",
+  "claim-bonus": "https://functions.poehali.dev/f417ccf5-cc33-4765-9f67-ff481ae7cf82",
   "daily-bonus": "https://functions.poehali.dev/2f8f1aed-8299-4c7c-b041-cfe28a3aa7f3",
   "pricing": "https://functions.poehali.dev/3682a8f1-28c6-47a6-b68b-36b371bdd6a8",
   "news": "https://functions.poehali.dev/e6be6494-14cb-4278-882b-d4498bef6cf6",

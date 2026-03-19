@@ -158,6 +158,7 @@ const TicketsTab = ({
                 <SelectContent>
                   <SelectItem value="open">Открыт</SelectItem>
                   <SelectItem value="in_progress">В работе</SelectItem>
+                  <SelectItem value="answered">Прочитан</SelectItem>
                   <SelectItem value="closed">Закрыт</SelectItem>
                 </SelectContent>
               </Select>

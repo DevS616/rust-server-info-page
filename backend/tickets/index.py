@@ -494,11 +494,11 @@ def add_reply(ticket_id: str, event: Dict[str, Any], user_data: Dict[str, Any]) 
     """)
     new_message = cur.fetchone()
     
-    # Обновить статус тикета: если админ отвечает, ставим "answered", если пользователь - "pending"
+    # Обновить статус тикета: если админ отвечает, ставим "answered", если пользователь - "open"
     if is_admin:
         new_status = 'answered'
     else:
-        new_status = 'pending'
+        new_status = 'open'
     
     new_status_escaped = escape_sql(new_status)
     cur.execute(f"UPDATE tickets SET status = '{new_status_escaped}', updated_at = NOW() WHERE id = {ticket_id_int}")
