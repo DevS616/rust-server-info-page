@@ -99,9 +99,7 @@ const HeroSection = () => {
     <section className="relative w-full py-24 md:py-32 lg:py-40 overflow-hidden">
       {coinRain && <div className="coin-rain-overlay" aria-hidden="true" />}
       <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/10 via-transparent to-background" />
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/15 rounded-full blur-[128px] will-change-transform" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-primary/8 rounded-full blur-[128px] will-change-transform" />
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/8 via-transparent to-transparent" />
       </div>
       <div className="container relative z-10">
         <div className="flex flex-col items-center text-center space-y-8 animate-fade-in">

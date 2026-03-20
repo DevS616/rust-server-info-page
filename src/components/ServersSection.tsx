@@ -292,7 +292,6 @@ const ServersSection = () => {
 
   return (
     <section id="servers" className="py-20 relative overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(255,68,0,0.1),transparent_50%)]" />
       <div className="container relative z-10">
         <div className="mb-12 text-center">
           <h2 className="mb-4 text-4xl font-bold tracking-wide font-nunito-italic">Наши серверы</h2>
@@ -326,24 +325,52 @@ const ServersSection = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {sortedServers.map((server, index) => (
-            <ServerCard
-              key={server.id}
-              server={server}
-              index={index}
-              isVisible={visibleCards.has(server.id)}
-              stats={serverStats[server.battlemetricsId]}
-              onConnect={handleConnect}
-              onDetails={handleShowDetails}
-              onCopyIP={handleCopyIP}
-              cardRef={(el) => {
-                if (el) cardRefs.current.set(server.id, el);
-                else cardRefs.current.delete(server.id);
-              }}
-            />
-          ))}
-        </div>
+        {filterBy === 'all' ? (
+          <>
+            {[{ label: 'PVE серверы', color: 'text-green-400', servers: sortedServers.filter(s => s.mode.includes('PVE')) }, { label: 'PVP серверы', color: 'text-primary', servers: sortedServers.filter(s => s.mode.includes('PVP')) }].map(({ label, color, servers: group }) => group.length > 0 && (
+              <div key={label} className="mb-10">
+                <h3 className={`text-xl font-bold mb-5 uppercase tracking-widest ${color}`}>{label}</h3>
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {group.map((server, index) => (
+                    <ServerCard
+                      key={server.id}
+                      server={server}
+                      index={index}
+                      isVisible={visibleCards.has(server.id)}
+                      stats={serverStats[server.battlemetricsId]}
+                      onConnect={handleConnect}
+                      onDetails={handleShowDetails}
+                      onCopyIP={handleCopyIP}
+                      cardRef={(el) => {
+                        if (el) cardRefs.current.set(server.id, el);
+                        else cardRefs.current.delete(server.id);
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {sortedServers.map((server, index) => (
+              <ServerCard
+                key={server.id}
+                server={server}
+                index={index}
+                isVisible={visibleCards.has(server.id)}
+                stats={serverStats[server.battlemetricsId]}
+                onConnect={handleConnect}
+                onDetails={handleShowDetails}
+                onCopyIP={handleCopyIP}
+                cardRef={(el) => {
+                  if (el) cardRefs.current.set(server.id, el);
+                  else cardRefs.current.delete(server.id);
+                }}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Details Dialog */}
