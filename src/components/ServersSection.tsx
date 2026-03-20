@@ -76,10 +76,10 @@ const ServerCard = memo(({
   cardRef,
 }: ServerCardProps) => {
   const isPVE = server.mode.includes('PVE');
-  const cardColor = isPVE ? 'from-green-500/10 to-green-500/5' : 'from-red-500/10 to-red-500/5';
-  const borderColor = isPVE ? 'border-green-500/30' : 'border-red-500/30';
-  const badgeColor = isPVE ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500';
-  const iconColor = isPVE ? 'text-green-500' : 'text-red-500';
+  const cardColor = 'from-primary/5 to-transparent';
+  const borderColor = 'border-border hover:border-primary/40';
+  const badgeColor = 'bg-muted text-muted-foreground';
+  const iconColor = 'text-primary';
 
   const online = stats?.players ?? '—';
   const slots = stats?.maxPlayers ?? '—';
@@ -97,7 +97,7 @@ const ServerCard = memo(({
       {!isOnline && (
         <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-20 flex items-center justify-center">
           <div className="text-center px-4">
-            <Icon name="PowerOff" className="h-8 w-8 text-red-500 mx-auto mb-2" />
+            <Icon name="PowerOff" className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
             <p className="text-sm font-semibold text-foreground">Сервер выключен или на перезагрузке</p>
           </div>
         </div>
@@ -122,7 +122,7 @@ const ServerCard = memo(({
                     <span className="text-muted-foreground">/</span>
                     <span className="text-muted-foreground">{slots}</span>
                   </div>
-                  <div className={`h-1.5 w-full rounded-full ${isOnline ? 'bg-green-500' : 'bg-red-500'}`} />
+                  <div className={`h-1.5 w-full rounded-full ${isOnline ? 'bg-primary' : 'bg-muted-foreground'}`} />
                 </div>
               </TooltipTrigger>
               <TooltipContent>

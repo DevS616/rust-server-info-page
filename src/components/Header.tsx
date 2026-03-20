@@ -172,12 +172,12 @@ const Header = ({ onOpenBonus, onOpenTelegram, bonusAvailable }: HeaderProps = {
                       setIsMobileMenuOpen(false);
                       setTimeout(onOpenBonus, 200);
                     }}
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-amber-500/20 to-yellow-500/10 border border-amber-500/30 text-amber-400 font-semibold uppercase tracking-wider transition-all hover:bg-amber-500/20"
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-primary/10 border border-primary/30 text-primary font-semibold uppercase tracking-wider transition-all hover:bg-primary/20"
                   >
                     <Icon name="Gift" size={20} className={bonusAvailable ? 'animate-bounce' : ''} />
                     <span>Бонусы</span>
                     {bonusAvailable && (
-                      <span className="ml-auto bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full animate-pulse">ДОСТУПНО</span>
+                      <span className="ml-auto bg-primary text-primary-foreground text-xs font-bold px-2 py-0.5 rounded-full animate-pulse">ДОСТУПНО</span>
                     )}
                   </button>
                 )}

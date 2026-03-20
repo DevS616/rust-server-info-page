@@ -15,10 +15,10 @@ interface NewsItem {
 }
 
 const categoryConfig = {
-  update: { label: 'Обновление', color: 'bg-blue-500/10 text-blue-500 border-blue-500/20' },
-  event: { label: 'Ивент', color: 'bg-purple-500/10 text-purple-500 border-purple-500/20' },
-  wipe: { label: 'Вайп', color: 'bg-orange-500/10 text-orange-500 border-orange-500/20' },
-  news: { label: 'Новость', color: 'bg-green-500/10 text-green-500 border-green-500/20' }
+  update: { label: 'Обновление', color: 'bg-muted text-muted-foreground border-border' },
+  event: { label: 'Ивент', color: 'bg-primary/10 text-primary border-primary/20' },
+  wipe: { label: 'Вайп', color: 'bg-muted text-muted-foreground border-border' },
+  news: { label: 'Новость', color: 'bg-muted text-muted-foreground border-border' }
 };
 
 const NewsSection = () => {
