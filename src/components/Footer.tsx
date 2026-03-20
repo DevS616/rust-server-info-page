@@ -7,8 +7,7 @@ const Footer = () => {
   const [isRulesOpen, setIsRulesOpen] = useState(false);
   
   return (
-    <footer className="border-t border-primary/20 py-12 bg-card/50 backdrop-blur-sm relative">
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent to-primary/5" />
+    <footer className="border-t border-border py-12 bg-muted/30 relative">
       <div className="container relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>
@@ -82,7 +81,7 @@ const Footer = () => {
           </div>
         </div>
 
-        <div className="mt-8 pt-8 border-t border-primary/20 space-y-4">
+        <div className="mt-8 pt-8 border-t border-border space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-muted-foreground/80">
             <div>
               <h4 className="font-semibold text-sm mb-2 text-foreground">Реквизиты</h4>

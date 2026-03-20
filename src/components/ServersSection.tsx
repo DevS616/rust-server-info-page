@@ -291,7 +291,7 @@ const ServersSection = () => {
   });
 
   return (
-    <section id="servers" className="py-20 relative overflow-hidden">
+    <section id="servers" className="py-20 relative overflow-hidden bg-muted/30">
       <div className="container relative z-10">
         <div className="mb-12 text-center">
           <h2 className="mb-4 text-4xl font-bold tracking-wide font-nunito-italic">Наши серверы</h2>

@@ -15,8 +15,8 @@ const HowToStartSection = () => {
   };
 
   return (
-    <section id="how-to-start" className="py-20 relative">
-      <div className="absolute inset-0 bg-gradient-to-t from-primary/5 to-transparent" />
+    <section id="how-to-start" className="py-20 relative bg-muted/30">
+
       <div className="container relative z-10">
         <Card className="max-w-3xl mx-auto glow-border bg-card/80 backdrop-blur-sm">
           <CardHeader className="text-center">
