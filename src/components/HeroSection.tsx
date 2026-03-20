@@ -96,7 +96,7 @@ const HeroSection = () => {
   }, [totalPlayers]);
 
   return (
-    <section className="relative w-full py-24 md:py-32 lg:py-40 overflow-hidden bg-muted/30">
+    <section className="relative w-full py-24 md:py-32 lg:py-40 overflow-hidden">
       {coinRain && <div className="coin-rain-overlay" aria-hidden="true" />}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-[128px]" />

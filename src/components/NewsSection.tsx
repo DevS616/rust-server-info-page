@@ -66,7 +66,7 @@ const NewsSection = () => {
 
   if (loading) {
     return (
-      <section className="py-20 px-4 bg-muted/30">
+      <section className="py-20 px-4">
         <div className="container mx-auto max-w-7xl text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
         </div>
@@ -79,7 +79,7 @@ const NewsSection = () => {
   }
 
   return (
-    <section className="py-20 px-4 bg-muted/30">
+    <section className="py-20 px-4">
       <div className="container mx-auto max-w-7xl">
         <div className="text-center mb-12">
           <h2 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">

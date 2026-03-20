@@ -15,7 +15,7 @@ const HowToStartSection = () => {
   };
 
   return (
-    <section id="how-to-start" className="py-20 relative bg-muted/30">
+    <section id="how-to-start" className="py-20 relative">
 
       <div className="container relative z-10">
         <Card className="max-w-3xl mx-auto glow-border bg-card/80 backdrop-blur-sm">
