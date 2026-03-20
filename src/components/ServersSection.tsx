@@ -76,10 +76,11 @@ const ServerCard = memo(({
   cardRef,
 }: ServerCardProps) => {
   const isPVE = server.mode.includes('PVE');
-  const cardColor = 'from-primary/5 to-transparent';
-  const borderColor = 'border-border hover:border-primary/40';
-  const badgeColor = 'bg-muted text-muted-foreground';
-  const iconColor = 'text-primary';
+  const cardColor = isPVE ? 'from-green-500/5 to-transparent' : 'from-primary/5 to-transparent';
+  const borderColor = isPVE ? 'border-border hover:border-green-500/30' : 'border-border hover:border-primary/40';
+  const badgeColor = isPVE ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-muted text-muted-foreground';
+  const iconColor = isPVE ? 'text-green-400' : 'text-primary';
+  const glowStyle = isPVE ? { boxShadow: '0 0 20px rgba(34,197,94,0.06)' } : undefined;
 
   const online = stats?.players ?? '—';
   const slots = stats?.maxPlayers ?? '—';
@@ -92,7 +93,7 @@ const ServerCard = memo(({
       className={`group relative overflow-hidden rounded-xl border ${borderColor} bg-gradient-to-br ${cardColor} p-6 transition-all hover:shadow-xl hover:shadow-primary/10 flex flex-col h-full ${
         isVisible ? 'server-card-visible' : 'server-card-animate'
       } ${!isOnline ? 'opacity-40' : ''}`}
-      style={isVisible ? { animationDelay: `${index * 0.08}s` } : undefined}
+      style={isVisible ? { animationDelay: `${index * 0.08}s`, ...glowStyle } : glowStyle}
     >
       {!isOnline && (
         <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-20 flex items-center justify-center">
