@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -50,7 +50,9 @@ const Admin = () => {
   const { loading: authLoading, loginForm, setLoginForm, handleLogin: authHandleLogin, handleLogout: authHandleLogout } = useAdminAuth();
   const { loadTickets: dataLoadTickets, loadServers: dataLoadServers, loadTicketDetails: dataLoadTicketDetails } = useAdminDataLoader();
   const { applyFilters } = useTicketFilters();
-  const serverManager = useServerManager(token, () => loadServers(token!, false));
+  const tokenRef = useRef<string | null>(null);
+  tokenRef.current = token;
+  const serverManager = useServerManager(token, () => loadServers(tokenRef.current!, false));
 
   useEffect(() => {
     const storedToken = localStorage.getItem('admin_token');
