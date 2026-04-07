@@ -44,8 +44,8 @@ const generateAutoEvents = (): CalendarEvent[] => {
     const month = ref.getMonth();
 
     const wipeDate = getFirstThursday(year, month);
-    // Судная ночь — всегда за 4 дня до вайпа (воскресенье перед вайпом)
-    const doomDate = new Date(wipeDate.getTime() - 4 * 24 * 60 * 60 * 1000);
+    // Судная ночь — за 1 день до вайпа (среда)
+    const doomDate = new Date(wipeDate.getTime() - 1 * 24 * 60 * 60 * 1000);
 
     result.push({
       id: -(offset * 2 + 1) - 1000,
