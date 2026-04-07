@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -19,7 +19,6 @@ import ComplaintsTab from '@/components/admin/ComplaintsTab';
 import { useAdminAuth } from '@/components/admin/AdminAuth';
 import { useAdminDataLoader, Ticket, Message, Server } from '@/components/admin/AdminDataLoader';
 import { useTicketFilters } from '@/components/admin/AdminTicketFilters';
-import { useServerManager } from '@/components/admin/AdminServerManager';
 import { apiCache } from '@/utils/apiCache';
 
 const API_BASE = 'https://functions.poehali.dev';
@@ -43,16 +42,10 @@ const Admin = () => {
   const [replyFile, setReplyFile] = useState<File | null>(null);
   
   const [servers, setServers] = useState<Server[]>([]);
-  const [editingServer, setEditingServer] = useState<Server | null>(null);
-  const [serverForm, setServerForm] = useState({ name: '', is_active: true });
-  const [showServerForm, setShowServerForm] = useState(false);
 
   const { loading: authLoading, loginForm, setLoginForm, handleLogin: authHandleLogin, handleLogout: authHandleLogout } = useAdminAuth();
   const { loadTickets: dataLoadTickets, loadServers: dataLoadServers, loadTicketDetails: dataLoadTicketDetails } = useAdminDataLoader();
   const { applyFilters } = useTicketFilters();
-  const tokenRef = useRef<string | null>(null);
-  tokenRef.current = token;
-  const serverManager = useServerManager(token, () => loadServers(tokenRef.current!, false));
 
   useEffect(() => {
     const storedToken = localStorage.getItem('admin_token');
@@ -116,45 +109,6 @@ const Admin = () => {
     const filtered = applyFilters(tickets, filterStatus, filterServer, filterUnread, searchQuery, sortBy);
     setFilteredTickets(filtered);
   }, [filterStatus, filterServer, filterUnread, searchQuery, sortBy, tickets]);
-
-  const handleCreateServer = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    const success = await serverManager.handleCreateServer(serverForm);
-    if (success) {
-      setServerForm({ name: '', is_active: true });
-      setShowServerForm(false);
-    }
-    setLoading(false);
-  };
-
-  const handleUpdateServer = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingServer) return;
-    setLoading(true);
-    const success = await serverManager.handleUpdateServer(editingServer.id, serverForm);
-    if (success) {
-      setEditingServer(null);
-      setServerForm({ name: '', is_active: true });
-    }
-    setLoading(false);
-  };
-
-  const handleDeleteServer = async (serverId: number) => {
-    await serverManager.handleDeleteServer(serverId);
-  };
-
-  const startEditServer = (server: Server) => {
-    setEditingServer(server);
-    setServerForm({ name: server.name, is_active: server.is_active });
-    setShowServerForm(true);
-  };
-
-  const cancelServerForm = () => {
-    setEditingServer(null);
-    setServerForm({ name: '', is_active: true });
-    setShowServerForm(false);
-  };
 
   const uploadFile = async (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -429,20 +383,7 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="servers">
-            <ServersTab 
-              servers={servers}
-              editingServer={editingServer}
-              serverForm={serverForm}
-              setServerForm={setServerForm}
-              showServerForm={showServerForm}
-              loading={loading}
-              onCreateServer={handleCreateServer}
-              onUpdateServer={handleUpdateServer}
-              onDeleteServer={handleDeleteServer}
-              onStartEdit={startEditServer}
-              onCancel={cancelServerForm}
-              onShowForm={() => setShowServerForm(true)}
-            />
+            <ServersTab token={token!} />
           </TabsContent>
 
           <TabsContent value="management">

@@ -35,12 +35,21 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     
     params = event.get('queryStringParameters') or {}
     server_id = params.get('server_id', '')
+    show_all = params.get('all', '') == 'true'
     
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor(cursor_factory=RealDictCursor)
     
     try:
         if method == 'GET':
+            headers_get = event.get('headers') or {}
+            token_get = headers_get.get('x-auth-token') or headers_get.get('X-Auth-Token')
+            is_admin = False
+            if token_get:
+                token_safe_get = escape_sql(token_get)
+                cur.execute(f"SELECT id FROM admins WHERE token = '{token_safe_get}'")
+                is_admin = cur.fetchone() is not None
+
             if server_id:
                 try:
                     server_id_int = int(server_id)
@@ -66,14 +75,23 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'isBase64Encoded': False
                 }
             else:
-                cur.execute("""
-                    SELECT id, name, mode, ip, server_ip, battlemetrics_id, 
-                           description, features, detailed_description, 
-                           display_order, is_active
-                    FROM servers 
-                    WHERE is_active = TRUE
-                    ORDER BY display_order ASC, id ASC
-                """)
+                if show_all and is_admin:
+                    cur.execute("""
+                        SELECT id, name, mode, ip, server_ip, battlemetrics_id, 
+                               description, features, detailed_description, 
+                               display_order, is_active
+                        FROM servers 
+                        ORDER BY display_order ASC, id ASC
+                    """)
+                else:
+                    cur.execute("""
+                        SELECT id, name, mode, ip, server_ip, battlemetrics_id, 
+                               description, features, detailed_description, 
+                               display_order, is_active
+                        FROM servers 
+                        WHERE is_active = TRUE
+                        ORDER BY display_order ASC, id ASC
+                    """)
                 servers = cur.fetchall()
                 
                 return {

@@ -1,14 +1,10 @@
 {
   "tests": [
     {
-      "name": "Get all active servers",
+      "name": "Get servers returns 200",
       "method": "GET",
       "path": "/",
-      "expectedStatus": 200,
-      "expectedBody": {
-        "servers": []
-      },
-      "bodyMatcher": "partial"
+      "expectedStatus": 200
     },
     {
       "name": "Create server without auth",

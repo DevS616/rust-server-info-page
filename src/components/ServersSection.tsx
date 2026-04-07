@@ -22,8 +22,9 @@ import {
 } from '@/components/ui/tooltip';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
-import serversData from '@/data/servers.json';
 import { monitoringService } from '@/services/monitoringService';
+
+const SERVERS_API = 'https://functions.poehali.dev/173145fd-cc6a-4e5a-baee-7e1194624730';
 
 type ServerData = {
   id: string;
@@ -40,10 +41,6 @@ type ServerData = {
     description: string;
   };
 };
-
-const pveServers = serversData.pveServers as ServerData[];
-const pvpServers = serversData.pvpServers as ServerData[];
-const allServersFlat = [...pveServers, ...pvpServers];
 
 type SortType = 'number' | 'rate-asc' | 'rate-desc';
 type FilterType = 'all' | 'pve' | 'pvp';
@@ -175,6 +172,7 @@ ServerCard.displayName = 'ServerCard';
 /* ─── ServersSection ─── */
 const ServersSection = () => {
   const { toast } = useToast();
+  const [allServersFlat, setAllServersFlat] = useState<ServerData[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isConnectDialogOpen, setIsConnectDialogOpen] = useState(false);
   const [selectedServer, setSelectedServer] = useState<ServerData | null>(null);
@@ -185,6 +183,38 @@ const ServersSection = () => {
   const [visibleCards, setVisibleCards] = useState<Set<string>>(new Set());
   const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const lastSoundTime = useRef(0);
+
+  useEffect(() => {
+    fetch(`${SERVERS_API}/`)
+      .then(r => r.json())
+      .then(data => {
+        const servers: ServerData[] = (data.servers || []).map((s: {
+          id: number; name: string; mode: string; ip: string; server_ip: string;
+          battlemetrics_id: string; description: string; features: unknown;
+          detailed_description: unknown;
+        }) => ({
+          id: String(s.id),
+          name: s.name,
+          mode: s.mode || '',
+          ip: s.ip || '',
+          serverIp: s.server_ip || '',
+          battlemetricsId: s.battlemetrics_id || '',
+          description: s.description || '',
+          features: Array.isArray(s.features)
+            ? s.features
+            : typeof s.features === 'string'
+              ? JSON.parse(s.features)
+              : [],
+          detailedDescription: s.detailed_description
+            ? (typeof s.detailed_description === 'string'
+                ? JSON.parse(s.detailed_description)
+                : s.detailed_description)
+            : undefined,
+        }));
+        setAllServersFlat(servers);
+      })
+      .catch(() => {});
+  }, []);
 
   const playHoverSound = useCallback(() => {
     const now = Date.now();
@@ -220,7 +250,7 @@ const ServersSection = () => {
       }
     });
     return unsubscribe;
-  }, []);
+  }, [allServersFlat]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -274,8 +304,8 @@ const ServersSection = () => {
 
   const getDetailedDescription = useCallback((serverId: string) => {
     const s = allServersFlat.find(s => s.id === serverId);
-    return s?.detailedDescription || serversData.defaultDetailedDescription;
-  }, []);
+    return s?.detailedDescription || null;
+  }, [allServersFlat]);
 
   const filteredServers = allServersFlat.filter(server => {
     if (filterBy === 'pve') return server.mode.includes('PVE');
