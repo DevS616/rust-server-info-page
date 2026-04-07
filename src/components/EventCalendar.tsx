@@ -33,18 +33,19 @@ const getFirstThursday = (year: number, month: number): Date => {
 const toDateStr = (d: Date): string =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-// Генерирует авто-события для N месяцев вперёд и текущего
+// Генерирует авто-события для текущего и ближайших месяцев
 const generateAutoEvents = (): CalendarEvent[] => {
   const result: CalendarEvent[] = [];
   const now = new Date();
   // Генерируем для предыдущего, текущего и 2 следующих месяцев
   for (let offset = -1; offset <= 2; offset++) {
-    const year = new Date(now.getFullYear(), now.getMonth() + offset, 1).getFullYear();
-    const month = new Date(now.getFullYear(), now.getMonth() + offset, 1).getMonth();
+    const ref = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+    const year = ref.getFullYear();
+    const month = ref.getMonth();
 
     const wipeDate = getFirstThursday(year, month);
-    // Судная ночь — четверг за 7 дней до вайпа (предыдущий четверг)
-    const doomDate = new Date(wipeDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+    // Судная ночь — всегда за 4 дня до вайпа (воскресенье перед вайпом)
+    const doomDate = new Date(wipeDate.getTime() - 4 * 24 * 60 * 60 * 1000);
 
     result.push({
       id: -(offset * 2 + 1) - 1000,
@@ -127,10 +128,16 @@ const EventCalendar = ({ isOpen, onClose }: EventCalendarProps) => {
       if (response.ok) {
         const data = await response.json();
         const dbEvents: CalendarEvent[] = data.events || [];
-        // Авто-события не перекрывают вручную добавленные на ту же дату
-        const dbDates = new Set(dbEvents.map(e => e.date));
+        // Авто-события всегда есть; ручные события из БД добавляются дополнительно
+        // Если ручное событие совпадает по дате с авто — авто убирается (ручное имеет приоритет)
+        const autoTitles = new Set(['Глобальный вайп', 'Судная ночь']);
+        const dbDates = new Set(
+          dbEvents.filter(e => autoTitles.has(e.title)).map(e => e.date)
+        );
         const filteredAuto = autoEvents.filter(e => !dbDates.has(e.date));
-        setEvents([...dbEvents, ...filteredAuto]);
+        // Ручные не-авто события + авто-события
+        const manualEvents = dbEvents.filter(e => !autoTitles.has(e.title));
+        setEvents([...manualEvents, ...filteredAuto]);
       } else {
         setEvents(autoEvents);
       }
