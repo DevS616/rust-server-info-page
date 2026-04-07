@@ -1,5 +1,4 @@
 import fallbackStats from '@/data/fallbackStats.json';
-import serversData from '@/data/servers.json';
 
 type MonitoringData = {
   result: string;
@@ -29,17 +28,12 @@ class MonitoringService {
   }
 
   private loadFallbackData(): void {
-    const allServers = [...serversData.pveServers, ...serversData.pvpServers];
-    const servers = allServers.map(server => {
-      const stats = fallbackStats.servers[server.battlemetricsId] || { players: 0, maxPlayers: 150 };
-      const [ip, port] = server.serverIp.split(':');
-      return {
-        ip,
-        port: parseInt(port),
-        players: stats.players,
-        playersMax: stats.maxPlayers
-      };
-    });
+    const servers = Object.entries(fallbackStats.servers).map(([, stats]) => ({
+      ip: '',
+      port: 0,
+      players: stats.players,
+      playersMax: stats.maxPlayers
+    }));
 
     this.data = {
       result: 'success',
@@ -69,43 +63,19 @@ class MonitoringService {
   private async fetchData(): Promise<void> {
     if (this.isFetching) return;
 
-    const CACHE_KEY = 'monitoring_cache';
-    const CACHE_DURATION = 30 * 60 * 1000;
-    
-    const cached = localStorage.getItem(CACHE_KEY);
-    if (cached) {
-      try {
-        const { data, timestamp } = JSON.parse(cached);
-        if (Date.now() - timestamp < CACHE_DURATION) {
-          this.data = data;
-          this.useFallback = false;
-          this.notify();
-          return;
-        }
-      } catch { /* ignore stale cache */ }
-    }
-
     this.isFetching = true;
     try {
       const response = await fetch(
         'https://functions.poehali.dev/00e6cb95-28f5-49b7-b342-db4f9ae8ffd1?type=monitoring'
       );
 
-      if (!response.ok) {
-        throw new Error('API недоступен');
-      }
+      if (!response.ok) throw new Error('API недоступен');
 
       const data = await response.json();
 
       if (data.result === 'success' && data.data) {
         this.data = data;
         this.useFallback = false;
-        
-        localStorage.setItem(CACHE_KEY, JSON.stringify({
-          data,
-          timestamp: Date.now()
-        }));
-        
         this.notify();
       }
     } catch {
@@ -116,25 +86,14 @@ class MonitoringService {
   }
 
   private startAutoFetch(): void {
-    let lastFetchTime = Date.now();
+    localStorage.removeItem('monitoring_cache');
 
     this.fetchData();
     this.fetchInterval = window.setInterval(() => {
       if (document.visibilityState === 'visible') {
         this.fetchData();
-        lastFetchTime = Date.now();
       }
-    }, 30 * 60 * 1000);
-
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible' && !this.isFetching) {
-        const now = Date.now();
-        if (now - lastFetchTime >= 20 * 60 * 1000) {
-          this.fetchData();
-          lastFetchTime = now;
-        }
-      }
-    });
+    }, 5 * 60 * 1000);
   }
 
   destroy(): void {
