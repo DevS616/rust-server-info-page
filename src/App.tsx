@@ -21,6 +21,7 @@ import SteamCallback from "./pages/SteamCallback";
 import Privacy from "./pages/Privacy";
 import UserAgreement from "./pages/UserAgreement";
 import NotFound from "./pages/NotFound";
+import CalendarPage from "./pages/Calendar";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -145,6 +146,7 @@ const AppContent = () => {
         <Route path="/steam-callback" element={<SteamCallback />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="/img" element={<ImgHosting />} />
+        <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/agreement" element={<UserAgreement />} />
         <Route path="*" element={<NotFound />} />

@@ -10,6 +10,7 @@ import HowToStartSection from '@/components/HowToStartSection';
 import Footer from '@/components/Footer';
 import DailyBonusButton from '@/components/DailyBonusButton';
 import TelegramWidget from '@/components/TelegramWidget';
+import EventAlert from '@/components/EventAlert';
 
 const Index = () => {
   const [searchParams] = useSearchParams();
@@ -66,6 +67,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <EventAlert />
       <Header
         onOpenBonus={() => setOpenBonusFromMenu(true)}
         onOpenTelegram={() => setOpenTelegramFromMenu(true)}
