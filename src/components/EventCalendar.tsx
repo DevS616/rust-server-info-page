@@ -21,6 +21,54 @@ interface EventCalendarProps {
 const DAYS_OF_WEEK = ['ПОНЕДЕЛЬНИК', 'ВТОРНИК', 'СРЕДА', 'ЧЕТВЕРГ', 'ПЯТНИЦА', 'СУББОТА', 'ВОСКРЕСЕНЬЕ'];
 const MONTHS = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 
+// Возвращает дату первого четверга месяца (year, month — 0-based)
+const getFirstThursday = (year: number, month: number): Date => {
+  const d = new Date(year, month, 1);
+  // getDay(): 0=Вс, 1=Пн, ..., 4=Чт
+  const dayOfWeek = d.getDay();
+  const daysUntilThursday = (4 - dayOfWeek + 7) % 7;
+  return new Date(year, month, 1 + daysUntilThursday);
+};
+
+const toDateStr = (d: Date): string =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+// Генерирует авто-события для N месяцев вперёд и текущего
+const generateAutoEvents = (): CalendarEvent[] => {
+  const result: CalendarEvent[] = [];
+  const now = new Date();
+  // Генерируем для предыдущего, текущего и 2 следующих месяцев
+  for (let offset = -1; offset <= 2; offset++) {
+    const year = new Date(now.getFullYear(), now.getMonth() + offset, 1).getFullYear();
+    const month = new Date(now.getFullYear(), now.getMonth() + offset, 1).getMonth();
+
+    const wipeDate = getFirstThursday(year, month);
+    // Судная ночь — четверг за 7 дней до вайпа (предыдущий четверг)
+    const doomDate = new Date(wipeDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    result.push({
+      id: -(offset * 2 + 1) - 1000,
+      date: toDateStr(wipeDate),
+      event_time: '22:00',
+      title: 'Глобальный вайп',
+      description: 'Полный сброс всех серверов. Стартуем с чистого листа! Все постройки, ресурсы и прогресс будут удалены.',
+      color: '#DC2626',
+      servers: 'Все сервера',
+    });
+
+    result.push({
+      id: -(offset * 2 + 2) - 1000,
+      date: toDateStr(doomDate),
+      event_time: '18:00',
+      title: 'Судная ночь',
+      description: 'Ночь перед вайпом — последний шанс отомстить обидчикам и забрать всё что можно! Усиленные рейды, хаос и веселье.',
+      color: '#EA580C',
+      servers: 'Все сервера',
+    });
+  }
+  return result;
+};
+
 const EventCalendar = ({ isOpen, onClose }: EventCalendarProps) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -74,13 +122,20 @@ const EventCalendar = ({ isOpen, onClose }: EventCalendarProps) => {
   const loadEvents = async () => {
     setLoading(true);
     try {
+      const autoEvents = generateAutoEvents();
       const response = await fetch('https://functions.poehali.dev/20b8d7e0-8c27-4631-9f36-7be6d0ffb6a1/');
       if (response.ok) {
         const data = await response.json();
-        setEvents(data.events || []);
+        const dbEvents: CalendarEvent[] = data.events || [];
+        // Авто-события не перекрывают вручную добавленные на ту же дату
+        const dbDates = new Set(dbEvents.map(e => e.date));
+        const filteredAuto = autoEvents.filter(e => !dbDates.has(e.date));
+        setEvents([...dbEvents, ...filteredAuto]);
+      } else {
+        setEvents(autoEvents);
       }
-    } catch (error) {
-      console.error('Failed to load events:', error);
+    } catch {
+      setEvents(generateAutoEvents());
     } finally {
       setLoading(false);
     }
