@@ -149,14 +149,14 @@ const EventCalendar = ({ isOpen, onClose }: EventCalendarProps) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl bg-gradient-to-b from-gray-900 to-gray-800 border-2 border-primary/30 p-6">
+      <DialogContent className="max-w-6xl w-[calc(100vw-16px)] bg-gradient-to-b from-gray-900 to-gray-800 border-2 border-primary/30 p-3 sm:p-6 max-h-[95dvh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-3xl font-bold text-white uppercase tracking-wider">
+          <DialogTitle className="text-xl sm:text-3xl font-bold text-white uppercase tracking-wider">
             КАЛЕНДАРЬ
           </DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Left side - Calendar */}
           <div className="lg:col-span-2">
             {/* Month navigation */}
@@ -187,11 +187,11 @@ const EventCalendar = ({ isOpen, onClose }: EventCalendarProps) => {
             </div>
 
             {/* Days of week */}
-            <div className="grid grid-cols-7 gap-2 mb-2">
+            <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-1 sm:mb-2">
               {DAYS_OF_WEEK.map((day) => (
                 <div
                   key={day}
-                  className="text-center text-xs font-semibold text-gray-400 uppercase py-2"
+                  className="text-center text-[10px] sm:text-xs font-semibold text-gray-400 uppercase py-1 sm:py-2"
                 >
                   {day.slice(0, 2)}
                 </div>
@@ -199,7 +199,7 @@ const EventCalendar = ({ isOpen, onClose }: EventCalendarProps) => {
             </div>
 
             {/* Calendar grid */}
-            <div className="grid grid-cols-7 gap-2">
+            <div className="grid grid-cols-7 gap-1 sm:gap-2">
               {days.map((day, index) => {
                 const isCurrentMonthDay = index >= startingDayOfWeek && index < startingDayOfWeek + daysInMonth;
                 const isToday = isCurrentMonth && isCurrentMonthDay && day === today.getDate();
@@ -211,9 +211,9 @@ const EventCalendar = ({ isOpen, onClose }: EventCalendarProps) => {
                     onClick={() => event && setSelectedEvent(event)}
                     disabled={!isCurrentMonthDay}
                     className={`
-                      aspect-square p-2 rounded-lg text-lg font-bold transition-all relative
+                      aspect-square rounded-lg text-sm sm:text-lg font-bold transition-all relative
                       ${!isCurrentMonthDay ? 'bg-gray-800/30 text-gray-600' : 'bg-gray-700/50 text-white hover:bg-gray-600/50'}
-                      ${isToday ? 'ring-4 ring-yellow-400 shadow-lg shadow-yellow-400/50' : ''}
+                      ${isToday ? 'ring-2 sm:ring-4 ring-yellow-400 shadow-lg shadow-yellow-400/50' : ''}
                       ${event ? 'cursor-pointer' : 'cursor-default'}
                     `}
                     style={event ? { backgroundColor: event.color } : {}}

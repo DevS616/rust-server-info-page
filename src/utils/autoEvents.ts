@@ -81,7 +81,7 @@ export const generateAutoEvents = (): CalendarEvent[] => {
           description: isOdd
             ? 'Глобальный вайп с удалением чертежей, начало в 09:00 по МСК'
             : 'Глобальный вайп без удаления чертежей, начало в 09:00 по МСК',
-          color: isOdd ? '#DC2626' : '#2563EB',
+          color: isOdd ? '#7C3AED' : '#A855F7',
           servers: 'PVP сервера',
           isAuto: true,
         });
