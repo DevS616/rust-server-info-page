@@ -6,7 +6,9 @@ import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
-import { type CalendarEvent, mergeEvents, toDateStr } from '@/utils/autoEvents';
+import { type CalendarEvent, mergeEvents } from '@/utils/autoEvents';
+
+const MONTHS = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
 
 const API = 'https://functions.poehali.dev/20b8d7e0-8c27-4631-9f36-7be6d0ffb6a1';
 
@@ -34,12 +36,15 @@ interface EventsTabProps {
 
 const EventsTab = ({ token }: EventsTabProps) => {
   const { toast } = useToast();
+  const now = new Date();
   const [dbEvents, setDbEvents] = useState<CalendarEvent[]>([]);
   const [allEvents, setAllEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState(emptyForm());
+  const [filterYear, setFilterYear] = useState(now.getFullYear());
+  const [filterMonth, setFilterMonth] = useState(now.getMonth());
 
   useEffect(() => {
     if (token) loadEvents();
@@ -135,10 +140,21 @@ const EventsTab = ({ token }: EventsTabProps) => {
     }
   };
 
-  // Сортировка: сначала по дате
-  const sorted = [...allEvents].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-  );
+  const prevMonth = () => {
+    if (filterMonth === 0) { setFilterMonth(11); setFilterYear(y => y - 1); }
+    else setFilterMonth(m => m - 1);
+  };
+  const nextMonth = () => {
+    if (filterMonth === 11) { setFilterMonth(0); setFilterYear(y => y + 1); }
+    else setFilterMonth(m => m + 1);
+  };
+
+  const sorted = [...allEvents]
+    .filter(e => {
+      const d = new Date(e.date + 'T12:00:00');
+      return d.getFullYear() === filterYear && d.getMonth() === filterMonth;
+    })
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   return (
     <div className="space-y-4">
@@ -150,6 +166,22 @@ const EventsTab = ({ token }: EventsTabProps) => {
             Добавить событие
           </Button>
         )}
+      </div>
+
+      {/* Навигация по месяцам */}
+      <div className="flex items-center gap-3">
+        <Button variant="outline" size="icon" onClick={prevMonth}>
+          <Icon name="ChevronLeft" size={16} />
+        </Button>
+        <span className="font-semibold min-w-[160px] text-center">
+          {MONTHS[filterMonth]} {filterYear}
+        </span>
+        <Button variant="outline" size="icon" onClick={nextMonth}>
+          <Icon name="ChevronRight" size={16} />
+        </Button>
+        <span className="text-sm text-muted-foreground ml-2">
+          {sorted.length} событий
+        </span>
       </div>
 
       {showForm && (
