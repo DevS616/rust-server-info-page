@@ -26,33 +26,13 @@ const NewsSection = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    localStorage.removeItem('news_cache');
     const fetchNews = async () => {
-      const CACHE_KEY = 'news_cache';
-      const CACHE_DURATION = 6 * 60 * 60 * 1000;
-      
-      const cached = localStorage.getItem(CACHE_KEY);
-      if (cached) {
-        try {
-          const { data, timestamp } = JSON.parse(cached);
-          if (Date.now() - timestamp < CACHE_DURATION) {
-            setNewsItems(data);
-            setLoading(false);
-            return;
-          }
-        } catch (e) {
-          console.error('Failed to parse news cache:', e);
-        }
-      }
-      
       try {
         const res = await fetch('https://functions.poehali.dev/e6be6494-14cb-4278-882b-d4498bef6cf6/');
         if (res.ok) {
           const data = await res.json();
           setNewsItems(data);
-          localStorage.setItem(CACHE_KEY, JSON.stringify({
-            data,
-            timestamp: Date.now()
-          }));
         }
       } catch (error) {
         console.error('Failed to fetch news:', error);
