@@ -6,179 +6,69 @@ import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
+import { type CalendarEvent, mergeEvents, toDateStr } from '@/utils/autoEvents';
 
-interface CalendarEvent {
-  id: number;
-  date: string;
-  event_time?: string;
-  title: string;
-  description: string;
-  color: string;
-  servers?: string;
-}
-
-interface EventsTabProps {
-  token: string | null;
-}
+const API = 'https://functions.poehali.dev/20b8d7e0-8c27-4631-9f36-7be6d0ffb6a1';
 
 const PRESET_COLORS = [
   { name: 'Красный', value: '#DC2626' },
   { name: 'Оранжевый', value: '#EA580C' },
-  { name: 'Зеленый', value: '#16A34A' },
+  { name: 'Зелёный', value: '#16A34A' },
   { name: 'Синий', value: '#2563EB' },
   { name: 'Фиолетовый', value: '#9333EA' },
   { name: 'Розовый', value: '#DB2777' },
 ];
 
-interface Server {
-  id: number;
-  name: string;
-  rate: string;
+const emptyForm = () => ({
+  date: '',
+  event_time: '12:00',
+  title: '',
+  description: '',
+  color: '#DC2626',
+  servers: 'Все сервера',
+});
+
+interface EventsTabProps {
+  token: string | null;
 }
 
 const EventsTab = ({ token }: EventsTabProps) => {
   const { toast } = useToast();
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [dbEvents, setDbEvents] = useState<CalendarEvent[]>([]);
+  const [allEvents, setAllEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [servers, setServers] = useState<Server[]>([]);
-  const [selectedServers, setSelectedServers] = useState<string[]>([]);
-  const [formData, setFormData] = useState({
-    date: '',
-    event_time: '12:00',
-    title: '',
-    description: '',
-    color: '#DC2626',
-    servers: 'Все сервера'
-  });
+  const [formData, setFormData] = useState(emptyForm());
 
   useEffect(() => {
-    if (token) {
-      loadEvents();
-      loadServers();
-    }
+    if (token) loadEvents();
   }, [token]);
 
   const loadEvents = async () => {
     setLoading(true);
     try {
-      const response = await fetch('https://functions.poehali.dev/20b8d7e0-8c27-4631-9f36-7be6d0ffb6a1/', {
-        headers: { 'X-Auth-Token': token! }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setEvents(data.events || []);
+      const res = await fetch(`${API}/`, { headers: { 'X-Auth-Token': token! } });
+      if (res.ok) {
+        const data = await res.json();
+        const db: CalendarEvent[] = data.events || [];
+        setDbEvents(db);
+        setAllEvents(mergeEvents(db));
       }
-    } catch (error) {
-      console.error('Failed to load events:', error);
+    } catch {
+      toast({ title: 'Ошибка', description: 'Не удалось загрузить события', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
   };
 
-  const loadServers = async () => {
-    try {
-      const response = await fetch('https://functions.poehali.dev/cd63f370-b8ea-4adc-ace4-a274aa6f6e34/');
-      if (response.ok) {
-        const data = await response.json();
-        setServers(data.servers || []);
-      }
-    } catch (error) {
-      console.error('Failed to load servers:', error);
-    }
+  const openCreate = (prefill?: Partial<typeof formData>) => {
+    setEditingEvent(null);
+    setFormData({ ...emptyForm(), ...prefill });
+    setShowForm(true);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      const serversText = selectedServers.length === 0 || selectedServers.length === servers.length
-        ? 'Все сервера'
-        : selectedServers.join(', ');
-
-      const url = editingEvent
-        ? `https://functions.poehali.dev/20b8d7e0-8c27-4631-9f36-7be6d0ffb6a1/?action=update&id=${editingEvent.id}`
-        : 'https://functions.poehali.dev/20b8d7e0-8c27-4631-9f36-7be6d0ffb6a1/?action=create';
-
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Auth-Token': token!
-        },
-        body: JSON.stringify({ ...formData, servers: serversText })
-      });
-
-      if (response.ok) {
-        toast({
-          title: 'Успешно',
-          description: editingEvent ? 'Событие обновлено' : 'Событие создано'
-        });
-        
-        setFormData({ date: '', event_time: '12:00', title: '', description: '', color: '#DC2626', servers: 'Все сервера' });
-        setSelectedServers([]);
-        setEditingEvent(null);
-        setShowForm(false);
-        loadEvents();
-      } else {
-        const error = await response.json();
-        toast({
-          title: 'Ошибка',
-          description: error.error || 'Не удалось сохранить событие',
-          variant: 'destructive'
-        });
-      }
-    } catch (error) {
-      console.error('Failed to save event:', error);
-      toast({
-        title: 'Ошибка',
-        description: 'Произошла ошибка при сохранении',
-        variant: 'destructive'
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDelete = async (id: number) => {
-    if (!confirm('Удалить это событие?')) return;
-
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `https://functions.poehali.dev/20b8d7e0-8c27-4631-9f36-7be6d0ffb6a1/?action=delete&id=${id}`,
-        {
-          method: 'DELETE',
-          headers: { 'X-Auth-Token': token! }
-        }
-      );
-
-      if (response.ok) {
-        toast({ title: 'Успешно', description: 'Событие удалено' });
-        loadEvents();
-      } else {
-        toast({
-          title: 'Ошибка',
-          description: 'Не удалось удалить событие',
-          variant: 'destructive'
-        });
-      }
-    } catch (error) {
-      console.error('Failed to delete event:', error);
-      toast({
-        title: 'Ошибка',
-        description: 'Произошла ошибка при удалении',
-        variant: 'destructive'
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const startEdit = (event: CalendarEvent) => {
+  const openEdit = (event: CalendarEvent) => {
     setEditingEvent(event);
     setFormData({
       date: event.date,
@@ -186,91 +76,112 @@ const EventsTab = ({ token }: EventsTabProps) => {
       title: event.title,
       description: event.description,
       color: event.color,
-      servers: event.servers || 'Все сервера'
+      servers: event.servers || 'Все сервера',
     });
-    
-    // Разбираем servers строку в массив
-    if (event.servers && event.servers !== 'Все сервера') {
-      setSelectedServers(event.servers.split(', ').map(s => s.trim()));
-    } else {
-      setSelectedServers([]);
-    }
-    
     setShowForm(true);
   };
 
-  const cancelForm = () => {
-    setEditingEvent(null);
-    setFormData({ date: '', event_time: '12:00', title: '', description: '', color: '#DC2626', servers: 'Все сервера' });
-    setSelectedServers([]);
+  const closeForm = () => {
     setShowForm(false);
+    setEditingEvent(null);
+    setFormData(emptyForm());
   };
 
-  const toggleServer = (serverName: string) => {
-    setSelectedServers(prev => {
-      const currentSelection = prev.length === 0 ? servers.map(s => s.name) : prev;
-      
-      if (currentSelection.includes(serverName)) {
-        const newSelection = currentSelection.filter(s => s !== serverName);
-        return newSelection.length === 0 ? servers.map(s => s.name) : newSelection;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const url = editingEvent
+        ? `${API}/?action=update&id=${editingEvent.id}`
+        : `${API}/?action=create`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Auth-Token': token! },
+        body: JSON.stringify(formData),
+      });
+      if (res.ok) {
+        toast({ title: editingEvent ? 'Событие обновлено' : 'Событие создано' });
+        closeForm();
+        await loadEvents();
       } else {
-        const newSelection = [...currentSelection, serverName];
-        return newSelection.length === servers.length ? [] : newSelection;
+        const err = await res.json().catch(() => ({}));
+        toast({ title: 'Ошибка', description: err.error || 'Не удалось сохранить', variant: 'destructive' });
       }
-    });
+    } catch {
+      toast({ title: 'Ошибка', description: 'Сетевая ошибка', variant: 'destructive' });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const toggleAllServers = () => {
-    setSelectedServers([]);
+  const handleDelete = async (event: CalendarEvent) => {
+    if (!confirm(`Удалить событие "${event.title}"?`)) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/?action=delete&id=${event.id}`, {
+        method: 'DELETE',
+        headers: { 'X-Auth-Token': token! },
+      });
+      if (res.ok) {
+        toast({ title: 'Событие удалено' });
+        await loadEvents();
+      } else {
+        toast({ title: 'Ошибка', description: 'Не удалось удалить', variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: 'Ошибка', description: 'Сетевая ошибка', variant: 'destructive' });
+    } finally {
+      setLoading(false);
+    }
   };
-  
-  const isAllSelected = selectedServers.length === 0;
-  const isServerSelected = (serverName: string) => {
-    return isAllSelected || selectedServers.includes(serverName);
-  };
+
+  // Сортировка: сначала по дате
+  const sorted = [...allEvents].sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Календарь событий</h2>
-        <Button onClick={() => setShowForm(!showForm)} disabled={loading}>
-          <Icon name={showForm ? 'X' : 'Plus'} className="mr-2 h-4 w-4" />
-          {showForm ? 'Отмена' : 'Добавить событие'}
-        </Button>
+        <h2 className="text-xl font-semibold">Календарь событий</h2>
+        {!showForm && (
+          <Button onClick={() => openCreate()}>
+            <Icon name="Plus" size={16} className="mr-2" />
+            Добавить событие
+          </Button>
+        )}
       </div>
 
       {showForm && (
         <Card className="p-6">
+          <h3 className="text-lg font-semibold mb-4">
+            {editingEvent ? 'Редактировать событие' : 'Новое событие'}
+          </h3>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <Label htmlFor="date">Дата</Label>
+                <Label>Дата</Label>
                 <Input
-                  id="date"
                   type="date"
                   value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  onChange={e => setFormData({ ...formData, date: e.target.value })}
                   required
                 />
               </div>
-
               <div>
-                <Label htmlFor="event_time">Время (МСК)</Label>
+                <Label>Время (МСК)</Label>
                 <Input
-                  id="event_time"
                   type="time"
                   value={formData.event_time}
-                  onChange={(e) => setFormData({ ...formData, event_time: e.target.value })}
+                  onChange={e => setFormData({ ...formData, event_time: e.target.value })}
                   required
                 />
               </div>
-
               <div>
-                <Label htmlFor="title">Название события</Label>
+                <Label>Название</Label>
                 <Input
-                  id="title"
                   value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  onChange={e => setFormData({ ...formData, title: e.target.value })}
                   placeholder="Глобальный вайп"
                   required
                 />
@@ -278,166 +189,136 @@ const EventsTab = ({ token }: EventsTabProps) => {
             </div>
 
             <div>
-              <Label htmlFor="description">Описание</Label>
+              <Label>Описание</Label>
               <Textarea
-                id="description"
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Подробное описание события..."
-                rows={4}
+                onChange={e => setFormData({ ...formData, description: e.target.value })}
+                rows={3}
                 required
               />
             </div>
 
             <div>
-              <Label>Сервера</Label>
-              <div className="mt-2 space-y-2">
-                <div className="flex items-center gap-2 p-2 bg-muted rounded-lg">
-                  <input
-                    type="checkbox"
-                    id="all-servers"
-                    checked={isAllSelected}
-                    onChange={toggleAllServers}
-                    className="w-4 h-4 rounded border-gray-300"
-                  />
-                  <Label htmlFor="all-servers" className="font-semibold cursor-pointer">
-                    Все сервера
-                  </Label>
-                </div>
-                
-                {servers.length > 0 ? (
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                    {servers.map((server) => (
-                      <div key={server.id} className="flex items-center gap-2 p-2 bg-muted/50 rounded">
-                        <input
-                          type="checkbox"
-                          id={`server-${server.id}`}
-                          checked={isServerSelected(server.name)}
-                          onChange={() => toggleServer(server.name)}
-                          className="w-4 h-4 rounded border-gray-300 cursor-pointer"
-                        />
-                        <Label htmlFor={`server-${server.id}`} className="cursor-pointer text-sm">
-                          {server.name}
-                        </Label>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">Загрузка серверов...</p>
-                )}
-                
-                <p className="text-xs text-muted-foreground">
-                  Выбрано: {isAllSelected ? 'Все сервера' : selectedServers.join(', ')}
-                </p>
-              </div>
+              <Label>Серверы</Label>
+              <Input
+                value={formData.servers}
+                onChange={e => setFormData({ ...formData, servers: e.target.value })}
+                placeholder="Все сервера"
+              />
             </div>
 
             <div>
-              <Label>Цвет события</Label>
+              <Label>Цвет</Label>
               <div className="flex flex-wrap gap-2 mt-2">
-                {PRESET_COLORS.map((preset) => (
+                {PRESET_COLORS.map(p => (
                   <button
-                    key={preset.value}
+                    key={p.value}
                     type="button"
-                    onClick={() => setFormData({ ...formData, color: preset.value })}
-                    className={`
-                      flex items-center gap-2 px-4 py-2 rounded-lg transition-all
-                      ${formData.color === preset.value ? 'ring-2 ring-primary' : 'hover:opacity-80'}
-                    `}
-                    style={{ backgroundColor: preset.value }}
+                    onClick={() => setFormData({ ...formData, color: p.value })}
+                    className={`px-3 py-1.5 rounded-lg text-white text-sm font-medium transition-all ${formData.color === p.value ? 'ring-2 ring-white ring-offset-2 ring-offset-background' : 'opacity-70 hover:opacity-100'}`}
+                    style={{ backgroundColor: p.value }}
                   >
-                    <span className="text-white font-medium">{preset.name}</span>
-                    {formData.color === preset.value && (
-                      <Icon name="Check" className="h-4 w-4 text-white" />
-                    )}
+                    {p.name}
                   </button>
                 ))}
-              </div>
-              
-              <div className="flex items-center gap-2 mt-3">
-                <Label htmlFor="custom-color" className="text-sm">Свой цвет:</Label>
-                <Input
-                  id="custom-color"
-                  type="color"
-                  value={formData.color}
-                  onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                  className="w-20 h-10"
-                />
-                <span className="text-sm text-muted-foreground">{formData.color}</span>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={formData.color}
+                    onChange={e => setFormData({ ...formData, color: e.target.value })}
+                    className="w-10 h-9 rounded cursor-pointer border border-border"
+                  />
+                </div>
               </div>
             </div>
 
             <div className="flex gap-2">
               <Button type="submit" disabled={loading}>
-                <Icon name="Save" className="mr-2 h-4 w-4" />
-                {editingEvent ? 'Обновить' : 'Создать'}
+                {loading ? 'Сохранение...' : editingEvent ? 'Сохранить' : 'Создать'}
               </Button>
-              <Button type="button" variant="outline" onClick={cancelForm}>
-                Отмена
-              </Button>
+              <Button type="button" variant="outline" onClick={closeForm}>Отмена</Button>
             </div>
           </form>
         </Card>
       )}
 
-      <div className="space-y-4">
-        {events.length === 0 ? (
+      <div className="space-y-2">
+        {sorted.length === 0 ? (
           <Card className="p-8 text-center">
-            <Icon name="Calendar" className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">Нет событий в календаре</p>
+            <Icon name="Calendar" size={48} className="mx-auto mb-4 text-muted-foreground" />
+            <p className="text-muted-foreground">Нет событий</p>
           </Card>
         ) : (
-          events
-            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-            .map((event) => (
+          sorted.map(event => {
+            const isAuto = event.isAuto;
+            const isOverridden = !isAuto && dbEvents.some(
+              d => d.id === event.id
+            );
+            return (
               <Card key={event.id} className="p-4">
-                <div className="flex items-start gap-4">
+                <div className="flex items-center gap-4">
                   <div
-                    className="w-16 h-16 rounded-lg flex items-center justify-center text-white font-bold text-xl"
+                    className="w-12 h-12 rounded-lg flex-shrink-0 flex items-center justify-center text-white font-bold text-lg"
                     style={{ backgroundColor: event.color }}
                   >
-                    {new Date(event.date).getDate()}
+                    {new Date(event.date + 'T12:00:00').getDate()}
                   </div>
-                  
-                  <div className="flex-1">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground">
-                          {new Date(event.date).toLocaleDateString('ru-RU', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          })}
-                        </p>
-                        <h3 className="text-lg font-semibold mt-1">{event.title}</h3>
-                        <p className="text-sm text-muted-foreground mt-2 whitespace-pre-wrap">
-                          {event.description}
-                        </p>
-                      </div>
-                      
-                      <div className="flex gap-2">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => startEdit(event)}
-                          disabled={loading}
-                        >
-                          <Icon name="Pencil" className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => handleDelete(event.id)}
-                          disabled={loading}
-                        >
-                          <Icon name="Trash2" className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold">{event.title}</span>
+                      {isAuto && (
+                        <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded">
+                          авто
+                        </span>
+                      )}
                     </div>
+                    <p className="text-sm text-muted-foreground">
+                      {new Date(event.date + 'T12:00:00').toLocaleDateString('ru-RU', {
+                        day: 'numeric', month: 'long', year: 'numeric',
+                      })}
+                      {event.event_time && ` в ${event.event_time} МСК`}
+                      {event.servers && ` · ${event.servers}`}
+                    </p>
+                  </div>
+                  <div className="flex gap-2 flex-shrink-0">
+                    {isAuto ? (
+                      // Авто-событие: только кнопка "переопределить"
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => openCreate({
+                          date: event.date,
+                          event_time: event.event_time,
+                          title: event.title,
+                          description: event.description,
+                          color: event.color,
+                          servers: event.servers,
+                        })}
+                        title="Изменить дату/время для этого месяца"
+                      >
+                        <Icon name="Edit" size={16} className="mr-1" />
+                        Изменить
+                      </Button>
+                    ) : (
+                      <>
+                        <Button size="icon" variant="outline" onClick={() => openEdit(event)}>
+                          <Icon name="Edit" size={16} />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="destructive"
+                          onClick={() => handleDelete(event)}
+                          disabled={loading}
+                        >
+                          <Icon name="Trash2" size={16} />
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
               </Card>
-            ))
+            );
+          })
         )}
       </div>
     </div>

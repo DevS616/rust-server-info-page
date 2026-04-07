@@ -2,16 +2,7 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
-
-interface CalendarEvent {
-  id: number;
-  date: string;
-  event_time?: string;
-  title: string;
-  description: string;
-  color: string;
-  servers?: string;
-}
+import { type CalendarEvent, mergeEvents } from '@/utils/autoEvents';
 
 interface EventCalendarProps {
   isOpen: boolean;
@@ -21,54 +12,7 @@ interface EventCalendarProps {
 const DAYS_OF_WEEK = ['ПОНЕДЕЛЬНИК', 'ВТОРНИК', 'СРЕДА', 'ЧЕТВЕРГ', 'ПЯТНИЦА', 'СУББОТА', 'ВОСКРЕСЕНЬЕ'];
 const MONTHS = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 
-// Возвращает дату первого четверга месяца (year, month — 0-based)
-const getFirstThursday = (year: number, month: number): Date => {
-  const d = new Date(year, month, 1);
-  // getDay(): 0=Вс, 1=Пн, ..., 4=Чт
-  const dayOfWeek = d.getDay();
-  const daysUntilThursday = (4 - dayOfWeek + 7) % 7;
-  return new Date(year, month, 1 + daysUntilThursday);
-};
 
-const toDateStr = (d: Date): string =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-
-// Генерирует авто-события для текущего и ближайших месяцев
-const generateAutoEvents = (): CalendarEvent[] => {
-  const result: CalendarEvent[] = [];
-  const now = new Date();
-  // Генерируем для предыдущего, текущего и 2 следующих месяцев
-  for (let offset = -1; offset <= 2; offset++) {
-    const ref = new Date(now.getFullYear(), now.getMonth() + offset, 1);
-    const year = ref.getFullYear();
-    const month = ref.getMonth();
-
-    const wipeDate = getFirstThursday(year, month);
-    // Судная ночь — за 1 день до вайпа (среда)
-    const doomDate = new Date(wipeDate.getTime() - 1 * 24 * 60 * 60 * 1000);
-
-    result.push({
-      id: -(offset * 2 + 1) - 1000,
-      date: toDateStr(wipeDate),
-      event_time: '22:00',
-      title: 'Глобальный вайп',
-      description: 'Полный сброс всех серверов. Стартуем с чистого листа! Все постройки, ресурсы и прогресс будут удалены.',
-      color: '#DC2626',
-      servers: 'Все сервера',
-    });
-
-    result.push({
-      id: -(offset * 2 + 2) - 1000,
-      date: toDateStr(doomDate),
-      event_time: '18:00',
-      title: 'Судная ночь',
-      description: 'Ночь перед вайпом — последний шанс отомстить обидчикам и забрать всё что можно! Усиленные рейды, хаос и веселье.',
-      color: '#EA580C',
-      servers: 'Все сервера',
-    });
-  }
-  return result;
-};
 
 const EventCalendar = ({ isOpen, onClose }: EventCalendarProps) => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -123,26 +67,15 @@ const EventCalendar = ({ isOpen, onClose }: EventCalendarProps) => {
   const loadEvents = async () => {
     setLoading(true);
     try {
-      const autoEvents = generateAutoEvents();
       const response = await fetch('https://functions.poehali.dev/20b8d7e0-8c27-4631-9f36-7be6d0ffb6a1/');
       if (response.ok) {
         const data = await response.json();
-        const dbEvents: CalendarEvent[] = data.events || [];
-        // Авто-события всегда есть; ручные события из БД добавляются дополнительно
-        // Если ручное событие совпадает по дате с авто — авто убирается (ручное имеет приоритет)
-        const autoTitles = new Set(['Глобальный вайп', 'Судная ночь']);
-        const dbDates = new Set(
-          dbEvents.filter(e => autoTitles.has(e.title)).map(e => e.date)
-        );
-        const filteredAuto = autoEvents.filter(e => !dbDates.has(e.date));
-        // Ручные не-авто события + авто-события
-        const manualEvents = dbEvents.filter(e => !autoTitles.has(e.title));
-        setEvents([...manualEvents, ...filteredAuto]);
+        setEvents(mergeEvents(data.events || []));
       } else {
-        setEvents(autoEvents);
+        setEvents(mergeEvents([]));
       }
     } catch {
-      setEvents(generateAutoEvents());
+      setEvents(mergeEvents([]));
     } finally {
       setLoading(false);
     }
