@@ -129,7 +129,7 @@ const UserAgreement = () => {
               <div className="text-muted-foreground space-y-1">
                 <p><strong>ИП:</strong> Васенин Алексей Павлович</p>
                 <p><strong>ИНН:</strong> 434587444042</p>
-                <p><strong>Email:</strong> <a href="mailto:devilrust@yandex.ru" className="text-primary hover:underline">devilrust@yandex.ru</a></p>
+                <p><strong>Email:</strong> <a href="mailto:devilrustproject@yandex.ru" className="text-primary hover:underline">devilrustproject@yandex.ru</a></p>
               </div>
             </section>
 

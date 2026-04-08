@@ -167,7 +167,7 @@ const Privacy = () => {
               </p>
               <ul className="list-disc list-inside text-sm md:text-base text-muted-foreground space-y-1 ml-4">
                 <li>Через раздел <a href="/support" className="text-primary hover:underline">"Поддержка"</a> на нашем Сайте</li>
-                <li>По электронной почте: <a href="mailto:devilrust@yandex.ru" className="text-primary hover:underline">devilrust@yandex.ru</a></li>
+                <li>По электронной почте: <a href="mailto:devilrustproject@yandex.ru" className="text-primary hover:underline">devilrustproject@yandex.ru</a></li>
               </ul>
             </section>
 

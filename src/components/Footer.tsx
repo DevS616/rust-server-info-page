@@ -89,7 +89,7 @@ const Footer = () => {
                 <p>Исполнитель: Васенин Алексей Павлович</p>
                 <p>Статус: Самозанятый (НПД)</p>
                 <p>ИНН: 434587444042</p>
-                <p>Email: <a href="mailto:devilrust@yandex.ru" className="text-primary hover:underline">devilrust@yandex.ru</a></p>
+                <p>Email: <a href="mailto:devilrustproject@yandex.ru" className="text-primary hover:underline">devilrustproject@yandex.ru</a></p>
                 <p className="pt-2 text-muted-foreground/60">Продажа цифровых товаров осуществляется через <a href="https://devrus.gamestores.app/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Донат магазин</a></p>
               </div>
             </div>
