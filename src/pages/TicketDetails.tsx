@@ -106,11 +106,13 @@ const TicketDetails = () => {
         const ticketData = data.ticket;
         setTicket(ticketData);
         
-        if (ticketData.status === 'closed' && !ticketData.rating && prevMessageCount > 0) {
+        const newMessages = data.messages || [];
+        const hasLiveAdminReply = newMessages.some(
+          (msg: Message) => msg.is_admin_reply && msg.admin_name
+        );
+        if (ticketData.status === 'closed' && !ticketData.rating && prevMessageCount > 0 && hasLiveAdminReply) {
           setShowRatingModal(true);
         }
-        
-        const newMessages = data.messages || [];
         
         if (newMessages.length > prevMessageCount && prevMessageCount > 0) {
           const newCount = newMessages.length - prevMessageCount;
