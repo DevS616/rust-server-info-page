@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import RulesModal from '@/components/RulesModal';
 import SteamAuth from '@/components/SteamAuth';
 import EventCalendar from '@/components/EventCalendar';
+import SupportChoiceModal from '@/components/SupportChoiceModal';
 import {
   Sheet,
   SheetContent,
@@ -22,6 +23,7 @@ const Header = ({ onOpenBonus, onOpenTelegram, bonusAvailable }: HeaderProps = {
   const [isRulesOpen, setIsRulesOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [isSupportChoiceOpen, setIsSupportChoiceOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
@@ -71,7 +73,7 @@ const Header = ({ onOpenBonus, onOpenTelegram, bonusAvailable }: HeaderProps = {
           <a href="https://devrus.gamestores.app/" target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-foreground hover:text-primary transition-colors uppercase tracking-wider">
             Магазин
           </a>
-          <a href="/support" className="text-sm font-medium text-foreground hover:text-primary transition-colors uppercase tracking-wider relative">
+          <button onClick={() => setIsSupportChoiceOpen(true)} className="text-sm font-medium text-foreground hover:text-primary transition-colors uppercase tracking-wider relative">
             Поддержка
             {unreadCount > 0 && (
               <span className="absolute -top-2 -right-2">
@@ -79,10 +81,7 @@ const Header = ({ onOpenBonus, onOpenTelegram, bonusAvailable }: HeaderProps = {
                 <span className="absolute top-0 right-0 h-2 w-2 bg-destructive rounded-full"></span>
               </span>
             )}
-          </a>
-          <a href="/complaints" className="text-sm font-medium text-destructive hover:text-destructive/80 transition-colors uppercase tracking-wider">
-            Жалобы
-          </a>
+          </button>
         </nav>
 
 <div className="hidden md:flex">
@@ -150,20 +149,18 @@ const Header = ({ onOpenBonus, onOpenTelegram, bonusAvailable }: HeaderProps = {
               >
                 Магазин
               </a>
-              <a 
-                href="/support" 
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="text-base font-medium text-foreground hover:text-primary transition-colors uppercase tracking-wider py-2"
+              <button
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  setTimeout(() => setIsSupportChoiceOpen(true), 200);
+                }}
+                className="text-base font-medium text-foreground hover:text-primary transition-colors uppercase tracking-wider py-2 text-left relative"
               >
                 Поддержка
-              </a>
-              <a 
-                href="/complaints" 
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="text-base font-medium text-destructive hover:text-destructive/80 transition-colors uppercase tracking-wider py-2"
-              >
-                Жалобы
-              </a>
+                {unreadCount > 0 && (
+                  <span className="ml-2 inline-flex items-center justify-center w-2 h-2 bg-destructive rounded-full" />
+                )}
+              </button>
 
               <div className="border-t border-primary/20 pt-4 space-y-3">
                 {onOpenBonus && (
@@ -205,6 +202,7 @@ const Header = ({ onOpenBonus, onOpenTelegram, bonusAvailable }: HeaderProps = {
       
       <RulesModal open={isRulesOpen} onOpenChange={setIsRulesOpen} />
       <EventCalendar isOpen={isCalendarOpen} onClose={() => setIsCalendarOpen(false)} />
+      <SupportChoiceModal open={isSupportChoiceOpen} onClose={() => setIsSupportChoiceOpen(false)} />
     </header>
   );
 };

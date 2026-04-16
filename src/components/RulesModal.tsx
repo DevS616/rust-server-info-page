@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import Icon from '@/components/ui/icon';
 import { useState, useEffect } from 'react';
+import SupportChoiceModal from '@/components/SupportChoiceModal';
 
 interface RulesModalProps {
   open: boolean;
@@ -13,6 +14,7 @@ interface RulesModalProps {
 const RulesModal = ({ open, onOpenChange }: RulesModalProps) => {
   const [hasAccepted, setHasAccepted] = useState(false);
   const [hasAgreed, setHasAgreed] = useState(false);
+  const [isSupportChoiceOpen, setIsSupportChoiceOpen] = useState(false);
 
   useEffect(() => {
     const accepted = localStorage.getItem('rules_accepted');
@@ -331,11 +333,15 @@ const RulesModal = ({ open, onOpenChange }: RulesModalProps) => {
             <Icon name="AlertTriangle" className="h-5 w-5 text-destructive flex-shrink-0" />
             <span className="text-sm text-muted-foreground">
               Заметили нарушение правил другим игроком или администратором?{' '}
-              <a href="/complaints" className="text-destructive font-semibold hover:underline" onClick={() => onOpenChange(false)}>
+              <button
+                className="text-destructive font-semibold hover:underline"
+                onClick={() => { onOpenChange(false); setTimeout(() => setIsSupportChoiceOpen(true), 200); }}
+              >
                 Подайте жалобу
-              </a>
+              </button>
             </span>
           </div>
+          <SupportChoiceModal open={isSupportChoiceOpen} onClose={() => setIsSupportChoiceOpen(false)} />
         </div>
 
         <DialogFooter className="border-t border-primary/20 pt-4 mt-0 flex-shrink-0">

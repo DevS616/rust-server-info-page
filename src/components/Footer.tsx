@@ -2,9 +2,11 @@ import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
 import { useState, memo } from 'react';
 import RulesModal from '@/components/RulesModal';
+import SupportChoiceModal from '@/components/SupportChoiceModal';
 
 const Footer = () => {
   const [isRulesOpen, setIsRulesOpen] = useState(false);
+  const [isSupportChoiceOpen, setIsSupportChoiceOpen] = useState(false);
   
   return (
     <footer className="border-t border-border py-12 relative">
@@ -45,13 +47,9 @@ const Footer = () => {
                 Магазин
               </a>
 
-              <a href="/support" className="block text-muted-foreground hover:text-primary transition-colors hover:translate-x-1 transform">
+              <button onClick={() => setIsSupportChoiceOpen(true)} className="block text-muted-foreground hover:text-primary transition-colors hover:translate-x-1 transform text-left">
                 Поддержка
-              </a>
-
-              <a href="/complaints" className="block text-destructive hover:text-destructive/80 transition-colors hover:translate-x-1 transform font-medium">
-                Подать жалобу
-              </a>
+              </button>
 
               <a href="/privacy" className="block text-muted-foreground hover:text-primary transition-colors hover:translate-x-1 transform">
                 Политика конфиденциальности
@@ -114,6 +112,7 @@ const Footer = () => {
       </div>
       
       <RulesModal open={isRulesOpen} onOpenChange={setIsRulesOpen} />
+      <SupportChoiceModal open={isSupportChoiceOpen} onClose={() => setIsSupportChoiceOpen(false)} />
     </footer>
   );
 };
