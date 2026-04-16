@@ -203,7 +203,7 @@ def create_ticket(event: Dict[str, Any], user_data: Dict[str, Any]) -> Dict[str,
     auto_reply_text = (
         f"Благодарим за обращение, в ближайшее время вам ответит первый свободный Администратор.\n\n"
         f"{time_line}\n\n"
-        f"Если ваш вопрос уже решён, вы можете закрыть обращение (кнопка «Закрыть обращение»)."
+        f"Если ваш вопрос уже решён, вы можете закрыть обращение."
     )
     auto_reply_escaped = escape_sql(auto_reply_text)
 

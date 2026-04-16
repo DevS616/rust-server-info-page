@@ -245,6 +245,25 @@ const TicketDetails = () => {
     }
   };
 
+  const handleCloseTicket = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/887805c0-0d3a-4f32-8436-1ba1adda4a4f/?action=status&ticket_id=${ticketId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'X-Auth-Token': token! },
+        body: JSON.stringify({ status: 'closed' })
+      });
+      if (res.ok) {
+        toast({ title: 'Обращение закрыто', description: 'Спасибо, что обратились в поддержку!' });
+        loadTicketDetails();
+      } else {
+        const err = await res.json();
+        toast({ title: 'Ошибка', description: err.error || 'Не удалось закрыть обращение', variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: 'Ошибка', description: 'Не удалось закрыть обращение', variant: 'destructive' });
+    }
+  };
+
   const handleRatingSubmit = async (rating: number, comment: string) => {
     try {
       const res = await fetch(`${API_BASE}/887805c0-0d3a-4f32-8436-1ba1adda4a4f/?action=rate&ticket_id=${ticketId}`, {
@@ -354,6 +373,17 @@ const TicketDetails = () => {
                           <span className="text-xs font-semibold uppercase tracking-wide">Системное сообщение</span>
                         </div>
                         <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">{msg.message}</p>
+                        {ticket.status !== 'closed' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="mt-4"
+                            onClick={handleCloseTicket}
+                          >
+                            <Icon name="XCircle" size={15} className="mr-2" />
+                            Закрыть обращение
+                          </Button>
+                        )}
                         <p className="text-xs text-muted-foreground/50 mt-3">
                           {new Date(msg.created_at).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}
                         </p>
