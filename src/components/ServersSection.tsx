@@ -53,121 +53,203 @@ const extractRate = (mode: string): number => {
 /* ─── ServerCard ─── */
 interface ServerCardProps {
   server: ServerData;
-  index: number;
-  isVisible: boolean;
   stats?: { players: number; maxPlayers: number };
   onConnect: (server: ServerData) => void;
   onDetails: (server: ServerData) => void;
   onCopyIP: (ip: string) => void;
-  cardRef: (el: HTMLDivElement | null) => void;
 }
 
-const ServerCard = memo(({
-  server,
-  index,
-  isVisible,
-  stats,
-  onConnect,
-  onDetails,
-  onCopyIP,
-  cardRef,
-}: ServerCardProps) => {
+const ServerCard = memo(({ server, stats, onConnect, onDetails, onCopyIP }: ServerCardProps) => {
   const isPVE = server.mode.includes('PVE');
-  const cardColor = isPVE ? 'from-green-500/5 to-transparent' : 'from-primary/5 to-transparent';
-  const borderColor = isPVE ? 'border-border hover:border-green-500/30' : 'border-border hover:border-primary/40';
-  const badgeColor = isPVE ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-muted text-muted-foreground';
-  const iconColor = isPVE ? 'text-green-400' : 'text-primary';
-  const glowStyle = isPVE ? { boxShadow: '0 0 20px rgba(34,197,94,0.06)' } : undefined;
-
   const online = stats?.players ?? '—';
   const slots = stats?.maxPlayers ?? '—';
   const isOnline = stats !== undefined && stats.maxPlayers > 0;
+  const fillPct = stats ? Math.round((stats.players / Math.max(stats.maxPlayers, 1)) * 100) : 0;
+
+  const gradient = isPVE
+    ? 'linear-gradient(90deg, rgb(18, 15, 25), rgba(74, 222, 128, 0.33) 100%)'
+    : 'linear-gradient(90deg, rgb(18, 15, 25), rgba(255, 87, 36, 0.33) 100%)';
+
+  const borderColor = isPVE ? 'border-green-500/30' : 'border-primary/30';
+  const iconColor = isPVE ? 'text-green-400' : 'text-primary';
+  const badgeBg = isPVE ? 'bg-green-500/15 text-green-400' : 'bg-primary/15 text-primary';
+  const barColor = isPVE ? 'bg-green-400' : 'bg-primary';
 
   return (
     <div
-      ref={cardRef}
-      data-card-id={server.id}
-      className={`group relative overflow-hidden rounded-xl border ${borderColor} bg-gradient-to-br ${cardColor} p-6 transition-all hover:shadow-xl hover:shadow-primary/10 flex flex-col h-full ${
-        isVisible ? 'server-card-visible' : 'server-card-animate'
-      } ${!isOnline ? 'opacity-40' : ''}`}
-      style={isVisible ? { animationDelay: `${index * 0.08}s`, ...glowStyle } : glowStyle}
+      className={`relative flex-shrink-0 w-72 md:w-80 rounded-xl border ${borderColor} overflow-hidden flex flex-col`}
+      style={{ background: gradient, minHeight: 200 }}
     >
       {!isOnline && (
-        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-20 flex items-center justify-center">
+        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-20 flex items-center justify-center rounded-xl">
           <div className="text-center px-4">
-            <Icon name="PowerOff" className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-            <p className="text-sm font-semibold text-foreground">Сервер выключен или на перезагрузке</p>
+            <Icon name="PowerOff" className="h-7 w-7 text-muted-foreground mx-auto mb-1" />
+            <p className="text-xs font-semibold text-foreground">Сервер выключен</p>
           </div>
         </div>
       )}
-      <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-background/50 opacity-0 transition-opacity group-hover:opacity-100" />
-      <div className="relative z-10 flex flex-col h-full">
-        <div className="mb-4 flex items-start justify-between">
-          <div>
-            <h3 className="mb-1 text-xl font-bold tracking-wide font-nunito">
-              {server.name}
-            </h3>
-            <span className={`inline-block rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider ${badgeColor}`}>
+
+      <div className="relative z-10 flex flex-col h-full p-5">
+        {/* Шапка */}
+        <div className="flex items-start justify-between mb-3 gap-2">
+          <div className="flex-1 min-w-0">
+            <h3 className="font-bold text-base leading-tight font-nunito truncate">{server.name}</h3>
+            <span className={`inline-block mt-1 rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider ${badgeBg}`}>
               {server.mode}
             </span>
           </div>
-          <TooltipProvider>
-            <Tooltip delayDuration={0}>
-              <TooltipTrigger asChild>
-                <div className="text-right cursor-help">
-                  <div className="text-2xl font-bold mb-2 font-nunito">
-                    <span className={iconColor}>{online}</span>
-                    <span className="text-muted-foreground">/</span>
-                    <span className="text-muted-foreground">{slots}</span>
-                  </div>
-                  <div className={`h-1.5 w-full rounded-full ${isOnline ? 'bg-primary' : 'bg-muted-foreground'}`} />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{isOnline ? 'Сервер включен' : 'Сервер выключен'}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Button
+            size="sm"
+            variant="secondary"
+            className="flex-shrink-0 h-7 text-xs px-3"
+            onClick={() => onCopyIP(server.ip)}
+          >
+            <Icon name="Copy" size={12} className="mr-1" />
+            Скопировать IP
+          </Button>
         </div>
 
-        <p className="mb-4 text-sm text-muted-foreground leading-relaxed">{server.description}</p>
+        {/* Описание */}
+        <p className="text-xs text-muted-foreground leading-relaxed mb-3 line-clamp-2">{server.description}</p>
 
-        <div className="mb-4 space-y-2">
-          {server.features.slice(0, 2).map((feature, idx) => (
-            <div key={idx} className="flex items-center gap-2 text-sm">
-              <Icon name="Check" className={`h-4 w-4 ${iconColor}`} />
-              <span className="text-muted-foreground">{feature}</span>
-            </div>
-          ))}
+        {/* Онлайн */}
+        <div className="mt-auto">
+          <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+            <span className={`font-semibold ${iconColor}`}>{online}</span>
+            <span>из {slots}</span>
+          </div>
+          <div className="h-1.5 w-full rounded-full bg-white/10">
+            <div
+              className={`h-1.5 rounded-full ${barColor} transition-all`}
+              style={{ width: `${fillPct}%` }}
+            />
+          </div>
         </div>
 
-        <div className="mt-auto space-y-4">
-          <div className="flex items-center gap-2 rounded-lg bg-background/50 p-3 backdrop-blur-sm">
-            <Icon name="Globe" className="h-4 w-4 text-muted-foreground" />
-            <code className="flex-1 text-sm font-mono">{server.ip}</code>
-            <Button variant="ghost" size="sm" onClick={() => onCopyIP(server.ip)} className="h-8 w-8 p-0">
-              <Icon name="Copy" className="h-4 w-4" />
-            </Button>
-          </div>
-          <div className="flex gap-2">
-            <Button className="flex-1 font-semibold uppercase tracking-wider" onClick={() => onConnect(server)}>
-              <Icon name="Rocket" className="mr-2 h-4 w-4" />
-              Играть
-            </Button>
-            <Button
-              variant="outline"
-              className={`${borderColor} hover:bg-primary/10 ${isOnline ? 'relative z-30' : ''}`}
-              onClick={() => onDetails(server)}
-            >
-              <Icon name="Info" className="h-4 w-4" />
-            </Button>
-          </div>
+        {/* Кнопки */}
+        <div className="flex gap-2 mt-3">
+          <Button size="sm" className="flex-1 text-xs font-semibold uppercase tracking-wider" onClick={() => onConnect(server)}>
+            <Icon name="Rocket" size={13} className="mr-1" />
+            Играть
+          </Button>
+          <Button size="sm" variant="outline" className={`${borderColor} hover:bg-primary/10 px-2`} onClick={() => onDetails(server)}>
+            <Icon name="Info" size={14} />
+          </Button>
         </div>
       </div>
     </div>
   );
 });
 ServerCard.displayName = 'ServerCard';
+
+/* ─── ServerSlider ─── */
+interface ServerSliderProps {
+  servers: ServerData[];
+  serverStats: Record<string, { players: number; maxPlayers: number }>;
+  onConnect: (s: ServerData) => void;
+  onDetails: (s: ServerData) => void;
+  onCopyIP: (ip: string) => void;
+  label: string;
+  labelColor: string;
+}
+
+const ServerSlider = ({ servers, serverStats, onConnect, onDetails, onCopyIP, label, labelColor }: ServerSliderProps) => {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [canLeft, setCanLeft] = useState(false);
+  const [canRight, setCanRight] = useState(false);
+
+  const checkScroll = useCallback(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    setCanLeft(el.scrollLeft > 4);
+    setCanRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
+  }, []);
+
+  useEffect(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    checkScroll();
+    el.addEventListener('scroll', checkScroll, { passive: true });
+    const ro = new ResizeObserver(checkScroll);
+    ro.observe(el);
+    return () => { el.removeEventListener('scroll', checkScroll); ro.disconnect(); };
+  }, [servers, checkScroll]);
+
+  const scroll = (dir: 'left' | 'right') => {
+    const el = trackRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir === 'right' ? 320 : -320, behavior: 'smooth' });
+  };
+
+  if (servers.length === 0) return null;
+
+  return (
+    <div className="mb-10">
+      <h3 className={`text-xl font-bold mb-5 uppercase tracking-widest ${labelColor}`}>{label}</h3>
+      <div className="relative flex items-center gap-2">
+        {/* Стрелка влево */}
+        <button
+          onClick={() => scroll('left')}
+          disabled={!canLeft}
+          className="flex-shrink-0 transition-all"
+          style={{
+            width: 44, minWidth: 44, height: 44,
+            border: 'none',
+            borderRadius: 10,
+            background: 'var(--bg-color-700, hsl(var(--muted)))',
+            color: 'hsl(var(--muted-foreground))',
+            fontSize: 22,
+            cursor: canLeft ? 'pointer' : 'default',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            opacity: canLeft ? 1 : 0.3,
+          }}
+          aria-label="Листать влево"
+        >
+          <Icon name="ChevronLeft" size={20} />
+        </button>
+
+        {/* Трек */}
+        <div
+          ref={trackRef}
+          className="flex gap-4 overflow-x-auto flex-1 pb-1"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        >
+          {servers.map(server => (
+            <ServerCard
+              key={server.id}
+              server={server}
+              stats={serverStats[server.battlemetricsId]}
+              onConnect={onConnect}
+              onDetails={onDetails}
+              onCopyIP={onCopyIP}
+            />
+          ))}
+        </div>
+
+        {/* Стрелка вправо */}
+        <button
+          onClick={() => scroll('right')}
+          disabled={!canRight}
+          className="flex-shrink-0 transition-all"
+          style={{
+            width: 44, minWidth: 44, height: 44,
+            border: 'none',
+            borderRadius: 10,
+            background: 'var(--bg-color-700, hsl(var(--muted)))',
+            color: 'hsl(var(--muted-foreground))',
+            fontSize: 22,
+            cursor: canRight ? 'pointer' : 'default',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            opacity: canRight ? 1 : 0.3,
+          }}
+          aria-label="Листать вправо"
+        >
+          <Icon name="ChevronRight" size={20} />
+        </button>
+      </div>
+    </div>
+  );
+};
 
 /* ─── ServersSection ─── */
 const ServersSection = () => {
@@ -180,9 +262,6 @@ const ServersSection = () => {
   const [sortBy, setSortBy] = useState<SortType>('number');
   const [filterBy, setFilterBy] = useState<FilterType>('all');
   const [serverStats, setServerStats] = useState<Record<string, { players: number; maxPlayers: number }>>({});
-  const [visibleCards, setVisibleCards] = useState<Set<string>>(new Set());
-  const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
-  const lastSoundTime = useRef(0);
 
   useEffect(() => {
     fetch(`${SERVERS_API}/`)
@@ -216,25 +295,6 @@ const ServersSection = () => {
       .catch(() => {});
   }, []);
 
-  const playHoverSound = useCallback(() => {
-    const now = Date.now();
-    if (now - lastSoundTime.current < 300) return;
-    lastSoundTime.current = now;
-    const AudioCtx = window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!AudioCtx) return;
-    const audioContext = new AudioCtx();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-    oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.05);
-    gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.05);
-    oscillator.start(audioContext.currentTime);
-    oscillator.stop(audioContext.currentTime + 0.05);
-  }, []);
-
   useEffect(() => {
     const unsubscribe = monitoringService.subscribe((data) => {
       if (data?.result === 'success' && data.data?.servers) {
@@ -251,34 +311,6 @@ const ServersSection = () => {
     });
     return unsubscribe;
   }, [allServersFlat]);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const newVisible: string[] = [];
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const id = entry.target.getAttribute('data-card-id');
-            if (id) newVisible.push(id);
-          }
-        });
-        if (newVisible.length > 0) {
-          setVisibleCards((prev) => {
-            const next = new Set(prev);
-            newVisible.forEach(id => next.add(id));
-            return next;
-          });
-        }
-      },
-      { threshold: 0.1, rootMargin: '100px' }
-    );
-
-    const timer = setTimeout(() => {
-      cardRefs.current.forEach((card) => { if (card) observer.observe(card); });
-    }, 150);
-
-    return () => { clearTimeout(timer); observer.disconnect(); };
-  }, [sortBy, filterBy]);
 
   const handleConnect = useCallback((server: ServerData) => {
     setConnectServer(server);
@@ -320,6 +352,11 @@ const ServersSection = () => {
     return 0;
   });
 
+  const pveServers = sortedServers.filter(s => s.mode.includes('PVE'));
+  const pvpServers = sortedServers.filter(s => s.mode.includes('PVP'));
+
+  const sliderProps = { serverStats, onConnect: handleConnect, onDetails: handleShowDetails, onCopyIP: handleCopyIP };
+
   return (
     <section id="servers" className="py-20 relative overflow-hidden">
       <div className="container relative z-10">
@@ -330,6 +367,7 @@ const ServersSection = () => {
           </p>
         </div>
 
+        {/* Фильтры */}
         <div className="mb-8 flex flex-col sm:flex-row gap-4 justify-center items-center">
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">Фильтр:</span>
@@ -355,52 +393,50 @@ const ServersSection = () => {
           </div>
         </div>
 
-        {filterBy === 'all' ? (
-          <>
-            {[{ label: 'PVE серверы', color: 'text-green-400', servers: sortedServers.filter(s => s.mode.includes('PVE')) }, { label: 'PVP серверы', color: 'text-primary', servers: sortedServers.filter(s => s.mode.includes('PVP')) }].map(({ label, color, servers: group }) => group.length > 0 && (
-              <div key={label} className="mb-10">
-                <h3 className={`text-xl font-bold mb-5 uppercase tracking-widest ${color}`}>{label}</h3>
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {group.map((server, index) => (
-                    <ServerCard
-                      key={server.id}
-                      server={server}
-                      index={index}
-                      isVisible={visibleCards.has(server.id)}
-                      stats={serverStats[server.battlemetricsId]}
-                      onConnect={handleConnect}
-                      onDetails={handleShowDetails}
-                      onCopyIP={handleCopyIP}
-                      cardRef={(el) => {
-                        if (el) cardRefs.current.set(server.id, el);
-                        else cardRefs.current.delete(server.id);
-                      }}
-                    />
-                  ))}
+        {/* Десктоп: слайдеры */}
+        <div className="hidden md:block">
+          {filterBy === 'all' ? (
+            <>
+              <ServerSlider servers={pveServers} label="PVE серверы" labelColor="text-green-400" {...sliderProps} />
+              <ServerSlider servers={pvpServers} label="PVP серверы" labelColor="text-primary" {...sliderProps} />
+            </>
+          ) : (
+            <ServerSlider
+              servers={sortedServers}
+              label={filterBy === 'pve' ? 'PVE серверы' : 'PVP серверы'}
+              labelColor={filterBy === 'pve' ? 'text-green-400' : 'text-primary'}
+              {...sliderProps}
+            />
+          )}
+        </div>
+
+        {/* Мобайл: сетка */}
+        <div className="md:hidden">
+          {filterBy === 'all' ? (
+            <>
+              {pveServers.length > 0 && (
+                <div className="mb-8">
+                  <h3 className="text-xl font-bold mb-5 uppercase tracking-widest text-green-400">PVE серверы</h3>
+                  <div className="grid grid-cols-1 gap-4">
+                    {pveServers.map(s => <ServerCard key={s.id} server={s} stats={serverStats[s.battlemetricsId]} onConnect={handleConnect} onDetails={handleShowDetails} onCopyIP={handleCopyIP} />)}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </>
-        ) : (
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {sortedServers.map((server, index) => (
-              <ServerCard
-                key={server.id}
-                server={server}
-                index={index}
-                isVisible={visibleCards.has(server.id)}
-                stats={serverStats[server.battlemetricsId]}
-                onConnect={handleConnect}
-                onDetails={handleShowDetails}
-                onCopyIP={handleCopyIP}
-                cardRef={(el) => {
-                  if (el) cardRefs.current.set(server.id, el);
-                  else cardRefs.current.delete(server.id);
-                }}
-              />
-            ))}
-          </div>
-        )}
+              )}
+              {pvpServers.length > 0 && (
+                <div className="mb-8">
+                  <h3 className="text-xl font-bold mb-5 uppercase tracking-widest text-primary">PVP серверы</h3>
+                  <div className="grid grid-cols-1 gap-4">
+                    {pvpServers.map(s => <ServerCard key={s.id} server={s} stats={serverStats[s.battlemetricsId]} onConnect={handleConnect} onDetails={handleShowDetails} onCopyIP={handleCopyIP} />)}
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="grid grid-cols-1 gap-4">
+              {sortedServers.map(s => <ServerCard key={s.id} server={s} stats={serverStats[s.battlemetricsId]} onConnect={handleConnect} onDetails={handleShowDetails} onCopyIP={handleCopyIP} />)}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Details Dialog */}
@@ -439,13 +475,8 @@ const ServersSection = () => {
                 </div>
               ))}
             </div>
-            <Button
-              className="w-full font-semibold uppercase tracking-wider"
-              size="lg"
-              onClick={() => {
-                if (selectedServer) { handleConnect(selectedServer); setIsDialogOpen(false); }
-              }}
-            >
+            <Button className="w-full font-semibold uppercase tracking-wider" size="lg"
+              onClick={() => { if (selectedServer) { handleConnect(selectedServer); setIsDialogOpen(false); } }}>
               <Icon name="Rocket" className="mr-2 h-5 w-5" />
               Подключиться к серверу
             </Button>
