@@ -66,19 +66,20 @@ const ServerCard = memo(({ server, stats, onConnect, onDetails, onCopyIP }: Serv
   const isOnline = stats !== undefined && stats.maxPlayers > 0;
   const fillPct = stats ? Math.round((stats.players / Math.max(stats.maxPlayers, 1)) * 100) : 0;
 
-  const gradient = isPVE
-    ? 'linear-gradient(90deg, rgb(18, 15, 25), rgba(74, 222, 128, 0.33) 100%)'
-    : 'linear-gradient(90deg, rgb(18, 15, 25), rgba(255, 87, 36, 0.33) 100%)';
+  const bg = isPVE
+    ? 'linear-gradient(135deg, rgb(18, 15, 25) 0%, rgb(20, 40, 28) 100%)'
+    : 'linear-gradient(135deg, rgb(18, 15, 25) 0%, rgb(40, 18, 12) 100%)';
+  const border = isPVE ? '1.5px solid rgba(74, 222, 128, 0.45)' : '1.5px solid rgba(220, 60, 20, 0.5)';
 
-  const borderColor = isPVE ? 'border-green-500/30' : 'border-primary/30';
   const iconColor = isPVE ? 'text-green-400' : 'text-primary';
   const badgeBg = isPVE ? 'bg-green-500/15 text-green-400' : 'bg-primary/15 text-primary';
+  const borderColor = isPVE ? 'border-green-500/30' : 'border-primary/30';
   const barColor = isPVE ? 'bg-green-400' : 'bg-primary';
 
   return (
     <div
-      className={`relative flex-shrink-0 rounded-xl border ${borderColor} overflow-hidden flex flex-col`}
-      style={{ background: gradient, minHeight: 200, width: 'calc((100% - 32px) / 3)', scrollSnapAlign: 'start' }}
+      className={`relative flex-shrink-0 rounded-xl overflow-hidden flex flex-col`}
+      style={{ background: bg, border, minHeight: 200, width: 'calc((100% - 32px) / 3)', scrollSnapAlign: 'start' }}
     >
       {!isOnline && (
         <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-20 flex items-center justify-center rounded-xl">
@@ -186,26 +187,26 @@ const ServerSlider = ({ servers, serverStats, onConnect, onDetails, onCopyIP, la
   return (
     <div className="mb-10">
       <h3 className={`text-xl font-bold mb-5 uppercase tracking-widest ${labelColor}`}>{label}</h3>
-      <div className="relative flex items-center gap-2">
+      <div className="relative flex items-stretch gap-2">
         {/* Стрелка влево */}
         <button
           onClick={() => scroll('left')}
           disabled={!canLeft}
-          className="flex-shrink-0 transition-all"
+          aria-label="Листать влево"
           style={{
-            width: 44, minWidth: 44, height: 44,
+            width: 44, minWidth: 44,
             border: 'none',
             borderRadius: 10,
-            background: 'var(--bg-color-700, hsl(var(--muted)))',
-            color: 'hsl(var(--muted-foreground))',
+            background: 'rgb(22, 20, 30)',
+            color: '#fff',
             fontSize: 22,
             cursor: canLeft ? 'pointer' : 'default',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            opacity: canLeft ? 1 : 0.3,
+            opacity: canLeft ? 1 : 0.25,
+            transition: 'opacity 0.2s',
           }}
-          aria-label="Листать влево"
         >
-          <Icon name="ChevronLeft" size={20} />
+          ‹
         </button>
 
         {/* Трек */}
@@ -230,21 +231,21 @@ const ServerSlider = ({ servers, serverStats, onConnect, onDetails, onCopyIP, la
         <button
           onClick={() => scroll('right')}
           disabled={!canRight}
-          className="flex-shrink-0 transition-all"
+          aria-label="Листать вправо"
           style={{
-            width: 44, minWidth: 44, height: 44,
+            width: 44, minWidth: 44,
             border: 'none',
             borderRadius: 10,
-            background: 'var(--bg-color-700, hsl(var(--muted)))',
-            color: 'hsl(var(--muted-foreground))',
+            background: 'rgb(22, 20, 30)',
+            color: '#fff',
             fontSize: 22,
             cursor: canRight ? 'pointer' : 'default',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            opacity: canRight ? 1 : 0.3,
+            opacity: canRight ? 1 : 0.25,
+            transition: 'opacity 0.2s',
           }}
-          aria-label="Листать вправо"
         >
-          <Icon name="ChevronRight" size={20} />
+          ›
         </button>
       </div>
     </div>
