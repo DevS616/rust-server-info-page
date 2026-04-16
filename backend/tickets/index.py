@@ -594,27 +594,35 @@ def update_status(ticket_id: str, event: Dict[str, Any], user_data: Dict[str, An
     except ValueError:
         return error_response('Invalid ticket ID')
     
-    if not user_data.get('is_admin', False):
-        return error_response('Admin access required', 403)
-    
+    is_admin = user_data.get('is_admin', False)
     body = json.loads(event.get('body', '{}'))
     new_status = body.get('status', '').strip()
-    
+
+    # Пользователь может только закрыть свой тикет
+    if not is_admin and new_status != 'closed':
+        return error_response('Admin access required', 403)
+
     allowed_statuses = ['open', 'pending', 'answered', 'closed', 'in_progress']
     if new_status not in allowed_statuses:
         return error_response(f'Status must be one of: {", ".join(allowed_statuses)}')
-    
+
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor(cursor_factory=RealDictCursor)
-    
+
     # Получаем старый статус и данные пользователя
     cur.execute(f"SELECT t.*, u.telegram_chat_id FROM tickets t LEFT JOIN users u ON t.user_id = u.id WHERE t.id = {ticket_id_int}")
     old_ticket = cur.fetchone()
-    
+
     if not old_ticket:
         cur.close()
         conn.close()
         return error_response('Ticket not found', 404)
+
+    # Пользователь может закрыть только свой тикет
+    if not is_admin and old_ticket['user_id'] != int(user_data['user_id']):
+        cur.close()
+        conn.close()
+        return error_response('Access denied', 403)
     
     old_status = old_ticket['status']
     new_status_escaped = escape_sql(new_status)
