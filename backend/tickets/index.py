@@ -171,10 +171,51 @@ def create_ticket(event: Dict[str, Any], user_data: Dict[str, Any]) -> Dict[str,
     )
     first_message = cur.fetchone()
     
-    conn.commit()
-    cur.close()
-    conn.close()
-    
+    # Считаем среднее время первого ответа за последние 30 дней
+    conn2 = psycopg2.connect(os.environ['DATABASE_URL'])
+    cur2 = conn2.cursor(cursor_factory=RealDictCursor)
+    cur2.execute("""
+        SELECT ROUND(AVG(EXTRACT(EPOCH FROM (first_reply.created_at - t.created_at)) / 3600.0), 1) as avg_hours
+        FROM tickets t
+        JOIN LATERAL (
+            SELECT created_at FROM ticket_messages
+            WHERE ticket_id = t.id AND is_admin_reply = TRUE
+            ORDER BY created_at ASC LIMIT 1
+        ) first_reply ON TRUE
+        WHERE t.created_at >= NOW() - INTERVAL '30 days'
+    """)
+    avg_row = cur2.fetchone()
+    avg_hours = float(avg_row['avg_hours']) if avg_row and avg_row['avg_hours'] else None
+
+    if avg_hours is not None:
+        if avg_hours < 1:
+            avg_time_str = f"менее 1 часа"
+        elif avg_hours < 24:
+            h = int(avg_hours)
+            avg_time_str = f"около {h} {'часа' if 2 <= h <= 4 else 'часов' if h >= 5 else 'часа'}"
+        else:
+            d = int(avg_hours / 24)
+            avg_time_str = f"около {d} {'дня' if 2 <= d <= 4 else 'дней' if d >= 5 else 'дня'}"
+        time_line = f"Примерное время ответа на обращения: **{avg_time_str}**."
+    else:
+        time_line = "Примерное время ответа на обращения: зависит от загруженности команды."
+
+    auto_reply_text = (
+        f"Благодарим за обращение, в ближайшее время вам ответит первый свободный Администратор.\n\n"
+        f"{time_line}\n\n"
+        f"Если ваш вопрос уже решён, вы можете закрыть обращение (кнопка «Закрыть обращение»)."
+    )
+    auto_reply_escaped = escape_sql(auto_reply_text)
+
+    cur2.execute(
+        f"INSERT INTO ticket_messages (ticket_id, message, is_admin_reply, is_read_by_user) "
+        f"VALUES ({ticket_id}, '{auto_reply_escaped}', TRUE, FALSE) RETURNING *"
+    )
+    auto_reply_msg = cur2.fetchone()
+    conn2.commit()
+    cur2.close()
+    conn2.close()
+
     # Отправка уведомления в Telegram
     try:
         site_url = 'https://play.devilrust.ru'
@@ -207,7 +248,8 @@ def create_ticket(event: Dict[str, Any], user_data: Dict[str, Any]) -> Dict[str,
         },
         'body': json.dumps({
             'ticket': dict(ticket),
-            'message': dict(first_message)
+            'message': dict(first_message),
+            'auto_reply': dict(auto_reply_msg)
         }, default=str),
         'isBase64Encoded': False
     }
