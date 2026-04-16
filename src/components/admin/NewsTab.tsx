@@ -26,6 +26,8 @@ interface NewsItem {
   category: 'update' | 'event' | 'wipe' | 'news';
   icon: string;
   image_url?: string;
+  button_text?: string;
+  button_url?: string;
   is_published: boolean;
   created_at: string;
   updated_at: string;
@@ -60,6 +62,8 @@ const NewsTab = ({ token }: NewsTabProps) => {
     category: 'news' as 'update' | 'event' | 'wipe' | 'news',
     icon: 'Newspaper',
     image_url: '',
+    button_text: '',
+    button_url: '',
     is_published: true
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -95,6 +99,8 @@ const NewsTab = ({ token }: NewsTabProps) => {
         category: newsItem.category,
         icon: newsItem.icon,
         image_url: newsItem.image_url || '',
+        button_text: newsItem.button_text || '',
+        button_url: newsItem.button_url || '',
         is_published: newsItem.is_published
       });
       setImagePreview(newsItem.image_url || null);
@@ -107,6 +113,8 @@ const NewsTab = ({ token }: NewsTabProps) => {
         category: 'news',
         icon: 'Newspaper',
         image_url: '',
+        button_text: '',
+        button_url: '',
         is_published: true
       });
       setImagePreview(null);
@@ -149,7 +157,7 @@ const NewsTab = ({ token }: NewsTabProps) => {
         : 'https://functions.poehali.dev/e6be6494-14cb-4278-882b-d4498bef6cf6/';
 
       const method = editingNews ? 'PUT' : 'POST';
-      let body: any = editingNews ? { ...formData, id: editingNews.id } : formData;
+      let body: Record<string, unknown> = editingNews ? { ...formData, id: editingNews.id } : { ...formData };
       
       if (imageFile) {
         const reader = new FileReader();
@@ -325,7 +333,7 @@ const NewsTab = ({ token }: NewsTabProps) => {
 
               <div className="space-y-2">
                 <Label htmlFor="category">Категория</Label>
-                <Select value={formData.category} onValueChange={(value: any) => setFormData({ ...formData, category: value })}>
+                <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value as 'update' | 'event' | 'wipe' | 'news' })}>
                   <SelectTrigger id="category">
                     <SelectValue />
                   </SelectTrigger>
@@ -393,6 +401,33 @@ const NewsTab = ({ token }: NewsTabProps) => {
                 <p className="text-xs text-muted-foreground">
                   Рекомендуемый размер: 800x400px. Макс. размер: 5 МБ
                 </p>
+              </div>
+            </div>
+
+            <div className="border-t pt-4 space-y-3">
+              <div>
+                <Label className="text-sm font-semibold">Кнопка в новости <span className="text-muted-foreground font-normal">(опционально)</span></Label>
+                <p className="text-xs text-muted-foreground mb-3">Кнопка отображается внизу полного текста новости в модальном окне</p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="button_text">Текст кнопки</Label>
+                  <Input
+                    id="button_text"
+                    value={formData.button_text}
+                    onChange={(e) => setFormData({ ...formData, button_text: e.target.value })}
+                    placeholder="Подробнее, Перейти..."
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="button_url">Ссылка кнопки</Label>
+                  <Input
+                    id="button_url"
+                    value={formData.button_url}
+                    onChange={(e) => setFormData({ ...formData, button_url: e.target.value })}
+                    placeholder="https://..."
+                  />
+                </div>
               </div>
             </div>
 

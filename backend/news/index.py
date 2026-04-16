@@ -109,7 +109,7 @@ def get_published_news() -> Dict[str, Any]:
     cur = conn.cursor(cursor_factory=RealDictCursor)
     
     cur.execute('''
-        SELECT id, title, description, date, category, icon, image_url
+        SELECT id, title, description, date, category, icon, image_url, button_text, button_url
         FROM news
         WHERE is_published = TRUE
         ORDER BY created_at DESC
@@ -155,7 +155,9 @@ def create_news(event: Dict[str, Any]) -> Dict[str, Any]:
     icon = body.get('icon', 'Newspaper').strip()
     is_published = body.get('is_published', True)
     image_url = body.get('image_url', '').strip()
-    
+    button_text = body.get('button_text', '').strip()
+    button_url = body.get('button_url', '').strip()
+
     if not title or not description or not date:
         return error_response('Title, description and date are required')
     
@@ -173,12 +175,13 @@ def create_news(event: Dict[str, Any]) -> Dict[str, Any]:
     icon_safe = escape_sql(icon)
     image_url_safe = escape_sql(image_url) if image_url else ''
     is_pub = 'TRUE' if is_published else 'FALSE'
-    
     image_sql = f"'{image_url_safe}'" if image_url else 'NULL'
-    
+    btn_text_sql = f"'{escape_sql(button_text)}'" if button_text else 'NULL'
+    btn_url_sql = f"'{escape_sql(button_url)}'" if button_url else 'NULL'
+
     cur.execute(f"""
-        INSERT INTO news (title, description, date, category, icon, is_published, image_url)
-        VALUES ('{title_safe}', '{desc_safe}', '{date_safe}', '{category_safe}', '{icon_safe}', {is_pub}, {image_sql})
+        INSERT INTO news (title, description, date, category, icon, is_published, image_url, button_text, button_url)
+        VALUES ('{title_safe}', '{desc_safe}', '{date_safe}', '{category_safe}', '{icon_safe}', {is_pub}, {image_sql}, {btn_text_sql}, {btn_url_sql})
         RETURNING *
     """)
     
@@ -209,7 +212,9 @@ def update_news(event: Dict[str, Any]) -> Dict[str, Any]:
     icon = body.get('icon', 'Newspaper').strip()
     is_published = body.get('is_published', True)
     image_url = body.get('image_url', '').strip()
-    
+    button_text = body.get('button_text', '').strip()
+    button_url = body.get('button_url', '').strip()
+
     if body.get('image_base64'):
         image_type = body.get('image_type', 'jpg')
         image_url = upload_image(body['image_base64'], image_type)
@@ -226,7 +231,9 @@ def update_news(event: Dict[str, Any]) -> Dict[str, Any]:
     is_pub = 'TRUE' if is_published else 'FALSE'
     image_url_safe = escape_sql(image_url) if image_url else ''
     image_sql = f"'{image_url_safe}'" if image_url else 'NULL'
-    
+    btn_text_sql = f"'{escape_sql(button_text)}'" if button_text else 'NULL'
+    btn_url_sql = f"'{escape_sql(button_url)}'" if button_url else 'NULL'
+
     cur.execute(f"""
         UPDATE news SET
             title = '{title_safe}',
@@ -236,6 +243,8 @@ def update_news(event: Dict[str, Any]) -> Dict[str, Any]:
             icon = '{icon_safe}',
             is_published = {is_pub},
             image_url = {image_sql},
+            button_text = {btn_text_sql},
+            button_url = {btn_url_sql},
             updated_at = NOW()
         WHERE id = {news_id_int}
         RETURNING *
