@@ -94,8 +94,9 @@ const ServerCard = memo(({ server, stats, onConnect, onDetails, onCopyIP }: Serv
       )}
 
       <div className="relative z-10 flex flex-col h-full p-5">
-        {/* Шапка */}
-        <div className="flex items-start justify-between mb-3 gap-2">
+
+        {/* Шапка: название + кнопка IP */}
+        <div className="flex items-start justify-between gap-2 mb-4">
           <div className="flex-1 min-w-0">
             <h3 className="font-bold text-base leading-tight font-nunito truncate">{server.name}</h3>
             <span className={`inline-block mt-1 rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider ${badgeBg}`}>
@@ -123,33 +124,46 @@ const ServerCard = memo(({ server, stats, onConnect, onDetails, onCopyIP }: Serv
           </button>
         </div>
 
-        {/* Описание */}
-        <p className="text-xs text-muted-foreground leading-relaxed mb-3 line-clamp-2">{server.description}</p>
+        {/* Центр: описание + фичи — растягивается, обрезается по высоте */}
+        <div className="flex-1 overflow-hidden">
+          {server.description && (
+            <p className="text-xs text-white/60 leading-relaxed mb-3">{server.description}</p>
+          )}
+          {server.features.length > 0 && (
+            <div className="space-y-1.5 overflow-hidden">
+              {server.features.map((feature, idx) => (
+                <div key={idx} className="flex items-center gap-2 text-xs text-white/75">
+                  <span className={`w-1 h-1 rounded-full flex-shrink-0 ${barColor}`} />
+                  <span className="truncate">{feature}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
-        {/* Онлайн */}
-        <div className="mt-auto">
-          <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+        {/* Подвал: онлайн + кнопки */}
+        <div className="mt-4 pt-3 border-t border-white/10">
+          <div className="flex items-center justify-between text-xs text-white/50 mb-1.5">
             <span className={`font-semibold ${iconColor}`}>{online}</span>
             <span>из {slots}</span>
           </div>
-          <div className="h-1.5 w-full rounded-full bg-white/10">
+          <div className="h-1.5 w-full rounded-full bg-white/10 mb-3">
             <div
               className={`h-1.5 rounded-full ${barColor} transition-all`}
               style={{ width: `${fillPct}%` }}
             />
           </div>
+          <div className="flex gap-2">
+            <Button size="sm" className="flex-1 text-xs font-semibold uppercase tracking-wider" onClick={() => onConnect(server)}>
+              <Icon name="Rocket" size={13} className="mr-1" />
+              Играть
+            </Button>
+            <Button size="sm" variant="outline" className="hover:bg-primary/10 px-2" onClick={() => onDetails(server)}>
+              <Icon name="Info" size={14} />
+            </Button>
+          </div>
         </div>
 
-        {/* Кнопки */}
-        <div className="flex gap-2 mt-3">
-          <Button size="sm" className="flex-1 text-xs font-semibold uppercase tracking-wider" onClick={() => onConnect(server)}>
-            <Icon name="Rocket" size={13} className="mr-1" />
-            Играть
-          </Button>
-          <Button size="sm" variant="outline" className="hover:bg-primary/10 px-2" onClick={() => onDetails(server)}>
-            <Icon name="Info" size={14} />
-          </Button>
-        </div>
       </div>
     </div>
   );
