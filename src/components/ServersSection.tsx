@@ -69,26 +69,20 @@ const ServerCard = memo(({ server, stats, onConnect, onDetails, onCopyIP }: Serv
   const fillPct = stats ? Math.round((stats.players / Math.max(stats.maxPlayers, 1)) * 100) : 0;
 
   const bg = isPVE
-    ? 'linear-gradient(135deg, rgb(18, 15, 25) 0%, rgb(20, 40, 28) 100%)'
+    ? 'linear-gradient(90deg, rgb(18,15,25), rgba(74,222,128,0.33))'
     : isCreative
-      ? 'linear-gradient(135deg, rgb(18, 15, 25) 0%, rgb(25, 20, 45) 100%)'
-      : 'linear-gradient(135deg, rgb(18, 15, 25) 0%, rgb(40, 18, 12) 100%)';
-  const border = isPVE
-    ? '1.5px solid rgba(74, 222, 128, 0.45)'
-    : isCreative
-      ? '1.5px solid rgba(139, 92, 246, 0.55)'
-      : '1.5px solid rgba(220, 60, 20, 0.5)';
+      ? 'linear-gradient(90deg, rgb(18,15,25), rgba(139,92,246,0.33))'
+      : 'linear-gradient(90deg, rgb(18,15,25), rgba(255,87,36,0.33))';
 
   const iconColor = isPVE ? 'text-green-400' : isCreative ? 'text-violet-400' : 'text-primary';
   const badgeBg = isPVE ? 'bg-green-500/15 text-green-400' : isCreative ? 'bg-violet-500/15 text-violet-400' : 'bg-primary/15 text-primary';
-  const borderColor = isPVE ? 'border-green-500/30' : isCreative ? 'border-violet-500/30' : 'border-primary/30';
   const barColor = isPVE ? 'bg-green-400' : isCreative ? 'bg-violet-400' : 'bg-primary';
   void isPVP;
 
   return (
     <div
-      className={`relative flex-shrink-0 rounded-xl overflow-hidden flex flex-col`}
-      style={{ background: bg, border, minHeight: 200, width: 'calc((100% - 32px) / 3)', scrollSnapAlign: 'start' }}
+      className="relative flex-shrink-0 rounded-xl overflow-hidden flex flex-col"
+      style={{ background: bg, border: 'none', width: 'calc((100% - 32px) / 3)', scrollSnapAlign: 'start', aspectRatio: '1 / 1' }}
     >
       {!isOnline && (
         <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-20 flex items-center justify-center rounded-xl">
@@ -108,15 +102,25 @@ const ServerCard = memo(({ server, stats, onConnect, onDetails, onCopyIP }: Serv
               {server.mode}
             </span>
           </div>
-          <Button
-            size="sm"
-            variant="secondary"
-            className="flex-shrink-0 h-7 text-xs px-3"
+          <button
             onClick={() => onCopyIP(server.ip)}
+            style={{
+              fontSize: 12,
+              padding: '5px 15px',
+              background: 'rgba(0,0,0,0.44)',
+              border: 'none',
+              borderRadius: 6,
+              color: '#fff',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+            }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.65)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.44)')}
           >
-            <Icon name="Copy" size={12} className="mr-1" />
             Скопировать IP
-          </Button>
+          </button>
         </div>
 
         {/* Описание */}
@@ -142,7 +146,7 @@ const ServerCard = memo(({ server, stats, onConnect, onDetails, onCopyIP }: Serv
             <Icon name="Rocket" size={13} className="mr-1" />
             Играть
           </Button>
-          <Button size="sm" variant="outline" className={`${borderColor} hover:bg-primary/10 px-2`} onClick={() => onDetails(server)}>
+          <Button size="sm" variant="outline" className="hover:bg-primary/10 px-2" onClick={() => onDetails(server)}>
             <Icon name="Info" size={14} />
           </Button>
         </div>
