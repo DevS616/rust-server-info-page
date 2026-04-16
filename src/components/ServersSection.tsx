@@ -43,7 +43,7 @@ type ServerData = {
 };
 
 type SortType = 'number' | 'rate-asc' | 'rate-desc';
-type FilterType = 'all' | 'pve' | 'pvp';
+type FilterType = 'all' | 'pve' | 'pvp' | 'creative';
 
 const extractRate = (mode: string): number => {
   const match = mode.match(/x(\d+)/);
@@ -61,6 +61,8 @@ interface ServerCardProps {
 
 const ServerCard = memo(({ server, stats, onConnect, onDetails, onCopyIP }: ServerCardProps) => {
   const isPVE = server.mode.includes('PVE');
+  const isPVP = server.mode.includes('PVP');
+  const isCreative = server.mode.includes('CREATIVE');
   const online = stats?.players ?? '—';
   const slots = stats?.maxPlayers ?? '—';
   const isOnline = stats !== undefined && stats.maxPlayers > 0;
@@ -68,13 +70,20 @@ const ServerCard = memo(({ server, stats, onConnect, onDetails, onCopyIP }: Serv
 
   const bg = isPVE
     ? 'linear-gradient(135deg, rgb(18, 15, 25) 0%, rgb(20, 40, 28) 100%)'
-    : 'linear-gradient(135deg, rgb(18, 15, 25) 0%, rgb(40, 18, 12) 100%)';
-  const border = isPVE ? '1.5px solid rgba(74, 222, 128, 0.45)' : '1.5px solid rgba(220, 60, 20, 0.5)';
+    : isCreative
+      ? 'linear-gradient(135deg, rgb(18, 15, 25) 0%, rgb(25, 20, 45) 100%)'
+      : 'linear-gradient(135deg, rgb(18, 15, 25) 0%, rgb(40, 18, 12) 100%)';
+  const border = isPVE
+    ? '1.5px solid rgba(74, 222, 128, 0.45)'
+    : isCreative
+      ? '1.5px solid rgba(139, 92, 246, 0.55)'
+      : '1.5px solid rgba(220, 60, 20, 0.5)';
 
-  const iconColor = isPVE ? 'text-green-400' : 'text-primary';
-  const badgeBg = isPVE ? 'bg-green-500/15 text-green-400' : 'bg-primary/15 text-primary';
-  const borderColor = isPVE ? 'border-green-500/30' : 'border-primary/30';
-  const barColor = isPVE ? 'bg-green-400' : 'bg-primary';
+  const iconColor = isPVE ? 'text-green-400' : isCreative ? 'text-violet-400' : 'text-primary';
+  const badgeBg = isPVE ? 'bg-green-500/15 text-green-400' : isCreative ? 'bg-violet-500/15 text-violet-400' : 'bg-primary/15 text-primary';
+  const borderColor = isPVE ? 'border-green-500/30' : isCreative ? 'border-violet-500/30' : 'border-primary/30';
+  const barColor = isPVE ? 'bg-green-400' : isCreative ? 'bg-violet-400' : 'bg-primary';
+  void isPVP;
 
   return (
     <div
@@ -343,6 +352,7 @@ const ServersSection = () => {
   const filteredServers = allServersFlat.filter(server => {
     if (filterBy === 'pve') return server.mode.includes('PVE');
     if (filterBy === 'pvp') return server.mode.includes('PVP');
+    if (filterBy === 'creative') return server.mode.includes('CREATIVE');
     return true;
   });
 
@@ -355,6 +365,7 @@ const ServersSection = () => {
 
   const pveServers = sortedServers.filter(s => s.mode.includes('PVE'));
   const pvpServers = sortedServers.filter(s => s.mode.includes('PVP'));
+  const creativeServers = sortedServers.filter(s => s.mode.includes('CREATIVE'));
 
   const sliderProps = { serverStats, onConnect: handleConnect, onDetails: handleShowDetails, onCopyIP: handleCopyIP };
 
@@ -378,6 +389,7 @@ const ServersSection = () => {
                 <SelectItem value="all">Все серверы</SelectItem>
                 <SelectItem value="pve">PVE</SelectItem>
                 <SelectItem value="pvp">PVP</SelectItem>
+                <SelectItem value="creative">CREATIVE</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -400,12 +412,13 @@ const ServersSection = () => {
             <>
               <ServerSlider servers={pveServers} label="PVE серверы" labelColor="text-green-400" {...sliderProps} />
               <ServerSlider servers={pvpServers} label="PVP серверы" labelColor="text-primary" {...sliderProps} />
+              <ServerSlider servers={creativeServers} label="Creative серверы" labelColor="text-violet-400" {...sliderProps} />
             </>
           ) : (
             <ServerSlider
               servers={sortedServers}
-              label={filterBy === 'pve' ? 'PVE серверы' : 'PVP серверы'}
-              labelColor={filterBy === 'pve' ? 'text-green-400' : 'text-primary'}
+              label={filterBy === 'pve' ? 'PVE серверы' : filterBy === 'creative' ? 'Creative серверы' : 'PVP серверы'}
+              labelColor={filterBy === 'pve' ? 'text-green-400' : filterBy === 'creative' ? 'text-violet-400' : 'text-primary'}
               {...sliderProps}
             />
           )}
@@ -428,6 +441,14 @@ const ServersSection = () => {
                   <h3 className="text-xl font-bold mb-5 uppercase tracking-widest text-primary">PVP серверы</h3>
                   <div className="grid grid-cols-1 gap-4">
                     {pvpServers.map(s => <ServerCard key={s.id} server={s} stats={serverStats[s.battlemetricsId]} onConnect={handleConnect} onDetails={handleShowDetails} onCopyIP={handleCopyIP} />)}
+                  </div>
+                </div>
+              )}
+              {creativeServers.length > 0 && (
+                <div className="mb-8">
+                  <h3 className="text-xl font-bold mb-5 uppercase tracking-widest text-violet-400">Creative серверы</h3>
+                  <div className="grid grid-cols-1 gap-4">
+                    {creativeServers.map(s => <ServerCard key={s.id} server={s} stats={serverStats[s.battlemetricsId]} onConnect={handleConnect} onDetails={handleShowDetails} onCopyIP={handleCopyIP} />)}
                   </div>
                 </div>
               )}
