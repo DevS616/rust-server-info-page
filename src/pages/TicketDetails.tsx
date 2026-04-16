@@ -343,29 +343,48 @@ const TicketDetails = () => {
             </div>
 
             <div className="space-y-4 mb-6 max-h-[600px] overflow-y-auto">
-              {messages.map((msg) => (
-                <div key={msg.id} className={`flex gap-3 ${msg.is_admin_reply ? 'flex-row-reverse' : ''}`}>
-                  <div className={`flex-1 ${msg.is_admin_reply ? 'text-right' : ''}`}>
-                    <div className={`inline-block max-w-[80%] p-4 rounded-lg ${
-                      msg.is_admin_reply ? 'bg-primary text-primary-foreground' : 'bg-muted'
-                    }`}>
-                      <p className="text-sm font-medium mb-1">
-                        {msg.is_admin_reply ? (msg.admin_name || 'Администратор') : (msg.user_name || 'Вы')}
-                      </p>
-                      <p className="whitespace-pre-wrap">{msg.message}</p>
-                      {msg.file_url && (
-                        <a href={msg.file_url} target="_blank" rel="noopener noreferrer" 
-                          className="text-sm underline mt-2 block">
-                          📎 Прикреплённый файл
-                        </a>
-                      )}
-                      <p className="text-xs opacity-70 mt-2">
-                        {new Date(msg.created_at).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}
-                      </p>
+              {messages.map((msg) => {
+                const isAutoReply = msg.is_admin_reply && !msg.admin_name;
+                if (isAutoReply) {
+                  return (
+                    <div key={msg.id} className="flex justify-center">
+                      <div className="w-full max-w-[90%] rounded-xl border border-dashed border-muted-foreground/30 bg-muted/40 px-5 py-4">
+                        <div className="flex items-center gap-2 mb-2 text-muted-foreground">
+                          <Icon name="Bot" size={15} />
+                          <span className="text-xs font-semibold uppercase tracking-wide">Системное сообщение</span>
+                        </div>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">{msg.message}</p>
+                        <p className="text-xs text-muted-foreground/50 mt-3">
+                          {new Date(msg.created_at).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                }
+                return (
+                  <div key={msg.id} className={`flex gap-3 ${msg.is_admin_reply ? 'flex-row-reverse' : ''}`}>
+                    <div className={`flex-1 ${msg.is_admin_reply ? 'text-right' : ''}`}>
+                      <div className={`inline-block max-w-[80%] p-4 rounded-lg ${
+                        msg.is_admin_reply ? 'bg-primary text-primary-foreground' : 'bg-muted'
+                      }`}>
+                        <p className="text-sm font-medium mb-1">
+                          {msg.is_admin_reply ? (msg.admin_name || 'Администратор') : (msg.user_name || 'Вы')}
+                        </p>
+                        <p className="whitespace-pre-wrap">{msg.message}</p>
+                        {msg.file_url && (
+                          <a href={msg.file_url} target="_blank" rel="noopener noreferrer"
+                            className="text-sm underline mt-2 block">
+                            📎 Прикреплённый файл
+                          </a>
+                        )}
+                        <p className="text-xs opacity-70 mt-2">
+                          {new Date(msg.created_at).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
               <div ref={messagesEndRef} />
             </div>
 
