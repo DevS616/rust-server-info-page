@@ -77,8 +77,8 @@ const ServerCard = memo(({ server, stats, onConnect, onDetails, onCopyIP }: Serv
 
   return (
     <div
-      className={`relative flex-shrink-0 w-72 md:w-80 rounded-xl border ${borderColor} overflow-hidden flex flex-col`}
-      style={{ background: gradient, minHeight: 200 }}
+      className={`relative flex-shrink-0 rounded-xl border ${borderColor} overflow-hidden flex flex-col`}
+      style={{ background: gradient, minHeight: 200, width: 'calc((100% - 32px) / 3)', scrollSnapAlign: 'start' }}
     >
       {!isOnline && (
         <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-20 flex items-center justify-center rounded-xl">
@@ -178,7 +178,7 @@ const ServerSlider = ({ servers, serverStats, onConnect, onDetails, onCopyIP, la
   const scroll = (dir: 'left' | 'right') => {
     const el = trackRef.current;
     if (!el) return;
-    el.scrollBy({ left: dir === 'right' ? 320 : -320, behavior: 'smooth' });
+    el.scrollBy({ left: dir === 'right' ? el.clientWidth : -el.clientWidth, behavior: 'smooth' });
   };
 
   if (servers.length === 0) return null;
@@ -211,8 +211,8 @@ const ServerSlider = ({ servers, serverStats, onConnect, onDetails, onCopyIP, la
         {/* Трек */}
         <div
           ref={trackRef}
-          className="flex gap-4 overflow-x-auto flex-1 pb-1"
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          className="flex gap-4 overflow-x-auto flex-1"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', scrollSnapType: 'x mandatory' }}
         >
           {servers.map(server => (
             <ServerCard
