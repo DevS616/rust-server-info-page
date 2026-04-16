@@ -365,6 +365,23 @@ const TicketDetails = () => {
               {messages.map((msg) => {
                 const isAutoReply = msg.is_admin_reply && !msg.admin_name;
                 if (isAutoReply) {
+                  // Парсим время ответа из текста: "Примерное время ответа на обращения: X."
+                  const timeMatch = msg.message.match(/Примерное время ответа на обращения:\s*(.+?)\./);
+                  const timeValue = timeMatch ? timeMatch[1].trim() : null;
+                  // Определяем цвет по тексту
+                  let timeColor = 'text-muted-foreground';
+                  if (timeValue) {
+                    const hoursMatch = timeValue.match(/около\s+(\d+)\s+час/);
+                    const minsMatch = /менее\s+1\s+часа/.test(timeValue);
+                    const daysMatch = timeValue.match(/около\s+(\d+)\s+дн/);
+                    if (minsMatch) timeColor = 'text-green-500';
+                    else if (hoursMatch) {
+                      const h = parseInt(hoursMatch[1]);
+                      timeColor = h < 8 ? 'text-orange-400' : 'text-red-500';
+                    } else if (daysMatch) timeColor = 'text-red-500';
+                  }
+                  // Разбиваем текст на части до и после строки со временем
+                  const lines = msg.message.split('\n\n');
                   return (
                     <div key={msg.id} className="flex justify-center">
                       <div className="w-full max-w-[90%] rounded-xl border border-dashed border-muted-foreground/30 bg-muted/40 px-5 py-4">
@@ -372,19 +389,38 @@ const TicketDetails = () => {
                           <Icon name="Bot" size={15} />
                           <span className="text-xs font-semibold uppercase tracking-wide">Системное сообщение</span>
                         </div>
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">{msg.message}</p>
-                        {ticket.status !== 'closed' && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="mt-4"
-                            onClick={handleCloseTicket}
-                          >
-                            <Icon name="XCircle" size={15} className="mr-2" />
-                            Закрыть обращение
-                          </Button>
-                        )}
-                        <p className="text-xs text-muted-foreground/50 mt-3">
+                        <div className="text-sm text-muted-foreground leading-relaxed space-y-2">
+                          {lines.map((line, i) => {
+                            const isTimeLine = line.startsWith('Примерное время ответа');
+                            if (isTimeLine && timeValue) {
+                              const prefix = 'Примерное время ответа на обращения: ';
+                              return (
+                                <p key={i}>
+                                  {prefix}<span className={`font-semibold ${timeColor}`}>{timeValue}</span>.
+                                </p>
+                              );
+                            }
+                            return <p key={i} className="whitespace-pre-wrap">{line}</p>;
+                          })}
+                        </div>
+                        <div className="mt-4 flex flex-col gap-2">
+                          {ticket.status !== 'closed' && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="w-fit"
+                              onClick={handleCloseTicket}
+                            >
+                              <Icon name="XCircle" size={15} className="mr-2" />
+                              Закрыть обращение
+                            </Button>
+                          )}
+                          <p className="text-xs text-muted-foreground/50 flex items-center gap-1">
+                            <Icon name="Clock" size={12} />
+                            Время работы поддержки: 09:00 – 23:00 МСК
+                          </p>
+                        </div>
+                        <p className="text-xs text-muted-foreground/50 mt-2">
                           {new Date(msg.created_at).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}
                         </p>
                       </div>

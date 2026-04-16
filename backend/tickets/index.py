@@ -189,15 +189,16 @@ def create_ticket(event: Dict[str, Any], user_data: Dict[str, Any]) -> Dict[str,
 
     if avg_hours is not None:
         if avg_hours < 1:
-            avg_time_str = f"менее 1 часа"
+            avg_time_str = "менее 1 часа"
         elif avg_hours < 24:
             h = int(avg_hours)
             avg_time_str = f"около {h} {'часа' if 2 <= h <= 4 else 'часов' if h >= 5 else 'часа'}"
         else:
             d = int(avg_hours / 24)
             avg_time_str = f"около {d} {'дня' if 2 <= d <= 4 else 'дней' if d >= 5 else 'дня'}"
-        time_line = f"Примерное время ответа на обращения: **{avg_time_str}**."
+        time_line = f"Примерное время ответа на обращения: {avg_time_str}."
     else:
+        avg_time_str = None
         time_line = "Примерное время ответа на обращения: зависит от загруженности команды."
 
     auto_reply_text = (
@@ -206,6 +207,8 @@ def create_ticket(event: Dict[str, Any], user_data: Dict[str, Any]) -> Dict[str,
         f"Если ваш вопрос уже решён, вы можете закрыть обращение."
     )
     auto_reply_escaped = escape_sql(auto_reply_text)
+    # avg_hours сохраняем в meta для фронта
+    avg_hours_meta = round(avg_hours, 1) if avg_hours is not None else None
 
     cur2.execute(
         f"INSERT INTO ticket_messages (ticket_id, message, is_admin_reply, is_read_by_user) "
@@ -249,7 +252,7 @@ def create_ticket(event: Dict[str, Any], user_data: Dict[str, Any]) -> Dict[str,
         'body': json.dumps({
             'ticket': dict(ticket),
             'message': dict(first_message),
-            'auto_reply': dict(auto_reply_msg)
+            'auto_reply': {**dict(auto_reply_msg), 'avg_hours': avg_hours_meta}
         }, default=str),
         'isBase64Encoded': False
     }
