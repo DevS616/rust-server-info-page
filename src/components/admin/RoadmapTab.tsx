@@ -33,8 +33,9 @@ interface RoadmapItem {
   id: number;
   title: string;
   description: string;
-  status: 'planned' | 'in_progress' | 'done';
+  status: 'planned' | 'in_progress' | 'done' | 'fixed';
   icon: string;
+  color: string;
   sort_order: number;
   updated_at: string;
   is_published: boolean;
@@ -49,6 +50,7 @@ const statusConfig = {
   planned: { label: 'Запланировано', color: 'bg-muted/60 text-muted-foreground border-border' },
   in_progress: { label: 'В разработке', color: 'bg-amber-500/10 text-amber-500 border-amber-500/20' },
   done: { label: 'Готово', color: 'bg-green-500/10 text-green-500 border-green-500/20' },
+  fixed: { label: 'Исправлено', color: 'bg-blue-500/10 text-blue-500 border-blue-500/20' },
 };
 
 const iconOptions = [
@@ -57,11 +59,18 @@ const iconOptions = [
   'Sparkles', 'Bell', 'Calendar', 'Clock', 'Flag', 'Target', 'Layers',
 ];
 
+const PRESET_COLORS = [
+  '#f97316', '#ef4444', '#3b82f6', '#22c55e',
+  '#a855f7', '#ec4899', '#14b8a6', '#eab308',
+  '#6366f1', '#f59e0b', '#ffffff', '#94a3b8',
+];
+
 const defaultForm = {
   title: '',
   description: '',
-  status: 'planned' as 'planned' | 'in_progress' | 'done',
+  status: 'planned' as 'planned' | 'in_progress' | 'done' | 'fixed',
   icon: 'Map',
+  color: '#f97316',
   sort_order: 0,
   updated_at: new Date().toISOString().split('T')[0],
   is_published: true,
@@ -175,6 +184,7 @@ const RoadmapTab = ({ token }: RoadmapTabProps) => {
           description: item.description,
           status: item.status,
           icon: item.icon,
+          color: item.color || '#f97316',
           sort_order: item.sort_order,
           updated_at: item.updated_at.split('.').reverse().join('-'),
           is_published: item.is_published,
@@ -194,6 +204,7 @@ const RoadmapTab = ({ token }: RoadmapTabProps) => {
         description: item.description,
         status: item.status,
         icon: item.icon,
+        color: item.color || '#f97316',
         sort_order: item.sort_order,
         updated_at: parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : item.updated_at,
         is_published: item.is_published,
@@ -306,6 +317,7 @@ const RoadmapTab = ({ token }: RoadmapTabProps) => {
                   <SelectItem value="planned">Запланировано</SelectItem>
                   <SelectItem value="in_progress">В разработке</SelectItem>
                   <SelectItem value="done">Готово</SelectItem>
+                  <SelectItem value="fixed">Исправлено</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -327,6 +339,32 @@ const RoadmapTab = ({ token }: RoadmapTabProps) => {
                     <span className="truncate w-full text-center text-[9px]">{name}</span>
                   </button>
                 ))}
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Цвет иконки и рамки при наведении</Label>
+              <div className="flex flex-wrap gap-2 items-center">
+                {PRESET_COLORS.map(c => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setFormData(p => ({ ...p, color: c }))}
+                    className="w-7 h-7 rounded-full border-2 transition-transform hover:scale-110"
+                    style={{
+                      backgroundColor: c,
+                      borderColor: formData.color === c ? 'white' : 'transparent',
+                      outline: formData.color === c ? `2px solid ${c}` : 'none',
+                    }}
+                  />
+                ))}
+                <input
+                  type="color"
+                  value={formData.color}
+                  onChange={e => setFormData(p => ({ ...p, color: e.target.value }))}
+                  className="w-7 h-7 rounded-full border border-border cursor-pointer bg-transparent"
+                  title="Свой цвет"
+                />
+                <span className="text-xs text-muted-foreground ml-1">Выбрано: <span style={{ color: formData.color }}>{formData.color}</span></span>
               </div>
             </div>
             <div className="space-y-1.5">

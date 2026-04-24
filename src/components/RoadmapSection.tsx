@@ -11,28 +11,18 @@ interface RoadmapItem {
   id: number;
   title: string;
   description: string;
-  status: 'planned' | 'in_progress' | 'done';
+  status: 'planned' | 'in_progress' | 'done' | 'fixed';
   icon: string;
+  color: string;
   sort_order: number;
   updated_at: string;
 }
 
 const statusConfig = {
-  planned: {
-    label: 'Запланировано',
-    color: 'bg-muted/60 text-muted-foreground border-border',
-    dot: 'bg-muted-foreground',
-  },
-  in_progress: {
-    label: 'В разработке',
-    color: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
-    dot: 'bg-amber-500',
-  },
-  done: {
-    label: 'Готово',
-    color: 'bg-green-500/10 text-green-500 border-green-500/20',
-    dot: 'bg-green-500',
-  },
+  planned: { label: 'Запланировано', color: 'bg-muted/60 text-muted-foreground border-border', dot: 'bg-muted-foreground' },
+  in_progress: { label: 'В разработке', color: 'bg-amber-500/10 text-amber-500 border-amber-500/20', dot: 'bg-amber-500' },
+  done: { label: 'Готово', color: 'bg-green-500/10 text-green-500 border-green-500/20', dot: 'bg-green-500' },
+  fixed: { label: 'Исправлено', color: 'bg-blue-500/10 text-blue-500 border-blue-500/20', dot: 'bg-blue-500' },
 };
 
 function DescriptionText({ text }: { text: string }) {
@@ -66,6 +56,7 @@ export default function RoadmapSection() {
   const grouped = {
     in_progress: items.filter(i => i.status === 'in_progress'),
     planned: items.filter(i => i.status === 'planned'),
+    fixed: items.filter(i => i.status === 'fixed'),
     done: items.filter(i => i.status === 'done'),
   };
 
@@ -79,7 +70,7 @@ export default function RoadmapSection() {
         <p className="text-muted-foreground text-sm mb-8">Планы по развитию проекта</p>
 
         <div className="flex flex-col gap-6">
-          {(['in_progress', 'planned', 'done'] as const).map(statusKey => {
+          {(['in_progress', 'planned', 'fixed', 'done'] as const).map(statusKey => {
             const group = grouped[statusKey];
             if (group.length === 0) return null;
             const cfg = statusConfig[statusKey];
@@ -97,15 +88,22 @@ export default function RoadmapSection() {
                     const preview = isLong
                       ? item.description.slice(0, PREVIEW_LENGTH).trimEnd() + '…'
                       : item.description;
+                    const itemColor = item.color || '#f97316';
 
                     return (
                       <div
                         key={item.id}
-                        className="relative rounded-xl border border-border bg-card p-4 flex flex-col gap-2 hover:border-primary/30 transition-colors"
+                        className="relative rounded-xl border bg-card p-4 flex flex-col gap-2 transition-colors"
+                        style={{ borderColor: 'hsl(var(--border))' }}
+                        onMouseEnter={e => (e.currentTarget.style.borderColor = itemColor)}
+                        onMouseLeave={e => (e.currentTarget.style.borderColor = 'hsl(var(--border))')}
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex items-center gap-2">
-                            <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10 text-primary shrink-0">
+                            <span
+                              className="flex items-center justify-center w-8 h-8 rounded-lg shrink-0"
+                              style={{ backgroundColor: `${itemColor}1a`, color: itemColor }}
+                            >
                               <Icon name={item.icon} size={16} fallback="Map" />
                             </span>
                             <span className="font-semibold text-sm leading-tight">{item.title}</span>
@@ -128,7 +126,8 @@ export default function RoadmapSection() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-auto px-0 py-0 text-xs text-primary hover:text-primary/80"
+                              className="h-auto px-0 py-0 text-xs hover:bg-transparent"
+                              style={{ color: itemColor }}
                               onClick={() => setSelected(item)}
                             >
                               Читать далее
@@ -152,7 +151,10 @@ export default function RoadmapSection() {
             <>
               <DialogHeader>
                 <div className="flex items-center gap-3 mb-1">
-                  <span className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary/10 text-primary shrink-0">
+                  <span
+                    className="flex items-center justify-center w-9 h-9 rounded-lg shrink-0"
+                    style={{ backgroundColor: `${selected.color || '#f97316'}1a`, color: selected.color || '#f97316' }}
+                  >
                     <Icon name={selected.icon} size={18} fallback="Map" />
                   </span>
                   <DialogTitle className="text-left leading-snug">{selected.title}</DialogTitle>

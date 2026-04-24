@@ -12,6 +12,8 @@ CORS_HEADERS = {
     'Access-Control-Max-Age': '86400'
 }
 
+VALID_STATUSES = ('planned', 'in_progress', 'done', 'fixed')
+
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     '''API для управления дорожной картой — публичный список и CRUD для админов'''
     method = event.get('httpMethod', 'GET')
@@ -86,7 +88,7 @@ def get_published_items():
     conn = get_db()
     cur = conn.cursor(cursor_factory=RealDictCursor)
     cur.execute("""
-        SELECT id, title, description, status, icon, sort_order,
+        SELECT id, title, description, status, icon, color, sort_order,
                TO_CHAR(updated_at, 'DD.MM.YYYY') as updated_at
         FROM roadmap
         WHERE is_published = TRUE
@@ -102,7 +104,7 @@ def get_all_items():
     conn = get_db()
     cur = conn.cursor(cursor_factory=RealDictCursor)
     cur.execute("""
-        SELECT id, title, description, status, icon, sort_order, is_published,
+        SELECT id, title, description, status, icon, color, sort_order, is_published,
                TO_CHAR(updated_at, 'DD.MM.YYYY') as updated_at,
                created_at
         FROM roadmap
@@ -120,6 +122,7 @@ def create_item(event):
     description = escape_sql(body.get('description', '').strip())
     status = body.get('status', 'planned')
     icon = escape_sql(body.get('icon', 'Map').strip())
+    color = escape_sql(body.get('color', '#f97316').strip())
     sort_order = int(body.get('sort_order', 0))
     is_published = body.get('is_published', True)
     updated_at = escape_sql(body.get('updated_at', '').strip()) or 'CURRENT_DATE'
@@ -127,16 +130,16 @@ def create_item(event):
     if not title or not description:
         return error_response('title and description are required')
 
-    if status not in ('planned', 'in_progress', 'done'):
+    if status not in VALID_STATUSES:
         return error_response('Invalid status')
 
     conn = get_db()
     cur = conn.cursor(cursor_factory=RealDictCursor)
     updated_at_val = f"'{updated_at}'" if updated_at != 'CURRENT_DATE' else 'CURRENT_DATE'
     cur.execute(f"""
-        INSERT INTO roadmap (title, description, status, icon, sort_order, is_published, updated_at)
-        VALUES ('{title}', '{description}', '{status}', '{icon}', {sort_order}, {is_published}, {updated_at_val})
-        RETURNING id, title, description, status, icon, sort_order, is_published,
+        INSERT INTO roadmap (title, description, status, icon, color, sort_order, is_published, updated_at)
+        VALUES ('{title}', '{description}', '{status}', '{icon}', '{color}', {sort_order}, {is_published}, {updated_at_val})
+        RETURNING id, title, description, status, icon, color, sort_order, is_published,
                   TO_CHAR(updated_at, 'DD.MM.YYYY') as updated_at
     """)
     item = dict(cur.fetchone())
@@ -157,6 +160,7 @@ def update_item(event):
     description = escape_sql(body.get('description', '').strip())
     status = body.get('status', 'planned')
     icon = escape_sql(body.get('icon', 'Map').strip())
+    color = escape_sql(body.get('color', '#f97316').strip())
     sort_order = int(body.get('sort_order', 0))
     is_published = body.get('is_published', True)
     updated_at = escape_sql(body.get('updated_at', '').strip())
@@ -164,7 +168,7 @@ def update_item(event):
     if not title or not description:
         return error_response('title and description are required')
 
-    if status not in ('planned', 'in_progress', 'done'):
+    if status not in VALID_STATUSES:
         return error_response('Invalid status')
 
     updated_at_val = f"'{updated_at}'" if updated_at else 'CURRENT_DATE'
@@ -174,10 +178,10 @@ def update_item(event):
     cur.execute(f"""
         UPDATE roadmap
         SET title='{title}', description='{description}', status='{status}',
-            icon='{icon}', sort_order={sort_order}, is_published={is_published},
-            updated_at={updated_at_val}
+            icon='{icon}', color='{color}', sort_order={sort_order},
+            is_published={is_published}, updated_at={updated_at_val}
         WHERE id={item_id}
-        RETURNING id, title, description, status, icon, sort_order, is_published,
+        RETURNING id, title, description, status, icon, color, sort_order, is_published,
                   TO_CHAR(updated_at, 'DD.MM.YYYY') as updated_at
     """)
     item = cur.fetchone()
