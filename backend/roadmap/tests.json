@@ -1,0 +1,12 @@
+{
+  "tests": [
+    {
+      "name": "Get published roadmap items",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {"items": []},
+      "bodyMatcher": "partial"
+    }
+  ]
+}

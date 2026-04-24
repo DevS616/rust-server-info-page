@@ -15,6 +15,7 @@ import PricingTab from '@/components/admin/PricingTab';
 import BonusInfoTab from '@/components/admin/BonusInfoTab';
 import EventsTab from '@/components/admin/EventsTab';
 import ComplaintsTab from '@/components/admin/ComplaintsTab';
+import RoadmapTab from '@/components/admin/RoadmapTab';
 
 import { useAdminAuth } from '@/components/admin/AdminAuth';
 import { useAdminDataLoader, Ticket, Message, Server } from '@/components/admin/AdminDataLoader';
@@ -310,7 +311,7 @@ const Admin = () => {
         </Card>
 
         <Tabs defaultValue="tickets" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 sm:grid-cols-9 h-auto gap-1">
+          <TabsList className="grid w-full grid-cols-5 sm:grid-cols-10 h-auto gap-1">
             <TabsTrigger value="tickets" className="text-xs md:text-sm px-1.5 py-2 md:py-2.5 flex-col sm:flex-row gap-0.5 sm:gap-2">
               <Icon name="MessageSquare" className="h-4 w-4" />
               <span className="text-[10px] sm:text-xs md:text-sm">Тикеты</span>
@@ -346,6 +347,10 @@ const Admin = () => {
             <TabsTrigger value="complaints" className="text-xs md:text-sm px-1.5 py-2 md:py-2.5 flex-col sm:flex-row gap-0.5 sm:gap-2 text-destructive data-[state=active]:text-destructive">
               <Icon name="AlertTriangle" className="h-4 w-4" />
               <span className="text-[10px] sm:text-xs md:text-sm">Жалобы</span>
+            </TabsTrigger>
+            <TabsTrigger value="roadmap" className="text-xs md:text-sm px-1.5 py-2 md:py-2.5 flex-col sm:flex-row gap-0.5 sm:gap-2">
+              <Icon name="Map" className="h-4 w-4" />
+              <span className="text-[10px] sm:text-xs md:text-sm">Дорожная карта</span>
             </TabsTrigger>
           </TabsList>
 
@@ -412,6 +417,10 @@ const Admin = () => {
 
           <TabsContent value="complaints">
             <ComplaintsTab token={token!} />
+          </TabsContent>
+
+          <TabsContent value="roadmap">
+            <RoadmapTab token={token!} />
           </TabsContent>
         </Tabs>
       </div>
