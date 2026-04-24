@@ -57,11 +57,11 @@ interface ServerCardProps {
   onConnect: (server: ServerData) => void;
   onDetails: (server: ServerData) => void;
   onCopyIP: (ip: string) => void;
+  sliderMode?: boolean;
 }
 
-const ServerCard = memo(({ server, stats, onConnect, onDetails, onCopyIP }: ServerCardProps) => {
+const ServerCard = memo(({ server, stats, onConnect, onDetails, onCopyIP, sliderMode = false }: ServerCardProps) => {
   const isPVE = server.mode.includes('PVE');
-  const isPVP = server.mode.includes('PVP');
   const isCreative = server.mode.includes('CREATIVE');
   const online = stats?.players ?? '—';
   const slots = stats?.maxPlayers ?? '—';
@@ -69,20 +69,24 @@ const ServerCard = memo(({ server, stats, onConnect, onDetails, onCopyIP }: Serv
   const fillPct = stats ? Math.round((stats.players / Math.max(stats.maxPlayers, 1)) * 100) : 0;
 
   const bg = isPVE
-    ? 'linear-gradient(90deg, rgb(18,15,25), rgba(74,222,128,0.33))'
+    ? 'linear-gradient(135deg, rgb(18,15,25), rgba(74,222,128,0.25))'
     : isCreative
-      ? 'linear-gradient(90deg, rgb(18,15,25), rgba(139,92,246,0.33))'
-      : 'linear-gradient(90deg, rgb(18,15,25), rgba(255,87,36,0.33))';
+      ? 'linear-gradient(135deg, rgb(18,15,25), rgba(139,92,246,0.25))'
+      : 'linear-gradient(135deg, rgb(18,15,25), rgba(255,87,36,0.25))';
 
   const iconColor = isPVE ? 'text-green-400' : isCreative ? 'text-violet-400' : 'text-primary';
   const badgeBg = isPVE ? 'bg-green-500/15 text-green-400' : isCreative ? 'bg-violet-500/15 text-violet-400' : 'bg-primary/15 text-primary';
   const barColor = isPVE ? 'bg-green-400' : isCreative ? 'bg-violet-400' : 'bg-primary';
-  void isPVP;
+  const borderColor = isPVE ? 'rgba(74,222,128,0.2)' : isCreative ? 'rgba(139,92,246,0.2)' : 'rgba(255,87,36,0.2)';
+
+  const sliderStyles = sliderMode
+    ? { width: 'calc((100% - 32px) / 3)', aspectRatio: '1 / 1', scrollSnapAlign: 'start' as const }
+    : {};
 
   return (
     <div
       className="relative flex-shrink-0 rounded-xl overflow-hidden flex flex-col"
-      style={{ background: bg, border: 'none', width: 'calc((100% - 32px) / 3)', scrollSnapAlign: 'start', aspectRatio: '1 / 1' }}
+      style={{ background: bg, border: `1px solid ${borderColor}`, ...sliderStyles }}
     >
       {!isOnline && (
         <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-20 flex items-center justify-center rounded-xl">
@@ -93,46 +97,41 @@ const ServerCard = memo(({ server, stats, onConnect, onDetails, onCopyIP }: Serv
         </div>
       )}
 
-      <div className="relative z-10 flex flex-col h-full p-5">
+      <div className="relative z-10 flex flex-col h-full p-4 md:p-5">
 
-        {/* Шапка: название + кнопка IP */}
-        <div className="flex items-start justify-between gap-2 mb-4">
+        {/* Шапка: онлайн-индикатор + название + бейдж */}
+        <div className="flex items-start gap-3 mb-3">
+          <div className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${isOnline ? barColor : 'bg-muted-foreground/40'}`} />
           <div className="flex-1 min-w-0">
-            <h3 className="font-bold text-base leading-tight font-nunito truncate">{server.name}</h3>
+            <h3 className="font-bold text-base leading-tight font-nunito">{server.name}</h3>
             <span className={`inline-block mt-1 rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider ${badgeBg}`}>
               {server.mode}
             </span>
           </div>
-          <button
-            onClick={() => onCopyIP(server.ip)}
-            style={{
-              fontSize: 12,
-              padding: '5px 15px',
-              background: 'rgba(0,0,0,0.44)',
-              border: 'none',
-              borderRadius: 6,
-              color: '#fff',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              whiteSpace: 'nowrap',
-              flexShrink: 0,
-            }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.65)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.44)')}
-          >
-            Скопировать IP
-          </button>
+          {/* Онлайн счётчик */}
+          <div className="text-right flex-shrink-0">
+            <div className="text-sm font-bold">
+              <span className={iconColor}>{online}</span>
+              <span className="text-white/30">/</span>
+              <span className="text-white/40 text-xs">{slots}</span>
+            </div>
+          </div>
         </div>
 
-        {/* Центр: описание + фичи — растягивается, обрезается по высоте */}
-        <div className="flex-1 overflow-hidden">
+        {/* Полоска онлайна */}
+        <div className="h-1 w-full rounded-full bg-white/10 mb-3">
+          <div className={`h-1 rounded-full ${barColor} transition-all`} style={{ width: `${fillPct}%` }} />
+        </div>
+
+        {/* Описание + фичи */}
+        <div className="flex-1 overflow-hidden mb-3">
           {server.description && (
-            <p className="text-xs text-white/60 leading-relaxed mb-3">{server.description}</p>
+            <p className="text-xs text-white/55 leading-relaxed mb-2 line-clamp-2">{server.description}</p>
           )}
           {server.features.length > 0 && (
-            <div className="space-y-1.5 overflow-hidden">
-              {server.features.map((feature, idx) => (
-                <div key={idx} className="flex items-center gap-2 text-xs text-white/75">
+            <div className="space-y-1">
+              {server.features.slice(0, sliderMode ? 3 : 4).map((feature, idx) => (
+                <div key={idx} className="flex items-center gap-2 text-xs text-white/70">
                   <span className={`w-1 h-1 rounded-full flex-shrink-0 ${barColor}`} />
                   <span className="truncate">{feature}</span>
                 </div>
@@ -141,27 +140,23 @@ const ServerCard = memo(({ server, stats, onConnect, onDetails, onCopyIP }: Serv
           )}
         </div>
 
-        {/* Подвал: онлайн + кнопки */}
-        <div className="mt-4 pt-3 border-t border-white/10">
-          <div className="flex items-center justify-between text-xs text-white/50 mb-1.5">
-            <span className={`font-semibold ${iconColor}`}>{online}</span>
-            <span>из {slots}</span>
-          </div>
-          <div className="h-1.5 w-full rounded-full bg-white/10 mb-3">
-            <div
-              className={`h-1.5 rounded-full ${barColor} transition-all`}
-              style={{ width: `${fillPct}%` }}
-            />
-          </div>
-          <div className="flex gap-2">
-            <Button size="sm" className="flex-1 text-xs font-semibold uppercase tracking-wider" onClick={() => onConnect(server)}>
-              <Icon name="Rocket" size={13} className="mr-1" />
-              Играть
-            </Button>
-            <Button size="sm" variant="outline" className="hover:bg-primary/10 px-2" onClick={() => onDetails(server)}>
-              <Icon name="Info" size={14} />
-            </Button>
-          </div>
+        {/* Кнопки */}
+        <div className="flex gap-2 mt-auto">
+          <button
+            onClick={() => onCopyIP(server.ip)}
+            className="text-xs px-3 py-2 rounded-lg text-white/70 hover:text-white transition-colors flex-shrink-0"
+            style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}
+          >
+            <Icon name="Copy" size={12} className="inline mr-1 -mt-0.5" />
+            IP
+          </button>
+          <Button size="sm" className="flex-1 text-xs font-semibold uppercase tracking-wider" onClick={() => onConnect(server)}>
+            <Icon name="Rocket" size={12} className="mr-1" />
+            Играть
+          </Button>
+          <Button size="sm" variant="outline" className="px-2 flex-shrink-0" style={{ borderColor: 'rgba(255,255,255,0.1)' }} onClick={() => onDetails(server)}>
+            <Icon name="Info" size={13} />
+          </Button>
         </div>
 
       </div>
@@ -250,6 +245,7 @@ const ServerSlider = ({ servers, serverStats, onConnect, onDetails, onCopyIP, la
               onConnect={onConnect}
               onDetails={onDetails}
               onCopyIP={onCopyIP}
+              sliderMode
             />
           ))}
         </div>
@@ -274,6 +270,42 @@ const ServerSlider = ({ servers, serverStats, onConnect, onDetails, onCopyIP, la
         >
           ›
         </button>
+      </div>
+    </div>
+  );
+};
+
+/* ─── MobileSlider ─── */
+interface MobileSliderProps {
+  servers: ServerData[];
+  serverStats: Record<string, { players: number; maxPlayers: number }>;
+  onConnect: (s: ServerData) => void;
+  onDetails: (s: ServerData) => void;
+  onCopyIP: (ip: string) => void;
+  label: string;
+  labelColor: string;
+}
+
+const MobileSlider = ({ servers, serverStats, onConnect, onDetails, onCopyIP, label, labelColor }: MobileSliderProps) => {
+  if (servers.length === 0) return null;
+  return (
+    <div className="mb-8">
+      <h3 className={`text-lg font-bold mb-4 uppercase tracking-widest ${labelColor}`}>{label}</h3>
+      <div
+        className="flex gap-3 overflow-x-auto pb-2"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}
+      >
+        {servers.map(s => (
+          <div key={s.id} style={{ width: '80vw', maxWidth: 300, flexShrink: 0, scrollSnapAlign: 'start' }}>
+            <ServerCard
+              server={s}
+              stats={serverStats[s.battlemetricsId]}
+              onConnect={onConnect}
+              onDetails={onDetails}
+              onCopyIP={onCopyIP}
+            />
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -442,39 +474,24 @@ const ServersSection = () => {
           )}
         </div>
 
-        {/* Мобайл: сетка */}
+        {/* Мобайл: горизонтальный свайп-слайдер */}
         <div className="md:hidden">
           {filterBy === 'all' ? (
             <>
-              {pveServers.length > 0 && (
-                <div className="mb-8">
-                  <h3 className="text-xl font-bold mb-5 uppercase tracking-widest text-green-400">PVE серверы</h3>
-                  <div className="grid grid-cols-1 gap-4">
-                    {pveServers.map(s => <ServerCard key={s.id} server={s} stats={serverStats[s.battlemetricsId]} onConnect={handleConnect} onDetails={handleShowDetails} onCopyIP={handleCopyIP} />)}
-                  </div>
-                </div>
-              )}
-              {pvpServers.length > 0 && (
-                <div className="mb-8">
-                  <h3 className="text-xl font-bold mb-5 uppercase tracking-widest text-primary">PVP серверы</h3>
-                  <div className="grid grid-cols-1 gap-4">
-                    {pvpServers.map(s => <ServerCard key={s.id} server={s} stats={serverStats[s.battlemetricsId]} onConnect={handleConnect} onDetails={handleShowDetails} onCopyIP={handleCopyIP} />)}
-                  </div>
-                </div>
-              )}
-              {creativeServers.length > 0 && (
-                <div className="mb-8">
-                  <h3 className="text-xl font-bold mb-5 uppercase tracking-widest text-violet-400">Creative серверы</h3>
-                  <div className="grid grid-cols-1 gap-4">
-                    {creativeServers.map(s => <ServerCard key={s.id} server={s} stats={serverStats[s.battlemetricsId]} onConnect={handleConnect} onDetails={handleShowDetails} onCopyIP={handleCopyIP} />)}
-                  </div>
-                </div>
-              )}
+              {pveServers.length > 0 && <MobileSlider servers={pveServers} serverStats={serverStats} onConnect={handleConnect} onDetails={handleShowDetails} onCopyIP={handleCopyIP} label="PVE серверы" labelColor="text-green-400" />}
+              {pvpServers.length > 0 && <MobileSlider servers={pvpServers} serverStats={serverStats} onConnect={handleConnect} onDetails={handleShowDetails} onCopyIP={handleCopyIP} label="PVP серверы" labelColor="text-primary" />}
+              {creativeServers.length > 0 && <MobileSlider servers={creativeServers} serverStats={serverStats} onConnect={handleConnect} onDetails={handleShowDetails} onCopyIP={handleCopyIP} label="Creative серверы" labelColor="text-violet-400" />}
             </>
           ) : (
-            <div className="grid grid-cols-1 gap-4">
-              {sortedServers.map(s => <ServerCard key={s.id} server={s} stats={serverStats[s.battlemetricsId]} onConnect={handleConnect} onDetails={handleShowDetails} onCopyIP={handleCopyIP} />)}
-            </div>
+            <MobileSlider
+              servers={sortedServers}
+              serverStats={serverStats}
+              onConnect={handleConnect}
+              onDetails={handleShowDetails}
+              onCopyIP={handleCopyIP}
+              label={filterBy === 'pve' ? 'PVE серверы' : filterBy === 'creative' ? 'Creative серверы' : 'PVP серверы'}
+              labelColor={filterBy === 'pve' ? 'text-green-400' : filterBy === 'creative' ? 'text-violet-400' : 'text-primary'}
+            />
           )}
         </div>
       </div>
