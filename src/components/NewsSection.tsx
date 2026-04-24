@@ -102,17 +102,27 @@ const NewsSection = () => {
                 </CardHeader>
                 <CardContent className="flex flex-col flex-1">
                   <p className="text-muted-foreground leading-relaxed flex-1">{preview}</p>
-                  {isLong && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="mt-3 self-start text-primary hover:text-primary/80 px-0"
-                      onClick={() => setSelectedNews(item)}
-                    >
-                      Читать полностью
-                      <Icon name="ChevronRight" size={16} className="ml-1" />
-                    </Button>
-                  )}
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {isLong && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="self-start text-primary hover:text-primary/80 px-0"
+                        onClick={() => setSelectedNews(item)}
+                      >
+                        Читать полностью
+                        <Icon name="ChevronRight" size={16} className="ml-1" />
+                      </Button>
+                    )}
+                    {item.button_text && item.button_url && (
+                      <a href={item.button_url} target="_blank" rel="noopener noreferrer">
+                        <Button size="sm" variant="outline">
+                          {item.button_text}
+                          <Icon name="ExternalLink" size={14} className="ml-1.5" />
+                        </Button>
+                      </a>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             );
