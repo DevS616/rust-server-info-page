@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import Icon from '@/components/ui/icon';
 
 const ROADMAP_URL = 'https://functions.poehali.dev/bccc018e-abaf-434e-a899-688b45fcb58b';
+const PREVIEW_LENGTH = 130;
 
 interface RoadmapItem {
   id: number;
@@ -32,9 +35,23 @@ const statusConfig = {
   },
 };
 
+function DescriptionText({ text }: { text: string }) {
+  return (
+    <>
+      {text.split('\n').map((line, i, arr) => (
+        <span key={i}>
+          {line}
+          {i < arr.length - 1 && <br />}
+        </span>
+      ))}
+    </>
+  );
+}
+
 export default function RoadmapSection() {
   const [items, setItems] = useState<RoadmapItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<RoadmapItem | null>(null);
 
   useEffect(() => {
     fetch(ROADMAP_URL)
@@ -59,55 +76,102 @@ export default function RoadmapSection() {
           <Icon name="Map" size={22} className="text-primary" />
           <h2 className="text-2xl md:text-3xl font-bold">Дорожная карта</h2>
         </div>
-        <p className="text-muted-foreground text-sm mb-8">
-          Планы по развитию проекта
-        </p>
+        <p className="text-muted-foreground text-sm mb-8">Планы по развитию проекта</p>
 
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-6">
           {(['in_progress', 'planned', 'done'] as const).map(statusKey => {
             const group = grouped[statusKey];
             if (group.length === 0) return null;
             const cfg = statusConfig[statusKey];
             return (
               <div key={statusKey}>
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-center gap-2 mb-3">
                   <span className={`w-2 h-2 rounded-full ${cfg.dot}`} />
                   <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                     {cfg.label}
                   </span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {group.map(item => (
-                    <div
-                      key={item.id}
-                      className="relative rounded-xl border border-border bg-card p-4 flex flex-col gap-2 hover:border-primary/30 transition-colors"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10 text-primary shrink-0">
-                            <Icon name={item.icon} size={16} fallback="Map" />
-                          </span>
-                          <span className="font-semibold text-sm leading-tight">{item.title}</span>
+                  {group.map(item => {
+                    const isLong = item.description.length > PREVIEW_LENGTH;
+                    const preview = isLong
+                      ? item.description.slice(0, PREVIEW_LENGTH).trimEnd() + '…'
+                      : item.description;
+
+                    return (
+                      <div
+                        key={item.id}
+                        className="relative rounded-xl border border-border bg-card p-4 flex flex-col gap-2 hover:border-primary/30 transition-colors"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10 text-primary shrink-0">
+                              <Icon name={item.icon} size={16} fallback="Map" />
+                            </span>
+                            <span className="font-semibold text-sm leading-tight">{item.title}</span>
+                          </div>
+                          <Badge variant="outline" className={`text-xs shrink-0 ${cfg.color}`}>
+                            {cfg.label}
+                          </Badge>
                         </div>
-                        <Badge variant="outline" className={`text-xs shrink-0 ${cfg.color}`}>
-                          {cfg.label}
-                        </Badge>
+
+                        <p className="text-muted-foreground text-xs leading-relaxed flex-1">
+                          <DescriptionText text={preview} />
+                        </p>
+
+                        <div className="flex items-center justify-between mt-1">
+                          <div className="flex items-center gap-1 text-muted-foreground/60">
+                            <Icon name="Clock" size={11} />
+                            <span className="text-[11px]">Обновлено {item.updated_at}</span>
+                          </div>
+                          {isLong && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-auto px-0 py-0 text-xs text-primary hover:text-primary/80"
+                              onClick={() => setSelected(item)}
+                            >
+                              Читать далее
+                              <Icon name="ChevronRight" size={13} className="ml-0.5" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                      <p className="text-muted-foreground text-xs leading-relaxed flex-1">
-                        {item.description}
-                      </p>
-                      <div className="flex items-center gap-1 text-muted-foreground/60 mt-1">
-                        <Icon name="Clock" size={11} />
-                        <span className="text-[11px]">Обновлено {item.updated_at}</span>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             );
           })}
         </div>
       </div>
+
+      <Dialog open={!!selected} onOpenChange={open => !open && setSelected(null)}>
+        <DialogContent className="max-w-lg w-[calc(100vw-2rem)] max-h-[80vh] overflow-y-auto">
+          {selected && (
+            <>
+              <DialogHeader>
+                <div className="flex items-center gap-3 mb-1">
+                  <span className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary/10 text-primary shrink-0">
+                    <Icon name={selected.icon} size={18} fallback="Map" />
+                  </span>
+                  <DialogTitle className="text-left leading-snug">{selected.title}</DialogTitle>
+                </div>
+                <Badge variant="outline" className={`w-fit text-xs ${statusConfig[selected.status].color}`}>
+                  {statusConfig[selected.status].label}
+                </Badge>
+              </DialogHeader>
+              <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+                {selected.description}
+              </p>
+              <div className="flex items-center gap-1 text-muted-foreground/60 pt-2 border-t">
+                <Icon name="Clock" size={12} />
+                <span className="text-xs">Обновлено {selected.updated_at}</span>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
