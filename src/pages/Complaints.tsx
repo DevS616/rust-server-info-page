@@ -605,8 +605,8 @@ const ComplaintDetail = memo(({
                     {msg.file_url && (
                       <a href={msg.file_url} target="_blank" rel="noopener noreferrer" className="mt-2 block">
                         {msg.file_url.match(/\.(mp4|webm|mov|avi|mkv)$/i)
-                          ? <video src={msg.file_url} controls className="max-w-xs rounded max-h-40" />
-                          : <img src={msg.file_url} alt="Доказательство" className="max-w-xs rounded max-h-40 object-contain" loading="lazy" />
+                          ? <video src={msg.file_url} controls className="w-full max-w-xs rounded max-h-48" style={{maxWidth: '100%'}} />
+                          : <img src={msg.file_url} alt="Доказательство" className="w-full rounded max-h-64 object-contain" style={{maxWidth: '100%'}} loading="lazy" />
                         }
                       </a>
                     )}

@@ -468,8 +468,8 @@ const ComplaintsTab = ({ token }: ComplaintsTabProps) => {
                     {msg.file_url && (
                       <a href={msg.file_url} target="_blank" rel="noopener noreferrer" className="mt-2 block">
                         {msg.file_url.match(/\.(mp4|webm|mov)$/i)
-                          ? <video src={msg.file_url} controls className="max-w-xs rounded max-h-40" />
-                          : <img src={msg.file_url} alt="" className="max-w-xs rounded max-h-40 object-contain" />}
+                          ? <video src={msg.file_url} controls className="w-full rounded max-h-48" style={{maxWidth: '100%'}} />
+                          : <img src={msg.file_url} alt="" className="w-full rounded max-h-64 object-contain" style={{maxWidth: '100%'}} loading="lazy" />}
                       </a>
                     )}
                   </div>

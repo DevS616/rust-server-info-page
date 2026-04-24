@@ -440,9 +440,13 @@ const TicketDetails = () => {
                         </p>
                         <p className="whitespace-pre-wrap">{msg.message}</p>
                         {msg.file_url && (
-                          <a href={msg.file_url} target="_blank" rel="noopener noreferrer"
-                            className="text-sm underline mt-2 block">
-                            📎 Прикреплённый файл
+                          <a href={msg.file_url} target="_blank" rel="noopener noreferrer" className="mt-2 block">
+                            {msg.file_url.match(/\.(mp4|webm|mov|avi|mkv)$/i)
+                              ? <video src={msg.file_url} controls className="w-full rounded max-h-48" style={{maxWidth: '100%'}} />
+                              : msg.file_url.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/i)
+                                ? <img src={msg.file_url} alt="Прикреплённый файл" className="w-full rounded max-h-64 object-contain" style={{maxWidth: '100%'}} loading="lazy" />
+                                : <span className="text-sm underline">📎 Прикреплённый файл</span>
+                            }
                           </a>
                         )}
                         <p className="text-xs opacity-70 mt-2">
