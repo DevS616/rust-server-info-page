@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -9,13 +9,23 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 const ROADMAP_URL = 'https://functions.poehali.dev/bccc018e-abaf-434e-a899-688b45fcb58b';
 
@@ -57,6 +67,65 @@ const defaultForm = {
   is_published: true,
 };
 
+interface SortableCardProps {
+  item: RoadmapItem;
+  onEdit: (item: RoadmapItem) => void;
+  onDelete: (id: number) => void;
+}
+
+const SortableCard = ({ item, onEdit, onDelete }: SortableCardProps) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <Card className="p-0">
+        <CardContent className="p-4 flex items-start gap-3">
+          <button
+            {...attributes}
+            {...listeners}
+            className="flex items-center justify-center w-7 h-7 rounded text-muted-foreground/50 hover:text-muted-foreground cursor-grab active:cursor-grabbing shrink-0 mt-1 touch-none"
+            aria-label="Перетащить"
+          >
+            <Icon name="GripVertical" size={16} />
+          </button>
+          <span className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary/10 text-primary shrink-0 mt-0.5">
+            <Icon name={item.icon} size={18} fallback="Map" />
+          </span>
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2 mb-0.5">
+              <span className="font-semibold text-sm">{item.title}</span>
+              <Badge variant="outline" className={`text-xs ${statusConfig[item.status].color}`}>
+                {statusConfig[item.status].label}
+              </Badge>
+              {!item.is_published && (
+                <Badge variant="outline" className="text-xs text-muted-foreground">Скрыто</Badge>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground line-clamp-1">{item.description}</p>
+            <span className="text-[11px] text-muted-foreground/60 flex items-center gap-1 mt-1">
+              <Icon name="Clock" size={10} />
+              {item.updated_at}
+            </span>
+          </div>
+          <div className="flex gap-1 shrink-0">
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(item)}>
+              <Icon name="Pencil" size={14} />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => onDelete(item.id)}>
+              <Icon name="Trash2" size={14} />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
 const RoadmapTab = ({ token }: RoadmapTabProps) => {
   const { toast } = useToast();
   const [items, setItems] = useState<RoadmapItem[]>([]);
@@ -65,6 +134,12 @@ const RoadmapTab = ({ token }: RoadmapTabProps) => {
   const [editingItem, setEditingItem] = useState<RoadmapItem | null>(null);
   const [formData, setFormData] = useState(defaultForm);
   const [saving, setSaving] = useState(false);
+  const [reordering, setReordering] = useState(false);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
+  );
 
   const fetchItems = async () => {
     setLoading(true);
@@ -78,22 +153,54 @@ const RoadmapTab = ({ token }: RoadmapTabProps) => {
 
   useEffect(() => { fetchItems(); }, []);
 
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = items.findIndex(i => i.id === active.id);
+    const newIndex = items.findIndex(i => i.id === over.id);
+    const newItems = arrayMove(items, oldIndex, newIndex).map((item, idx) => ({
+      ...item,
+      sort_order: idx,
+    }));
+    setItems(newItems);
+
+    setReordering(true);
+    await Promise.all(newItems.map(item =>
+      fetch(`${ROADMAP_URL}?id=${item.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'X-Auth-Token': token },
+        body: JSON.stringify({
+          title: item.title,
+          description: item.description,
+          status: item.status,
+          icon: item.icon,
+          sort_order: item.sort_order,
+          updated_at: item.updated_at.split('.').reverse().join('-'),
+          is_published: item.is_published,
+        }),
+      })
+    ));
+    setReordering(false);
+    toast({ title: 'Порядок сохранён' });
+  };
+
   const handleOpen = (item?: RoadmapItem) => {
     if (item) {
       setEditingItem(item);
-      const [day, month, year] = item.updated_at.split('.');
+      const parts = item.updated_at.split('.');
       setFormData({
         title: item.title,
         description: item.description,
         status: item.status,
         icon: item.icon,
         sort_order: item.sort_order,
-        updated_at: `${year}-${month}-${day}`,
+        updated_at: parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : item.updated_at,
         is_published: item.is_published,
       });
     } else {
       setEditingItem(null);
-      setFormData(defaultForm);
+      setFormData({ ...defaultForm, sort_order: items.length });
     }
     setIsDialogOpen(true);
   };
@@ -134,53 +241,36 @@ const RoadmapTab = ({ token }: RoadmapTabProps) => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Дорожная карта</h2>
+        <div>
+          <h2 className="text-xl font-semibold">Дорожная карта</h2>
+          {items.length > 1 && (
+            <p className="text-xs text-muted-foreground mt-0.5">Перетащите карточки для изменения порядка</p>
+          )}
+        </div>
         <Button onClick={() => handleOpen()}>
           <Icon name="Plus" size={16} className="mr-2" />
           Добавить пункт
         </Button>
       </div>
 
+      {reordering && (
+        <p className="text-xs text-muted-foreground text-center">Сохраняю порядок...</p>
+      )}
+
       {loading ? (
         <div className="text-muted-foreground text-sm py-8 text-center">Загрузка...</div>
       ) : items.length === 0 ? (
         <div className="text-muted-foreground text-sm py-8 text-center">Пунктов нет. Добавьте первый!</div>
       ) : (
-        <div className="space-y-2">
-          {items.map(item => (
-            <Card key={item.id} className="p-0">
-              <CardContent className="p-4 flex items-start gap-3">
-                <span className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary/10 text-primary shrink-0 mt-0.5">
-                  <Icon name={item.icon} size={18} fallback="Map" />
-                </span>
-                <div className="flex-1 min-w-0">
-                  <div className="flex flex-wrap items-center gap-2 mb-0.5">
-                    <span className="font-semibold text-sm">{item.title}</span>
-                    <Badge variant="outline" className={`text-xs ${statusConfig[item.status].color}`}>
-                      {statusConfig[item.status].label}
-                    </Badge>
-                    {!item.is_published && (
-                      <Badge variant="outline" className="text-xs text-muted-foreground">Скрыто</Badge>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground line-clamp-1">{item.description}</p>
-                  <span className="text-[11px] text-muted-foreground/60 flex items-center gap-1 mt-1">
-                    <Icon name="Clock" size={10} />
-                    {item.updated_at} · порядок: {item.sort_order}
-                  </span>
-                </div>
-                <div className="flex gap-1 shrink-0">
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpen(item)}>
-                    <Icon name="Pencil" size={14} />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDelete(item.id)}>
-                    <Icon name="Trash2" size={14} />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
+            <div className="space-y-2">
+              {items.map(item => (
+                <SortableCard key={item.id} item={item} onEdit={handleOpen} onDelete={handleDelete} />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
       )}
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -206,28 +296,18 @@ const RoadmapTab = ({ token }: RoadmapTabProps) => {
                 onChange={e => setFormData(p => ({ ...p, description: e.target.value }))}
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>Статус</Label>
-                <Select value={formData.status} onValueChange={v => setFormData(p => ({ ...p, status: v as typeof p.status }))}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="planned">Запланировано</SelectItem>
-                    <SelectItem value="in_progress">В разработке</SelectItem>
-                    <SelectItem value="done">Готово</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Порядок (сортировка)</Label>
-                <Input
-                  type="number"
-                  value={formData.sort_order}
-                  onChange={e => setFormData(p => ({ ...p, sort_order: parseInt(e.target.value) || 0 }))}
-                />
-              </div>
+            <div className="space-y-1.5">
+              <Label>Статус</Label>
+              <Select value={formData.status} onValueChange={v => setFormData(p => ({ ...p, status: v as typeof p.status }))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="planned">Запланировано</SelectItem>
+                  <SelectItem value="in_progress">В разработке</SelectItem>
+                  <SelectItem value="done">Готово</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1.5">
               <Label>Иконка</Label>
