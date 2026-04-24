@@ -43,7 +43,7 @@ const Privacy = () => {
                 Настоящая Политика конфиденциальности описывает, какие данные могут обрабатываться при использовании сайта DevilRust.ru, игровых серверов и страниц донат-магазина на платформе GameStores.
               </p>
               <p className="text-sm md:text-base text-muted-foreground leading-relaxed">
-                Администрация сайта (ИП Васенин Алексей Павлович, ИНН: 434587444042) соблюдает законодательство Российской Федерации в области защиты персональных данных, включая Федеральный закон № 152-ФЗ «О персональных данных».
+                Администрация сайта (Васенин Алексей Павлович, самозанятый, плательщик НПД, ИНН: 434587444042) соблюдает законодательство Российской Федерации в области защиты персональных данных, включая Федеральный закон № 152-ФЗ «О персональных данных».
               </p>
               <p className="text-sm md:text-base text-muted-foreground leading-relaxed">
                 Использование Сайта означает согласие Пользователя с настоящей Политикой. Если Пользователь не согласен — он должен прекратить использование Сайта.
@@ -53,7 +53,7 @@ const Privacy = () => {
             <section className="space-y-2 md:space-y-3">
               <h2 className="text-xl md:text-2xl font-semibold">2. Термины</h2>
               <div className="text-sm md:text-base text-muted-foreground space-y-2">
-                <p><strong>Администрация / Продавец</strong> — ИП Васенин Алексей Павлович, владелец проекта DevilRust.</p>
+                <p><strong>Администрация / Продавец</strong> — Васенин Алексей Павлович, самозанятый (плательщик НПД), ИНН: 434587444042, владелец проекта DevilRust.</p>
                 <p><strong>Оператор платформы</strong> — лицо, администрирующее техническую платформу GameStores.</p>
                 <p><strong>Пользователь</strong> — лицо, посещающее Сайт и/или использующее функциональность донат-магазина.</p>
                 <p><strong>Сторонние сервисы</strong> — сервисы, не принадлежащие Администрации, используемые для работы платформы (аналитика, защита, хостинг).</p>
@@ -202,7 +202,9 @@ const Privacy = () => {
             <section className="space-y-2 md:space-y-3">
               <h2 className="text-xl md:text-2xl font-semibold">12. Контакты</h2>
               <div className="text-sm md:text-base text-muted-foreground space-y-1">
-                <p><strong>Продавец:</strong> ИП Васенин Алексей Павлович (ИНН: 434587444042)</p>
+                <p><strong>Продавец:</strong> Васенин Алексей Павлович</p>
+                <p><strong>Статус:</strong> самозанятый (плательщик НПД)</p>
+                <p><strong>ИНН:</strong> 434587444042</p>
                 <p><strong>Email (вопросы выдачи, возвратов, данных):</strong>{' '}
                   <a href="mailto:devilrustproject@yandex.ru" className="text-primary hover:underline">devilrustproject@yandex.ru</a>
                 </p>
