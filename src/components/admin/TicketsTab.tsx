@@ -290,7 +290,12 @@ const TicketsTab = ({
                         <p className="text-xs opacity-70">
                           {new Date(msg.created_at).toLocaleString('ru-RU')}
                         </p>
-                        {msg.edited_at && (
+                        {msg.edited_at && !msg.is_admin_reply && (
+                          <span className="text-xs opacity-60 italic">
+                            изм. {new Date(msg.edited_at).toLocaleString('ru-RU')}
+                          </span>
+                        )}
+                        {msg.edited_at && msg.is_admin_reply && (
                           <span className="text-xs opacity-50 italic">изм.</span>
                         )}
                         {canEdit && !isEditing && (

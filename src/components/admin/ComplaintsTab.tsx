@@ -531,7 +531,12 @@ const ComplaintsTab = ({ token }: ComplaintsTabProps) => {
                     </div>
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-xs text-muted-foreground">{new Date(msg.created_at).toLocaleString('ru-RU')}</span>
-                      {msg.edited_at && (
+                      {msg.edited_at && !msg.is_admin_reply && (
+                        <span className="text-xs text-muted-foreground italic">
+                          изм. {new Date(msg.edited_at).toLocaleString('ru-RU')}
+                        </span>
+                      )}
+                      {msg.edited_at && msg.is_admin_reply && (
                         <span className="text-xs text-muted-foreground italic">изм.</span>
                       )}
                       {canEdit && !isEditing && (
