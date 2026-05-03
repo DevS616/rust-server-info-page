@@ -676,7 +676,7 @@ const ComplaintDetail = memo(({
                       {canEditMsg && !isEditing && (
                         <button
                           onClick={() => { setEditingMsgId(msg.id); setEditingText(msg.message); }}
-                          className="text-xs opacity-0 group-hover/msg:opacity-100 transition-opacity text-slate-400 hover:text-white flex items-center gap-1"
+                          className="text-xs text-slate-400 hover:text-white transition-colors flex items-center gap-1"
                         >
                           <Icon name="Pencil" size={11} />
                           Изменить

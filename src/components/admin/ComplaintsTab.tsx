@@ -542,7 +542,7 @@ const ComplaintsTab = ({ token }: ComplaintsTabProps) => {
                       {canEdit && !isEditing && (
                         <button
                           onClick={() => { setEditingMsgId(msg.id); setEditingText(msg.message); }}
-                          className="text-xs opacity-0 group-hover/msg:opacity-100 transition-opacity text-muted-foreground hover:text-foreground flex items-center gap-1"
+                          className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
                         >
                           <Icon name="Pencil" size={11} />
                           Изменить

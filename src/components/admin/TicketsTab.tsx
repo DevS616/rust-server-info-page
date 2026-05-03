@@ -301,7 +301,7 @@ const TicketsTab = ({
                         {canEdit && !isEditing && (
                           <button
                             onClick={() => { setEditingMsgId(msg.id); setEditingText(msg.message); }}
-                            className="text-xs opacity-0 group-hover/msg:opacity-100 transition-opacity flex items-center gap-1 text-muted-foreground hover:text-foreground"
+                            className="text-xs flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
                           >
                             <Icon name="Pencil" size={11} />
                             Изменить
