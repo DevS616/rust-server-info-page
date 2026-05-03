@@ -36,6 +36,7 @@ interface Complaint {
 
 interface Message {
   id: number;
+  user_id?: number;
   message: string;
   file_url: string | null;
   is_admin_reply: boolean;
@@ -403,9 +404,33 @@ const ComplaintDetail = memo(({
   const [closing, setClosing] = useState(false);
   const [loadingMsgs, setLoadingMsgs] = useState(true);
   const [showRating, setShowRating] = useState(false);
+  const [editingMsgId, setEditingMsgId] = useState<number | null>(null);
+  const [editingText, setEditingText] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const canReply = (complaint.is_own || isAdmin) && complaint.status !== 'closed';
   const canClose = (complaint.is_own || isAdmin) && complaint.status !== 'closed';
+
+  const handleSaveEditMsg = async (messageId: number) => {
+    if (!editingText.trim()) return;
+    setSavingEdit(true);
+    try {
+      const res = await fetch(`${COMPLAINTS_API}/?action=edit_message&complaint_id=${complaint.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'X-Auth-Token': token },
+        body: JSON.stringify({ message_id: messageId, message: editingText }),
+      });
+      if (res.ok) {
+        setMessages(prev => prev.map(m => m.id === messageId ? { ...m, message: editingText } : m));
+        setEditingMsgId(null);
+        toast({ title: 'Сообщение обновлено' });
+      } else {
+        const err = await res.json();
+        toast({ title: 'Ошибка', description: err.error, variant: 'destructive' });
+      }
+    } catch { toast({ title: 'Ошибка', description: 'Не удалось сохранить', variant: 'destructive' }); }
+    finally { setSavingEdit(false); }
+  };
   const tp = getType(complaint.complaint_type);
   // Показываем промпт если: автор, закрыта модератором (есть closed_by_steam_id), ещё не оценена
   const showRatingPrompt = complaint.is_own && complaint.status === 'closed'
@@ -572,51 +597,91 @@ const ComplaintDetail = memo(({
           </div>
         ) : (
           <div className="space-y-3 mb-4">
-            {messages.map(msg => (
-              <div key={msg.id} className={`flex gap-3 ${msg.is_admin_reply ? 'flex-row-reverse' : ''}`}>
-                <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center overflow-hidden ${
-                  msg.is_admin_reply ? 'bg-gradient-to-br from-purple-600 to-blue-600' : 'bg-slate-700'
-                }`}>
-                  {!msg.is_admin_reply && msg.user_avatar
-                    ? <img src={msg.user_avatar} alt="" className="w-full h-full object-cover" loading="lazy" />
-                    : <Icon name={msg.is_admin_reply ? 'Shield' : 'User'} size={14} className="text-white" />
-                  }
-                </div>
-                <div className={`flex-1 max-w-[80%] ${msg.is_admin_reply ? 'items-end' : ''} flex flex-col`}>
-                  <div className={`p-3 rounded-lg text-sm ${
-                    msg.is_admin_reply
-                      ? 'bg-gradient-to-br from-purple-900/60 to-blue-900/60 border border-purple-500/30 text-white'
-                      : 'bg-slate-800 border border-slate-700 text-slate-200'
+            {messages.map(msg => {
+              const currentUserId = complaint.user_id;
+              const canEditMsg = complaint.status !== 'closed' && (
+                (!msg.is_admin_reply && !isAdmin && msg.user_id === currentUserId && complaint.is_own) ||
+                (msg.is_admin_reply && isAdmin)
+              );
+              const isEditing = editingMsgId === msg.id;
+              return (
+                <div key={msg.id} className={`flex gap-3 ${msg.is_admin_reply ? 'flex-row-reverse' : ''}`}>
+                  <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center overflow-hidden ${
+                    msg.is_admin_reply ? 'bg-gradient-to-br from-purple-600 to-blue-600' : 'bg-slate-700'
                   }`}>
-                    <div className="flex flex-col gap-0.5 mb-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className={`text-xs font-semibold ${msg.is_admin_reply ? 'text-purple-300' : 'text-slate-400'}`}>
-                          {msg.is_admin_reply ? (msg.admin_name || 'Администратор') : (msg.user_name || 'Игрок')}
-                        </span>
-                        {msg.is_admin_reply && (
-                          <span className="text-xs px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">Администратор</span>
+                    {!msg.is_admin_reply && msg.user_avatar
+                      ? <img src={msg.user_avatar} alt="" className="w-full h-full object-cover" loading="lazy" />
+                      : <Icon name={msg.is_admin_reply ? 'Shield' : 'User'} size={14} className="text-white" />
+                    }
+                  </div>
+                  <div className={`flex-1 max-w-[80%] ${msg.is_admin_reply ? 'items-end' : ''} flex flex-col`}>
+                    <div className={`p-3 rounded-lg text-sm ${
+                      msg.is_admin_reply
+                        ? 'bg-gradient-to-br from-purple-900/60 to-blue-900/60 border border-purple-500/30 text-white'
+                        : 'bg-slate-800 border border-slate-700 text-slate-200'
+                    }`}>
+                      <div className="flex flex-col gap-0.5 mb-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`text-xs font-semibold ${msg.is_admin_reply ? 'text-purple-300' : 'text-slate-400'}`}>
+                            {msg.is_admin_reply ? (msg.admin_name || 'Администратор') : (msg.user_name || 'Игрок')}
+                          </span>
+                          {msg.is_admin_reply && (
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">Администратор</span>
+                          )}
+                        </div>
+                        {msg.is_admin_reply && msg.mod_rating != null && msg.mod_rating_count != null && (
+                          <StarDisplay rating={Number(msg.mod_rating)} count={msg.mod_rating_count} />
                         )}
                       </div>
-                      {msg.is_admin_reply && msg.mod_rating != null && msg.mod_rating_count != null && (
-                        <StarDisplay rating={Number(msg.mod_rating)} count={msg.mod_rating_count} />
+                      {isEditing ? (
+                        <div className="space-y-2 mt-1">
+                          <Textarea
+                            value={editingText}
+                            onChange={e => setEditingText(e.target.value)}
+                            rows={3}
+                            className="text-sm bg-slate-900 border-slate-600 text-white"
+                            autoFocus
+                          />
+                          <div className="flex gap-2">
+                            <Button size="sm" onClick={() => handleSaveEditMsg(msg.id)} disabled={savingEdit}
+                              className="bg-purple-600 hover:bg-purple-700 text-white">
+                              {savingEdit ? <Icon name="Loader2" size={13} className="animate-spin mr-1" /> : <Icon name="Check" size={13} className="mr-1" />}
+                              Сохранить
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => setEditingMsgId(null)}
+                              className="text-slate-400 hover:text-white">Отмена</Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="whitespace-pre-wrap break-words">{msg.message}</p>
+                      )}
+                      {msg.file_url && !isEditing && (
+                        <a href={msg.file_url} target="_blank" rel="noopener noreferrer" className="mt-2 block">
+                          {msg.file_url.match(/\.(mp4|webm|mov|avi|mkv)$/i)
+                            ? <video src={msg.file_url} controls className="w-full max-w-xs rounded max-h-48" style={{maxWidth: '100%'}} />
+                            : <img src={msg.file_url} alt="Доказательство" className="w-full rounded max-h-64 object-contain" style={{maxWidth: '100%'}} loading="lazy" />
+                          }
+                        </a>
                       )}
                     </div>
-                    <p className="whitespace-pre-wrap break-words">{msg.message}</p>
-                    {msg.file_url && (
-                      <a href={msg.file_url} target="_blank" rel="noopener noreferrer" className="mt-2 block">
-                        {msg.file_url.match(/\.(mp4|webm|mov|avi|mkv)$/i)
-                          ? <video src={msg.file_url} controls className="w-full max-w-xs rounded max-h-48" style={{maxWidth: '100%'}} />
-                          : <img src={msg.file_url} alt="Доказательство" className="w-full rounded max-h-64 object-contain" style={{maxWidth: '100%'}} loading="lazy" />
-                        }
-                      </a>
-                    )}
+                    <div className="flex items-center gap-2 mt-1 px-1">
+                      <span className="text-xs text-slate-600">
+                        {new Date(msg.created_at).toLocaleString('ru-RU')}
+                      </span>
+                      {canEditMsg && !isEditing && (
+                        <button
+                          onClick={() => { setEditingMsgId(msg.id); setEditingText(msg.message); }}
+                          className="text-xs text-slate-600 hover:text-slate-300 transition-colors flex items-center gap-1"
+                        >
+                          <Icon name="Pencil" size={11} />
+                          Изменить
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <span className="text-xs text-slate-600 mt-1 px-1">
-                    {new Date(msg.created_at).toLocaleString('ru-RU')}
-                  </span>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 

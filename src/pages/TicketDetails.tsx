@@ -16,6 +16,8 @@ const API_BASE = 'https://functions.poehali.dev';
 
 interface Message {
   id: number;
+  user_id?: number;
+  admin_id?: number;
   message: string;
   file_url: string;
   is_admin_reply: boolean;
@@ -38,6 +40,14 @@ interface Ticket {
   rated_at?: string;
 }
 
+function parseJwtUserId(token: string | null): number | null {
+  if (!token) return null;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.user_id ? Number(payload.user_id) : null;
+  } catch { return null; }
+}
+
 const TicketDetails = () => {
   const { ticketId } = useParams();
   const navigate = useNavigate();
@@ -51,6 +61,9 @@ const TicketDetails = () => {
   const [sending, setSending] = useState(false);
   const [prevMessageCount, setPrevMessageCount] = useState(0);
   const [showRatingModal, setShowRatingModal] = useState(false);
+  const [editingMsgId, setEditingMsgId] = useState<number | null>(null);
+  const [editingText, setEditingText] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -290,6 +303,30 @@ const TicketDetails = () => {
     }
   };
 
+  const handleSaveEdit = async (messageId: number) => {
+    if (!editingText.trim()) return;
+    setSavingEdit(true);
+    try {
+      const res = await fetch(`${API_BASE}/887805c0-0d3a-4f32-8436-1ba1adda4a4f/?action=edit_message&ticket_id=${ticketId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'X-Auth-Token': token! },
+        body: JSON.stringify({ message_id: messageId, message: editingText })
+      });
+      if (res.ok) {
+        setMessages(prev => prev.map(m => m.id === messageId ? { ...m, message: editingText } : m));
+        setEditingMsgId(null);
+        toast({ title: 'Сообщение обновлено' });
+      } else {
+        const err = await res.json();
+        toast({ title: 'Ошибка', description: err.error, variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: 'Ошибка', description: 'Не удалось сохранить', variant: 'destructive' });
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'open': return 'bg-green-500';
@@ -429,6 +466,9 @@ const TicketDetails = () => {
                     </div>
                   );
                 }
+                const currentUserId = parseJwtUserId(token);
+                const canEdit = ticket.status !== 'closed' && !msg.is_admin_reply && msg.user_id === currentUserId;
+                const isEditing = editingMsgId === msg.id;
                 return (
                   <div key={msg.id} className={`flex gap-3 ${msg.is_admin_reply ? 'flex-row-reverse' : ''}`}>
                     <div className={`flex-1 ${msg.is_admin_reply ? 'text-right' : ''}`}>
@@ -438,8 +478,27 @@ const TicketDetails = () => {
                         <p className="text-sm font-medium mb-1">
                           {msg.is_admin_reply ? (msg.admin_name || 'Администратор') : (msg.user_name || 'Вы')}
                         </p>
-                        <p className="whitespace-pre-wrap">{msg.message}</p>
-                        {msg.file_url && (
+                        {isEditing ? (
+                          <div className="space-y-2 mt-1">
+                            <Textarea
+                              value={editingText}
+                              onChange={e => setEditingText(e.target.value)}
+                              rows={3}
+                              className="text-sm bg-background text-foreground"
+                              autoFocus
+                            />
+                            <div className="flex gap-2">
+                              <Button size="sm" onClick={() => handleSaveEdit(msg.id)} disabled={savingEdit}>
+                                {savingEdit ? <Icon name="Loader2" size={13} className="animate-spin mr-1" /> : <Icon name="Check" size={13} className="mr-1" />}
+                                Сохранить
+                              </Button>
+                              <Button size="sm" variant="ghost" onClick={() => setEditingMsgId(null)}>Отмена</Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="whitespace-pre-wrap">{msg.message}</p>
+                        )}
+                        {msg.file_url && !isEditing && (
                           <a href={msg.file_url} target="_blank" rel="noopener noreferrer" className="mt-2 block">
                             {msg.file_url.match(/\.(mp4|webm|mov|avi|mkv)$/i)
                               ? <video src={msg.file_url} controls className="w-full rounded max-h-48" style={{maxWidth: '100%'}} />
@@ -449,9 +508,20 @@ const TicketDetails = () => {
                             }
                           </a>
                         )}
-                        <p className="text-xs opacity-70 mt-2">
-                          {new Date(msg.created_at).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}
-                        </p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <p className="text-xs opacity-70">
+                            {new Date(msg.created_at).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}
+                          </p>
+                          {canEdit && !isEditing && (
+                            <button
+                              onClick={() => { setEditingMsgId(msg.id); setEditingText(msg.message); }}
+                              className="text-xs opacity-50 hover:opacity-100 transition-opacity flex items-center gap-1"
+                            >
+                              <Icon name="Pencil" size={11} />
+                              Изменить
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>

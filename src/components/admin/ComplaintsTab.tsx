@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Icon from '@/components/ui/icon';
+import { useToast } from '@/hooks/use-toast';
 
 const COMPLAINTS_API = 'https://functions.poehali.dev/76a02e7f-8572-4035-9cd5-8533e8fb1c6d';
 const UPLOAD_API = 'https://functions.poehali.dev/b36ed6dc-c690-4e62-b1e9-e3dd1b1d15c5';
@@ -39,6 +40,7 @@ interface Complaint {
 
 interface Message {
   id: number;
+  user_id?: number;
   message: string;
   file_url: string;
   is_admin_reply: boolean;
@@ -254,6 +256,7 @@ function ModeratorsPanel({ token }: { token: string }) {
 
 /* ─── Основной компонент ─── */
 const ComplaintsTab = ({ token }: ComplaintsTabProps) => {
+  const { toast } = useToast();
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -262,6 +265,9 @@ const ComplaintsTab = ({ token }: ComplaintsTabProps) => {
   const [reply, setReply] = useState('');
   const [replyFile, setReplyFile] = useState<File | null>(null);
   const [sending, setSending] = useState(false);
+  const [editingMsgId, setEditingMsgId] = useState<number | null>(null);
+  const [editingText, setEditingText] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterAgainst, setFilterAgainst] = useState('all');
   const [filterType, setFilterType] = useState('all');
@@ -323,6 +329,30 @@ const ComplaintsTab = ({ token }: ComplaintsTabProps) => {
       setReplyFile(null);
     }
     setSending(false);
+  };
+
+  const handleSaveEditMsg = async (messageId: number) => {
+    if (!editingText.trim() || !selected) return;
+    setSavingEdit(true);
+    try {
+      const res = await fetch(`${COMPLAINTS_API}/?action=edit_message&complaint_id=${selected.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'X-Auth-Token': token },
+        body: JSON.stringify({ message_id: messageId, message: editingText }),
+      });
+      if (res.ok) {
+        setMessages(prev => prev.map(m => m.id === messageId ? { ...m, message: editingText } : m));
+        setEditingMsgId(null);
+        toast({ title: 'Сообщение обновлено' });
+      } else {
+        const err = await res.json();
+        toast({ title: 'Ошибка', description: err.error, variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: 'Ошибка', description: 'Не удалось сохранить', variant: 'destructive' });
+    } finally {
+      setSavingEdit(false);
+    }
   };
 
   const changeStatus = async (status: string) => {
@@ -453,30 +483,65 @@ const ComplaintsTab = ({ token }: ComplaintsTabProps) => {
           </div>
 
           <div className="space-y-3 mb-4 max-h-96 overflow-y-auto pr-1">
-            {messages.map(msg => (
-              <div key={msg.id} className={`flex gap-2 ${msg.is_admin_reply ? 'flex-row-reverse' : ''}`}>
-                <div className={`w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center ${msg.is_admin_reply ? 'bg-purple-600' : 'bg-muted'}`}>
-                  <Icon name={msg.is_admin_reply ? 'Shield' : 'User'} size={12} className="text-white" />
-                </div>
-                <div className={`flex-1 max-w-[80%] flex flex-col ${msg.is_admin_reply ? 'items-end' : ''}`}>
-                  <div className={`p-3 rounded-lg text-sm ${msg.is_admin_reply ? 'bg-purple-900/40 border border-purple-500/30 text-white' : 'bg-muted border border-border'}`}>
-                    <p className="text-xs font-semibold mb-1 opacity-70">
-                      {msg.is_admin_reply ? (msg.admin_name || 'Администратор') : (msg.user_name || 'Игрок')}
-                      {msg.is_admin_reply && <span className="ml-1 text-purple-400">(Адм.)</span>}
-                    </p>
-                    <p className="whitespace-pre-wrap break-words">{msg.message}</p>
-                    {msg.file_url && (
-                      <a href={msg.file_url} target="_blank" rel="noopener noreferrer" className="mt-2 block">
-                        {msg.file_url.match(/\.(mp4|webm|mov)$/i)
-                          ? <video src={msg.file_url} controls className="w-full rounded max-h-48" style={{maxWidth: '100%'}} />
-                          : <img src={msg.file_url} alt="" className="w-full rounded max-h-64 object-contain" style={{maxWidth: '100%'}} loading="lazy" />}
-                      </a>
-                    )}
+            {messages.map(msg => {
+              const canEdit = selected.status !== 'closed' && msg.is_admin_reply;
+              const isEditing = editingMsgId === msg.id;
+              return (
+                <div key={msg.id} className={`flex gap-2 ${msg.is_admin_reply ? 'flex-row-reverse' : ''}`}>
+                  <div className={`w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center ${msg.is_admin_reply ? 'bg-purple-600' : 'bg-muted'}`}>
+                    <Icon name={msg.is_admin_reply ? 'Shield' : 'User'} size={12} className="text-white" />
                   </div>
-                  <span className="text-xs text-muted-foreground mt-1">{new Date(msg.created_at).toLocaleString('ru-RU')}</span>
+                  <div className={`flex-1 max-w-[80%] flex flex-col ${msg.is_admin_reply ? 'items-end' : ''}`}>
+                    <div className={`p-3 rounded-lg text-sm ${msg.is_admin_reply ? 'bg-purple-900/40 border border-purple-500/30 text-white' : 'bg-muted border border-border'}`}>
+                      <p className="text-xs font-semibold mb-1 opacity-70">
+                        {msg.is_admin_reply ? (msg.admin_name || 'Администратор') : (msg.user_name || 'Игрок')}
+                        {msg.is_admin_reply && <span className="ml-1 text-purple-400">(Адм.)</span>}
+                      </p>
+                      {isEditing ? (
+                        <div className="space-y-2 mt-1">
+                          <Textarea
+                            value={editingText}
+                            onChange={e => setEditingText(e.target.value)}
+                            rows={3}
+                            className="text-sm bg-background text-foreground"
+                            autoFocus
+                          />
+                          <div className="flex gap-2">
+                            <Button size="sm" onClick={() => handleSaveEditMsg(msg.id)} disabled={savingEdit}
+                              className="bg-purple-600 hover:bg-purple-700 text-white">
+                              {savingEdit ? <Icon name="Loader2" size={13} className="animate-spin mr-1" /> : <Icon name="Check" size={13} className="mr-1" />}
+                              Сохранить
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => setEditingMsgId(null)}>Отмена</Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="whitespace-pre-wrap break-words">{msg.message}</p>
+                      )}
+                      {msg.file_url && !isEditing && (
+                        <a href={msg.file_url} target="_blank" rel="noopener noreferrer" className="mt-2 block">
+                          {msg.file_url.match(/\.(mp4|webm|mov)$/i)
+                            ? <video src={msg.file_url} controls className="w-full rounded max-h-48" style={{maxWidth: '100%'}} />
+                            : <img src={msg.file_url} alt="" className="w-full rounded max-h-64 object-contain" style={{maxWidth: '100%'}} loading="lazy" />}
+                        </a>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs text-muted-foreground">{new Date(msg.created_at).toLocaleString('ru-RU')}</span>
+                      {canEdit && !isEditing && (
+                        <button
+                          onClick={() => { setEditingMsgId(msg.id); setEditingText(msg.message); }}
+                          className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+                        >
+                          <Icon name="Pencil" size={11} />
+                          Изменить
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {selected.status !== 'closed' && (

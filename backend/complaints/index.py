@@ -74,6 +74,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         return get_complaint_details(complaint_id, user_data)
     elif method == 'POST' and action == 'reply' and complaint_id:
         return add_reply(complaint_id, event, user_data)
+    elif method == 'PUT' and action == 'edit_message' and complaint_id:
+        return edit_message(complaint_id, event, user_data)
     elif method == 'PUT' and action == 'close' and complaint_id:
         return close_complaint(complaint_id, user_data)
     elif method == 'PUT' and action == 'status' and complaint_id:
@@ -540,6 +542,54 @@ def delete_complaint(complaint_id: str, user_data: Dict[str, Any]) -> Dict[str, 
     cur.execute(f"DELETE FROM complaints WHERE id = {cid}")
     conn.commit(); cur.close(); conn.close()
     return ok_response({'success': True})
+
+
+def edit_message(complaint_id: str, event: Dict[str, Any], user_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Редактирование сообщения жалобы. Пользователь редактирует своё, модератор/админ своё. Только если жалоба не закрыта."""
+    cid = int(complaint_id)
+    body = json.loads(event.get('body', '{}'))
+    message_id = body.get('message_id')
+    new_text = str(body.get('message', '')).strip()
+
+    if not message_id or not new_text:
+        return error_response('message_id and message are required')
+
+    conn = psycopg2.connect(os.environ['DATABASE_URL'])
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    cur.execute(f"SELECT status FROM complaints WHERE id = {cid}")
+    complaint = cur.fetchone()
+    if not complaint:
+        cur.close(); conn.close()
+        return error_response('Complaint not found', 404)
+    if complaint['status'] == 'closed':
+        cur.close(); conn.close()
+        return error_response('Нельзя редактировать сообщения закрытой жалобы', 403)
+
+    cur.execute(f"SELECT * FROM complaint_messages WHERE id = {int(message_id)} AND complaint_id = {cid}")
+    msg = cur.fetchone()
+    if not msg:
+        cur.close(); conn.close()
+        return error_response('Message not found', 404)
+
+    is_mod = user_data.get('is_moderator') or user_data.get('is_adminpanel')
+    if is_mod:
+        if not msg['is_admin_reply']:
+            cur.close(); conn.close()
+            return error_response('Модератор может редактировать только свои сообщения', 403)
+    else:
+        if msg['is_admin_reply']:
+            cur.close(); conn.close()
+            return error_response('Вы можете редактировать только свои сообщения', 403)
+        if msg['user_id'] != int(user_data.get('user_id', -1)):
+            cur.close(); conn.close()
+            return error_response('Вы можете редактировать только свои сообщения', 403)
+
+    text_escaped = escape_sql(new_text)
+    cur.execute(f"UPDATE complaint_messages SET message = '{text_escaped}' WHERE id = {int(message_id)} RETURNING *")
+    updated = cur.fetchone()
+    conn.commit(); cur.close(); conn.close()
+    return ok_response({'message': dict(updated)})
 
 
 def block_user(event: Dict[str, Any], user_data: Dict[str, Any]) -> Dict[str, Any]:

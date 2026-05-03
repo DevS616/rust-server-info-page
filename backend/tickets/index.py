@@ -65,6 +65,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         return update_status(ticket_id, event, user_data)
     elif method == 'POST' and action == 'rate' and ticket_id:
         return rate_ticket(ticket_id, event, user_data)
+    elif method == 'PUT' and action == 'edit_message' and ticket_id:
+        return edit_message(ticket_id, event, user_data)
     elif method == 'DELETE' and ticket_id:
         return delete_ticket(ticket_id, user_data)
     
@@ -770,6 +772,73 @@ def delete_ticket(ticket_id: str, user_data: Dict[str, Any]) -> Dict[str, Any]:
             'Access-Control-Allow-Origin': '*'
         },
         'body': json.dumps({'message': 'Ticket deleted successfully'}),
+        'isBase64Encoded': False
+    }
+
+
+def edit_message(ticket_id: str, event: Dict[str, Any], user_data: Dict[str, Any]) -> Dict[str, Any]:
+    '''Редактирование сообщения тикета. Пользователь редактирует своё, админ своё. Только если тикет открыт.'''
+    try:
+        ticket_id_int = int(ticket_id)
+    except ValueError:
+        return error_response('Invalid ticket ID')
+
+    body = json.loads(event.get('body', '{}'))
+    message_id = body.get('message_id')
+    new_text = body.get('message', '').strip()
+
+    if not message_id or not new_text:
+        return error_response('message_id and message are required')
+
+    is_admin = user_data.get('is_admin', False)
+
+    conn = psycopg2.connect(os.environ['DATABASE_URL'])
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    cur.execute(f"SELECT status FROM tickets WHERE id = {ticket_id_int}")
+    ticket = cur.fetchone()
+    if not ticket:
+        cur.close(); conn.close()
+        return error_response('Ticket not found', 404)
+    if ticket['status'] == 'closed':
+        cur.close(); conn.close()
+        return error_response('Нельзя редактировать сообщения закрытого обращения', 403)
+
+    cur.execute(f"SELECT * FROM ticket_messages WHERE id = {int(message_id)} AND ticket_id = {ticket_id_int}")
+    msg = cur.fetchone()
+    if not msg:
+        cur.close(); conn.close()
+        return error_response('Message not found', 404)
+
+    if is_admin:
+        if not msg['is_admin_reply']:
+            cur.close(); conn.close()
+            return error_response('Администратор может редактировать только свои сообщения', 403)
+        if msg['admin_id'] is not None and msg['admin_id'] != int(user_data.get('admin_id', 0)):
+            cur.close(); conn.close()
+            return error_response('Вы можете редактировать только свои сообщения', 403)
+    else:
+        if msg['is_admin_reply']:
+            cur.close(); conn.close()
+            return error_response('Вы можете редактировать только свои сообщения', 403)
+        if msg['user_id'] != int(user_data['user_id']):
+            cur.close(); conn.close()
+            return error_response('Вы можете редактировать только свои сообщения', 403)
+
+    text_escaped = escape_sql(new_text)
+    cur.execute(f"""
+        UPDATE ticket_messages SET message = '{text_escaped}'
+        WHERE id = {int(message_id)}
+        RETURNING *
+    """)
+    updated = cur.fetchone()
+    conn.commit()
+    cur.close()
+    conn.close()
+    return {
+        'statusCode': 200,
+        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+        'body': json.dumps(dict(updated), default=str),
         'isBase64Encoded': False
     }
 

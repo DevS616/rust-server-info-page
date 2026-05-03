@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -6,6 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import Icon from '@/components/ui/icon';
+import { useToast } from '@/hooks/use-toast';
+
+const TICKETS_API = 'https://functions.poehali.dev/887805c0-0d3a-4f32-8436-1ba1adda4a4f';
 
 interface Ticket {
   id: number;
@@ -27,6 +31,8 @@ interface Ticket {
 
 interface Message {
   id: number;
+  user_id?: number;
+  admin_id?: number;
   message: string;
   file_url: string;
   is_admin_reply: boolean;
@@ -51,6 +57,8 @@ interface TicketsTabProps {
   handleDeleteTicket: (ticketId: number) => void;
   loadTicketDetails: (ticketId: string, token: string) => void;
   token: string;
+  adminId?: number;
+  onMessagesUpdate?: (messages: Message[]) => void;
   getStatusColor: (status: string) => string;
   getStatusText: (status: string) => string;
   loading: boolean;
@@ -82,6 +90,8 @@ const TicketsTab = ({
   handleDeleteTicket,
   loadTicketDetails,
   token,
+  adminId,
+  onMessagesUpdate,
   getStatusColor,
   getStatusText,
   loading,
@@ -97,6 +107,36 @@ const TicketsTab = ({
   setSortBy,
   servers
 }: TicketsTabProps) => {
+  const { toast } = useToast();
+  const [editingMsgId, setEditingMsgId] = useState<number | null>(null);
+  const [editingText, setEditingText] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const handleSaveEdit = async (messageId: number) => {
+    if (!editingText.trim() || !selectedTicket) return;
+    setSavingEdit(true);
+    try {
+      const res = await fetch(`${TICKETS_API}/?action=edit_message&ticket_id=${selectedTicket.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'X-Auth-Token': token },
+        body: JSON.stringify({ message_id: messageId, message: editingText })
+      });
+      if (res.ok) {
+        const updated = messages.map(m => m.id === messageId ? { ...m, message: editingText } : m);
+        onMessagesUpdate?.(updated);
+        setEditingMsgId(null);
+        toast({ title: 'Сообщение обновлено' });
+      } else {
+        const err = await res.json();
+        toast({ title: 'Ошибка', description: err.error, variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: 'Ошибка', description: 'Не удалось сохранить', variant: 'destructive' });
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   const copySteamId = (steamId: string) => {
     navigator.clipboard.writeText(steamId);
   };
@@ -201,33 +241,67 @@ const TicketsTab = ({
           </div>
 
           <div className="space-y-3 md:space-y-4 mb-6">
-            {messages.map((msg) => (
-              <div key={msg.id} className={`flex gap-2 ${msg.is_admin_reply ? 'flex-row-reverse' : ''}`}>
-                <div className={`flex-1 ${msg.is_admin_reply ? 'text-right' : ''}`}>
-                  <div className={`inline-block max-w-full md:max-w-[80%] p-3 md:p-4 rounded-lg ${
-                    msg.is_admin_reply ? 'bg-primary text-primary-foreground' : 'bg-muted'
-                  }`}>
-                    <p className="text-xs md:text-sm font-medium mb-1">
-                      {msg.is_admin_reply ? msg.admin_name : msg.user_name}
-                    </p>
-                    <p className="text-sm md:text-base whitespace-pre-wrap break-words">{msg.message}</p>
-                    {msg.file_url && (
-                      <a href={msg.file_url} target="_blank" rel="noopener noreferrer" className="mt-2 block">
-                        {msg.file_url.match(/\.(mp4|webm|mov|avi|mkv)$/i)
-                          ? <video src={msg.file_url} controls className="w-full rounded max-h-48" style={{maxWidth: '100%'}} />
-                          : msg.file_url.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/i)
-                            ? <img src={msg.file_url} alt="Прикреплённый файл" className="w-full rounded max-h-64 object-contain" style={{maxWidth: '100%'}} loading="lazy" />
-                            : <span className="text-xs md:text-sm underline">📎 Прикреплённый файл</span>
-                        }
-                      </a>
-                    )}
-                    <p className="text-xs opacity-70 mt-2">
-                      {new Date(msg.created_at).toLocaleString('ru-RU')}
-                    </p>
+            {messages.map((msg) => {
+              const canEdit = selectedTicket.status !== 'closed' && msg.is_admin_reply && msg.admin_id === adminId;
+              const isEditing = editingMsgId === msg.id;
+              return (
+                <div key={msg.id} className={`flex gap-2 ${msg.is_admin_reply ? 'flex-row-reverse' : ''}`}>
+                  <div className={`flex-1 ${msg.is_admin_reply ? 'text-right' : ''}`}>
+                    <div className={`inline-block max-w-full md:max-w-[80%] p-3 md:p-4 rounded-lg ${
+                      msg.is_admin_reply ? 'bg-primary text-primary-foreground' : 'bg-muted'
+                    }`}>
+                      <p className="text-xs md:text-sm font-medium mb-1">
+                        {msg.is_admin_reply ? msg.admin_name : msg.user_name}
+                      </p>
+                      {isEditing ? (
+                        <div className="space-y-2 mt-1">
+                          <Textarea
+                            value={editingText}
+                            onChange={e => setEditingText(e.target.value)}
+                            rows={3}
+                            className="text-sm bg-background text-foreground"
+                            autoFocus
+                          />
+                          <div className="flex gap-2">
+                            <Button size="sm" onClick={() => handleSaveEdit(msg.id)} disabled={savingEdit}>
+                              {savingEdit ? <Icon name="Loader2" size={13} className="animate-spin mr-1" /> : <Icon name="Check" size={13} className="mr-1" />}
+                              Сохранить
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => setEditingMsgId(null)}>Отмена</Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-sm md:text-base whitespace-pre-wrap break-words">{msg.message}</p>
+                      )}
+                      {msg.file_url && !isEditing && (
+                        <a href={msg.file_url} target="_blank" rel="noopener noreferrer" className="mt-2 block">
+                          {msg.file_url.match(/\.(mp4|webm|mov|avi|mkv)$/i)
+                            ? <video src={msg.file_url} controls className="w-full rounded max-h-48" style={{maxWidth: '100%'}} />
+                            : msg.file_url.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/i)
+                              ? <img src={msg.file_url} alt="Прикреплённый файл" className="w-full rounded max-h-64 object-contain" style={{maxWidth: '100%'}} loading="lazy" />
+                              : <span className="text-xs md:text-sm underline">📎 Прикреплённый файл</span>
+                          }
+                        </a>
+                      )}
+                      <div className="flex items-center gap-2 mt-2">
+                        <p className="text-xs opacity-70">
+                          {new Date(msg.created_at).toLocaleString('ru-RU')}
+                        </p>
+                        {canEdit && !isEditing && (
+                          <button
+                            onClick={() => { setEditingMsgId(msg.id); setEditingText(msg.message); }}
+                            className="text-xs opacity-50 hover:opacity-100 transition-opacity flex items-center gap-1"
+                          >
+                            <Icon name="Pencil" size={11} />
+                            Изменить
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="border-t pt-4">
