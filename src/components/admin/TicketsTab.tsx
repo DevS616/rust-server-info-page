@@ -37,6 +37,7 @@ interface Message {
   file_url: string;
   is_admin_reply: boolean;
   created_at: string;
+  edited_at?: string | null;
   user_name?: string;
   user_avatar?: string;
   admin_name?: string;
@@ -122,7 +123,9 @@ const TicketsTab = ({
         body: JSON.stringify({ message_id: messageId, message: editingText })
       });
       if (res.ok) {
-        const updated = messages.map(m => m.id === messageId ? { ...m, message: editingText } : m);
+        const data = await res.json();
+        const now = data.edited_at || new Date().toISOString();
+        const updated = messages.map(m => m.id === messageId ? { ...m, message: editingText, edited_at: now } : m);
         onMessagesUpdate?.(updated);
         setEditingMsgId(null);
         toast({ title: 'Сообщение обновлено' });
@@ -287,6 +290,9 @@ const TicketsTab = ({
                         <p className="text-xs opacity-70">
                           {new Date(msg.created_at).toLocaleString('ru-RU')}
                         </p>
+                        {msg.edited_at && (
+                          <span className="text-xs opacity-50 italic">изм.</span>
+                        )}
                         {canEdit && !isEditing && (
                           <button
                             onClick={() => { setEditingMsgId(msg.id); setEditingText(msg.message); }}

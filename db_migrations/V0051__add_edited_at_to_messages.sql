@@ -1,0 +1,2 @@
+ALTER TABLE ticket_messages ADD COLUMN IF NOT EXISTS edited_at TIMESTAMP;
+ALTER TABLE complaint_messages ADD COLUMN IF NOT EXISTS edited_at TIMESTAMP;

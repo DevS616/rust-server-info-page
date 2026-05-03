@@ -586,7 +586,7 @@ def edit_message(complaint_id: str, event: Dict[str, Any], user_data: Dict[str, 
             return error_response('Вы можете редактировать только свои сообщения', 403)
 
     text_escaped = escape_sql(new_text)
-    cur.execute(f"UPDATE complaint_messages SET message = '{text_escaped}' WHERE id = {int(message_id)} RETURNING *")
+    cur.execute(f"UPDATE complaint_messages SET message = '{text_escaped}', edited_at = NOW() WHERE id = {int(message_id)} RETURNING *")
     updated = cur.fetchone()
     conn.commit(); cur.close(); conn.close()
     return ok_response({'message': dict(updated)})

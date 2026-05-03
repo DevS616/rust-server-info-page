@@ -827,7 +827,7 @@ def edit_message(ticket_id: str, event: Dict[str, Any], user_data: Dict[str, Any
 
     text_escaped = escape_sql(new_text)
     cur.execute(f"""
-        UPDATE ticket_messages SET message = '{text_escaped}'
+        UPDATE ticket_messages SET message = '{text_escaped}', edited_at = NOW()
         WHERE id = {int(message_id)}
         RETURNING *
     """)

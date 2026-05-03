@@ -41,6 +41,7 @@ interface Message {
   file_url: string | null;
   is_admin_reply: boolean;
   created_at: string;
+  edited_at?: string | null;
   user_name?: string;
   user_avatar?: string;
   admin_name?: string;
@@ -421,7 +422,8 @@ const ComplaintDetail = memo(({
         body: JSON.stringify({ message_id: messageId, message: editingText }),
       });
       if (res.ok) {
-        setMessages(prev => prev.map(m => m.id === messageId ? { ...m, message: editingText } : m));
+        const data = await res.json();
+        setMessages(prev => prev.map(m => m.id === messageId ? { ...m, message: editingText, edited_at: data.message?.edited_at || new Date().toISOString() } : m));
         setEditingMsgId(null);
         toast({ title: 'Сообщение обновлено' });
       } else {
@@ -668,6 +670,9 @@ const ComplaintDetail = memo(({
                       <span className="text-xs text-slate-600">
                         {new Date(msg.created_at).toLocaleString('ru-RU')}
                       </span>
+                      {msg.edited_at && (
+                        <span className="text-xs text-slate-600 italic">изм.</span>
+                      )}
                       {canEditMsg && !isEditing && (
                         <button
                           onClick={() => { setEditingMsgId(msg.id); setEditingText(msg.message); }}
