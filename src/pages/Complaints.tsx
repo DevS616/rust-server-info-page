@@ -600,7 +600,7 @@ const ComplaintDetail = memo(({
             {messages.map(msg => {
               const currentUserId = complaint.user_id;
               const canEditMsg = complaint.status !== 'closed' && (
-                (!msg.is_admin_reply && !isAdmin && msg.user_id === currentUserId && complaint.is_own) ||
+                (!msg.is_admin_reply && !isAdmin && Number(msg.user_id) === currentUserId && complaint.is_own) ||
                 (msg.is_admin_reply && isAdmin)
               );
               const isEditing = editingMsgId === msg.id;
@@ -615,7 +615,7 @@ const ComplaintDetail = memo(({
                     }
                   </div>
                   <div className={`flex-1 max-w-[80%] ${msg.is_admin_reply ? 'items-end' : ''} flex flex-col`}>
-                    <div className={`p-3 rounded-lg text-sm ${
+                    <div className={`group/msg p-3 rounded-lg text-sm ${
                       msg.is_admin_reply
                         ? 'bg-gradient-to-br from-purple-900/60 to-blue-900/60 border border-purple-500/30 text-white'
                         : 'bg-slate-800 border border-slate-700 text-slate-200'
@@ -671,7 +671,7 @@ const ComplaintDetail = memo(({
                       {canEditMsg && !isEditing && (
                         <button
                           onClick={() => { setEditingMsgId(msg.id); setEditingText(msg.message); }}
-                          className="text-xs text-slate-600 hover:text-slate-300 transition-colors flex items-center gap-1"
+                          className="text-xs opacity-0 group-hover/msg:opacity-100 transition-opacity text-slate-400 hover:text-white flex items-center gap-1"
                         >
                           <Icon name="Pencil" size={11} />
                           Изменить

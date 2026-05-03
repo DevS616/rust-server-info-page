@@ -492,7 +492,7 @@ const ComplaintsTab = ({ token }: ComplaintsTabProps) => {
                     <Icon name={msg.is_admin_reply ? 'Shield' : 'User'} size={12} className="text-white" />
                   </div>
                   <div className={`flex-1 max-w-[80%] flex flex-col ${msg.is_admin_reply ? 'items-end' : ''}`}>
-                    <div className={`p-3 rounded-lg text-sm ${msg.is_admin_reply ? 'bg-purple-900/40 border border-purple-500/30 text-white' : 'bg-muted border border-border'}`}>
+                    <div className={`group/msg p-3 rounded-lg text-sm ${msg.is_admin_reply ? 'bg-purple-900/40 border border-purple-500/30 text-white' : 'bg-muted border border-border'}`}>
                       <p className="text-xs font-semibold mb-1 opacity-70">
                         {msg.is_admin_reply ? (msg.admin_name || 'Администратор') : (msg.user_name || 'Игрок')}
                         {msg.is_admin_reply && <span className="ml-1 text-purple-400">(Адм.)</span>}
@@ -531,7 +531,7 @@ const ComplaintsTab = ({ token }: ComplaintsTabProps) => {
                       {canEdit && !isEditing && (
                         <button
                           onClick={() => { setEditingMsgId(msg.id); setEditingText(msg.message); }}
-                          className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+                          className="text-xs opacity-0 group-hover/msg:opacity-100 transition-opacity text-muted-foreground hover:text-foreground flex items-center gap-1"
                         >
                           <Icon name="Pencil" size={11} />
                           Изменить

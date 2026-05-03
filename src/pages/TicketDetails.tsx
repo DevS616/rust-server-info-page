@@ -467,12 +467,12 @@ const TicketDetails = () => {
                   );
                 }
                 const currentUserId = parseJwtUserId(token);
-                const canEdit = ticket.status !== 'closed' && !msg.is_admin_reply && msg.user_id === currentUserId;
+                const canEdit = ticket.status !== 'closed' && !msg.is_admin_reply && currentUserId !== null && Number(msg.user_id) === currentUserId;
                 const isEditing = editingMsgId === msg.id;
                 return (
                   <div key={msg.id} className={`flex gap-3 ${msg.is_admin_reply ? 'flex-row-reverse' : ''}`}>
                     <div className={`flex-1 ${msg.is_admin_reply ? 'text-right' : ''}`}>
-                      <div className={`inline-block max-w-[80%] p-4 rounded-lg ${
+                      <div className={`group/msg inline-block max-w-[80%] p-4 rounded-lg ${
                         msg.is_admin_reply ? 'bg-primary text-primary-foreground' : 'bg-muted'
                       }`}>
                         <p className="text-sm font-medium mb-1">
@@ -515,7 +515,7 @@ const TicketDetails = () => {
                           {canEdit && !isEditing && (
                             <button
                               onClick={() => { setEditingMsgId(msg.id); setEditingText(msg.message); }}
-                              className="text-xs opacity-50 hover:opacity-100 transition-opacity flex items-center gap-1"
+                              className="text-xs opacity-0 group-hover/msg:opacity-100 transition-opacity flex items-center gap-1 text-muted-foreground hover:text-foreground"
                             >
                               <Icon name="Pencil" size={11} />
                               Изменить

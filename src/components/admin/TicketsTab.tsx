@@ -247,7 +247,7 @@ const TicketsTab = ({
               return (
                 <div key={msg.id} className={`flex gap-2 ${msg.is_admin_reply ? 'flex-row-reverse' : ''}`}>
                   <div className={`flex-1 ${msg.is_admin_reply ? 'text-right' : ''}`}>
-                    <div className={`inline-block max-w-full md:max-w-[80%] p-3 md:p-4 rounded-lg ${
+                    <div className={`group/msg inline-block max-w-full md:max-w-[80%] p-3 md:p-4 rounded-lg ${
                       msg.is_admin_reply ? 'bg-primary text-primary-foreground' : 'bg-muted'
                     }`}>
                       <p className="text-xs md:text-sm font-medium mb-1">
@@ -290,7 +290,7 @@ const TicketsTab = ({
                         {canEdit && !isEditing && (
                           <button
                             onClick={() => { setEditingMsgId(msg.id); setEditingText(msg.message); }}
-                            className="text-xs opacity-50 hover:opacity-100 transition-opacity flex items-center gap-1"
+                            className="text-xs opacity-0 group-hover/msg:opacity-100 transition-opacity flex items-center gap-1 text-muted-foreground hover:text-foreground"
                           >
                             <Icon name="Pencil" size={11} />
                             Изменить
