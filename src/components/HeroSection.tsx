@@ -19,6 +19,18 @@ interface ServerEntry {
 
 const allServers = [...serversData.pveServers, ...serversData.pvpServers];
 
+const gameModeGroups = Object.keys(serversData).map(key => {
+  const match = key.match(/^(\w+)Servers$/);
+  return match ? match[1].toUpperCase() : null;
+}).filter(Boolean) as string[];
+
+const gameModesLabel = (() => {
+  const n = gameModeGroups.length;
+  if (n === 1) return `${gameModeGroups[0]}\nСЕРВЕР`;
+  if (n === 2) return `${gameModeGroups[0]} и ${gameModeGroups[1]}\nСЕРВЕРА`;
+  return `${gameModeGroups.slice(0, -1).join(', ')} и ${gameModeGroups[n - 1]}\nСЕРВЕРОВ`;
+})();
+
 const HeroSection = () => {
   const [totalPlayers, setTotalPlayers] = useState<number | null>(null);
   const [displayPlayers, setDisplayPlayers] = useState<number>(0);
@@ -175,8 +187,9 @@ const HeroSection = () => {
               </Tooltip>
             </TooltipProvider>
             <div className="flex flex-col items-center p-4 rounded-lg glow-border bg-card/50 backdrop-blur-sm">
-              <div className="text-3xl font-bold text-primary glow-text">PVP и PVE</div>
-              <div className="text-sm text-muted-foreground uppercase tracking-wider">Сервера</div>
+              {gameModesLabel.split('\n').map((line, i) => (
+                <div key={i} className={i === 0 ? "text-3xl font-bold text-primary glow-text" : "text-sm text-muted-foreground uppercase tracking-wider"}>{line}</div>
+              ))}
             </div>
           </div>
         </div>
