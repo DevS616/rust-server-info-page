@@ -6,7 +6,7 @@ type MonitoringData = {
     total: { players: number };
     servers: Array<{
       ip: string;
-      port: number;
+      port: number | string;
       players: number;
       playersMax: number;
     }>;
