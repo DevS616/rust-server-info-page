@@ -247,6 +247,22 @@
       }
     }
   ],
+  "creativeServers": [
+    {
+      "id": "10",
+      "name": "#6 CREATIVE | Build",
+      "mode": "CREATIVE",
+      "ip": "6.devilrust.ru",
+      "serverIp": "62.122.214.220:6000",
+      "battlemetricsId": "",
+      "description": "Упрощенное строительство для архитекторов. Стройте сложные конструкции легко.",
+      "features": [
+        "Творческий режим",
+        "Без вайпов",
+        "Неограниченные ресурсы"
+      ]
+    }
+  ],
   "defaultDetailedDescription": {
     "title": "Полное описание сервера",
     "highlights": [

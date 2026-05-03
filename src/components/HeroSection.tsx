@@ -17,18 +17,14 @@ interface ServerEntry {
   playersMax: number;
 }
 
-const allServers = [...serversData.pveServers, ...serversData.pvpServers];
+const allServers = [...serversData.pveServers, ...serversData.pvpServers, ...serversData.creativeServers];
 
-const gameModeGroups = Object.keys(serversData).map(key => {
-  const match = key.match(/^(\w+)Servers$/);
-  return match ? match[1].toUpperCase() : null;
-}).filter(Boolean) as string[];
+const gameModeCount = Object.keys(serversData).filter(k => k.endsWith('Servers')).length;
 
-const gameModesLabel = (() => {
-  const n = gameModeGroups.length;
-  if (n === 1) return `${gameModeGroups[0]}\nСЕРВЕР`;
-  if (n === 2) return `${gameModeGroups[0]} и ${gameModeGroups[1]}\nСЕРВЕРА`;
-  return `${gameModeGroups.slice(0, -1).join(', ')} и ${gameModeGroups[n - 1]}\nСЕРВЕРОВ`;
+const gameModeWord = (() => {
+  if (gameModeCount === 1) return 'РЕЖИМ ИГРЫ';
+  if (gameModeCount >= 2 && gameModeCount <= 4) return 'РЕЖИМА ИГРЫ';
+  return 'РЕЖИМОВ ИГРЫ';
 })();
 
 const HeroSection = () => {
@@ -187,9 +183,8 @@ const HeroSection = () => {
               </Tooltip>
             </TooltipProvider>
             <div className="flex flex-col items-center p-4 rounded-lg glow-border bg-card/50 backdrop-blur-sm">
-              {gameModesLabel.split('\n').map((line, i) => (
-                <div key={i} className={i === 0 ? "text-3xl font-bold text-primary glow-text" : "text-sm text-muted-foreground uppercase tracking-wider"}>{line}</div>
-              ))}
+              <div className="text-3xl font-bold text-primary glow-text">{gameModeCount}</div>
+              <div className="text-sm text-muted-foreground uppercase tracking-wider">{gameModeWord}</div>
             </div>
           </div>
         </div>
