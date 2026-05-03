@@ -384,6 +384,7 @@ const Admin = () => {
               sortBy={sortBy}
               setSortBy={setSortBy}
               servers={servers.map(s => s.name)}
+              adminId={admin ? Number(admin.id) : undefined}
             />
           </TabsContent>
 
