@@ -245,7 +245,7 @@ const TicketsTab = ({
 
           <div className="space-y-3 md:space-y-4 mb-6">
             {messages.map((msg) => {
-              const canEdit = selectedTicket.status !== 'closed' && msg.is_admin_reply && msg.admin_id === adminId;
+              const canEdit = selectedTicket.status !== 'closed' && msg.is_admin_reply;
               const isEditing = editingMsgId === msg.id;
               return (
                 <div key={msg.id} className={`flex gap-2 ${msg.is_admin_reply ? 'flex-row-reverse' : ''}`}>
