@@ -1,0 +1,1 @@
+UPDATE users SET is_blocked = false WHERE steam_id = '76561199783075263';
