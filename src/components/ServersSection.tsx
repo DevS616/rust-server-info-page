@@ -460,9 +460,9 @@ const ServersSection = () => {
         <div className="hidden md:block">
           {filterBy === 'all' ? (
             <>
-              <ServerSlider servers={pveServers} label="PVE серверы" labelColor="text-green-400" {...sliderProps} />
-              <ServerSlider servers={pvpServers} label="PVP серверы" labelColor="text-primary" {...sliderProps} />
-              <ServerSlider servers={creativeServers} label="Creative серверы" labelColor="text-violet-400" {...sliderProps} />
+              {pveServers.length > 0 && <ServerSlider servers={pveServers} label="PVE серверы" labelColor="text-green-400" {...sliderProps} />}
+              {pvpServers.length > 0 && <ServerSlider servers={pvpServers} label="PVP серверы" labelColor="text-primary" {...sliderProps} />}
+              {creativeServers.length > 0 && <ServerSlider servers={creativeServers} label="Creative серверы" labelColor="text-violet-400" {...sliderProps} />}
             </>
           ) : (
             <ServerSlider

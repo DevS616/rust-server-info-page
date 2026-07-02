@@ -145,12 +145,12 @@ const ServersTab = ({ token }: ServersTabProps) => {
 
                 <div className="flex gap-2 flex-shrink-0">
                   <Button
-                    variant="outline"
+                    variant={server.is_active ? 'outline' : 'destructive'}
                     size="sm"
                     onClick={() => handleToggleActive(server)}
-                    title={server.is_active ? 'Скрыть с сайта' : 'Показать на сайте'}
+                    title={server.is_active ? 'Скрыть с главной' : 'Показать на главной'}
                   >
-                    <Icon name={server.is_active ? 'EyeOff' : 'Eye'} size={16} />
+                    <Icon name={server.is_active ? 'Eye' : 'EyeOff'} size={16} />
                   </Button>
                   <Button
                     variant="outline"
