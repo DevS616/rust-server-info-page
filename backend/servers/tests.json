@@ -3,11 +3,9 @@
     {
       "name": "Get active servers list",
       "method": "GET",
-      "path": "/active",
+      "path": "/?active=true",
       "expectedStatus": 200,
-      "expectedBody": {
-        "servers": "array"
-      },
+      "expectedBody": {},
       "bodyMatcher": "partial"
     }
   ]

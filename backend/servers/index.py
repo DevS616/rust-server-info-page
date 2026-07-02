@@ -80,10 +80,12 @@ def get_active_servers() -> Dict[str, Any]:
     cur = conn.cursor(cursor_factory=RealDictCursor)
     
     cur.execute("""
-        SELECT id, name, is_active, created_at, updated_at, battlemetrics_id, cached_players, players_updated_at
+        SELECT id, name, mode, ip, server_ip, battlemetrics_id, description, features,
+               detailed_description, display_order, is_active, cached_players, players_updated_at,
+               created_at, updated_at
         FROM servers
         WHERE is_active = TRUE
-        ORDER BY name ASC
+        ORDER BY display_order ASC, id ASC
     """)
     
     servers = cur.fetchall()
@@ -106,9 +108,11 @@ def get_all_servers() -> Dict[str, Any]:
     cur = conn.cursor(cursor_factory=RealDictCursor)
     
     cur.execute("""
-        SELECT id, name, is_active, created_at, updated_at, battlemetrics_id, cached_players, players_updated_at
+        SELECT id, name, mode, ip, server_ip, battlemetrics_id, description, features,
+               detailed_description, display_order, is_active, cached_players, players_updated_at,
+               created_at, updated_at
         FROM servers
-        ORDER BY name ASC
+        ORDER BY display_order ASC, id ASC
     """)
     
     servers = cur.fetchall()
@@ -132,7 +136,14 @@ def create_server(event: Dict[str, Any]) -> Dict[str, Any]:
     is_active = body.get('is_active', True)
     battlemetrics_id = body.get('battlemetrics_id', None)
     cached_players = body.get('cached_players', 0)
-    
+    mode = body.get('mode', '')
+    ip = body.get('ip', '')
+    server_ip = body.get('server_ip', '')
+    description = body.get('description', '')
+    features = body.get('features', [])
+    detailed_description = body.get('detailed_description', None)
+    display_order = body.get('display_order', 0)
+
     if not name:
         return error_response('Server name is required')
     
@@ -141,11 +152,16 @@ def create_server(event: Dict[str, Any]) -> Dict[str, Any]:
     
     try:
         name_safe = escape_sql(name)
-        bm_id_val = f"'{battlemetrics_id}'" if battlemetrics_id else 'NULL'
-        
+        bm_id_val = f"'{escape_sql(battlemetrics_id)}'" if battlemetrics_id else 'NULL'
+        features_json = escape_sql(json.dumps(features, ensure_ascii=False))
+        dd_val = f"'{escape_sql(json.dumps(detailed_description, ensure_ascii=False))}'" if detailed_description else 'NULL'
+
         cur.execute(f"""
-            INSERT INTO servers (name, is_active, battlemetrics_id, cached_players) 
-            VALUES ('{name_safe}', {is_active}, {bm_id_val}, {cached_players}) 
+            INSERT INTO servers (name, mode, ip, server_ip, battlemetrics_id, description, features,
+                                 detailed_description, display_order, is_active, cached_players)
+            VALUES ('{name_safe}', '{escape_sql(mode)}', '{escape_sql(ip)}', '{escape_sql(server_ip)}',
+                    {bm_id_val}, '{escape_sql(description)}', '{features_json}',
+                    {dd_val}, {int(display_order)}, {is_active}, {cached_players})
             RETURNING *
         """)
         server = cur.fetchone()
@@ -181,7 +197,14 @@ def update_server(server_id: str, event: Dict[str, Any]) -> Dict[str, Any]:
     is_active = body.get('is_active')
     battlemetrics_id = body.get('battlemetrics_id')
     cached_players = body.get('cached_players')
-    
+    mode = body.get('mode')
+    ip = body.get('ip')
+    server_ip = body.get('server_ip')
+    description = body.get('description')
+    features = body.get('features')
+    detailed_description = body.get('detailed_description')
+    display_order = body.get('display_order')
+
     if not name:
         return error_response('Server name is required')
     
@@ -191,17 +214,34 @@ def update_server(server_id: str, event: Dict[str, Any]) -> Dict[str, Any]:
     try:
         name_safe = escape_sql(name)
         
-        # Build dynamic UPDATE query
         update_parts = [f"name = '{name_safe}'"]
         if is_active is not None:
             update_parts.append(f"is_active = {is_active}")
         if battlemetrics_id is not None:
-            bm_id_val = f"'{battlemetrics_id}'" if battlemetrics_id else 'NULL'
+            bm_id_val = f"'{escape_sql(battlemetrics_id)}'" if battlemetrics_id else 'NULL'
             update_parts.append(f"battlemetrics_id = {bm_id_val}")
         if cached_players is not None:
             update_parts.append(f"cached_players = {cached_players}")
             update_parts.append("players_updated_at = CURRENT_TIMESTAMP")
-        
+        if mode is not None:
+            update_parts.append(f"mode = '{escape_sql(mode)}'")
+        if ip is not None:
+            update_parts.append(f"ip = '{escape_sql(ip)}'")
+        if server_ip is not None:
+            update_parts.append(f"server_ip = '{escape_sql(server_ip)}'")
+        if description is not None:
+            update_parts.append(f"description = '{escape_sql(description)}'")
+        if features is not None:
+            features_json = escape_sql(json.dumps(features, ensure_ascii=False))
+            update_parts.append(f"features = '{features_json}'")
+        if detailed_description is not None:
+            dd_json = escape_sql(json.dumps(detailed_description, ensure_ascii=False))
+            update_parts.append(f"detailed_description = '{dd_json}'")
+        elif 'detailed_description' in body and detailed_description is None:
+            update_parts.append("detailed_description = NULL")
+        if display_order is not None:
+            update_parts.append(f"display_order = {int(display_order)}")
+
         update_parts.append("updated_at = CURRENT_TIMESTAMP")
         
         cur.execute(f"""
