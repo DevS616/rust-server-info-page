@@ -327,7 +327,7 @@ const ServersSection = () => {
   const [serverStats, setServerStats] = useState<Record<string, { players: number; maxPlayers: number }>>({});
 
   useEffect(() => {
-    fetch(`${SERVERS_API}/`)
+    fetch(`${SERVERS_API}/?active=true`)
       .then(r => r.json())
       .then(data => {
         const servers: ServerData[] = (data.servers || []).map((s: {
