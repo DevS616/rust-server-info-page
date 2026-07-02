@@ -8,7 +8,7 @@ import Icon from '@/components/ui/icon';
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
-const API_BASE = 'https://functions.poehali.dev';
+const API_BASE = 'https://functions.poehali.dev/cd63f370-b8ea-4adc-ace4-a274aa6f6e34';
 
 export interface Server {
   id: number;
@@ -165,8 +165,8 @@ const ServerDialog = ({ open, server, serversLength, token, onClose, onSave }: S
       };
 
       const url = server
-        ? `${API_BASE}/173145fd-cc6a-4e5a-baee-7e1194624730/?server_id=${server.id}`
-        : `${API_BASE}/173145fd-cc6a-4e5a-baee-7e1194624730/`;
+        ? `${API_BASE}/?server_id=${server.id}`
+        : `${API_BASE}/`;
 
       const res = await fetch(url, {
         method: server ? 'PUT' : 'POST',

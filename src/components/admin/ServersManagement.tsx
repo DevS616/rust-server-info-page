@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { Server } from './ServerDialog';
 
 const API_BASE = 'https://functions.poehali.dev';
+const SERVERS_URL = 'https://functions.poehali.dev/cd63f370-b8ea-4adc-ace4-a274aa6f6e34';
 
 interface ServersManagementProps {
   token: string;
@@ -26,7 +27,7 @@ const ServersManagement = ({ token, onEditServer, onAddServer }: ServersManageme
   const loadServers = async () => {
     setLoadingServers(true);
     try {
-      const res = await fetch(`${API_BASE}/173145fd-cc6a-4e5a-baee-7e1194624730/`);
+      const res = await fetch(`${API_BASE}/cd63f370-b8ea-4adc-ace4-a274aa6f6e34/`);
       if (res.ok) {
         const data = await res.json();
         setServers(data.servers || []);
@@ -40,7 +41,7 @@ const ServersManagement = ({ token, onEditServer, onAddServer }: ServersManageme
 
   const handleToggleActive = async (server: Server, checked: boolean) => {
     try {
-      const res = await fetch(`${API_BASE}/173145fd-cc6a-4e5a-baee-7e1194624730/?server_id=${server.id}`, {
+      const res = await fetch(`${SERVERS_URL}/?server_id=${server.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

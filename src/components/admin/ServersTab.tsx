@@ -5,7 +5,7 @@ import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
 import ServerDialog, { Server } from './ServerDialog';
 
-const API_URL = 'https://functions.poehali.dev/173145fd-cc6a-4e5a-baee-7e1194624730';
+const API_URL = 'https://functions.poehali.dev/cd63f370-b8ea-4adc-ace4-a274aa6f6e34';
 
 interface ServersTabProps {
   token: string;
