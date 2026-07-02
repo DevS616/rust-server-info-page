@@ -130,12 +130,15 @@ const ServerCard = memo(({ server, stats, onConnect, onDetails, onCopyIP, slider
           )}
           {server.features.length > 0 && (
             <div className="space-y-1">
-              {server.features.slice(0, sliderMode ? 3 : 4).map((feature, idx) => (
+              {server.features.slice(0, 5).map((feature, idx) => (
                 <div key={idx} className="flex items-center gap-2 text-xs text-white/70">
                   <span className={`w-1 h-1 rounded-full flex-shrink-0 ${barColor}`} />
                   <span className="truncate">{feature}</span>
                 </div>
               ))}
+              {server.features.length > 5 && (
+                <div className="text-xs text-white/40 pl-3">+{server.features.length - 5} ещё...</div>
+              )}
             </div>
           )}
         </div>
@@ -523,15 +526,20 @@ const ServersSection = () => {
               </div>
             </div>
           )}
-          <div className="space-y-4 mt-6 pt-6 border-t">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {['Ванильный опыт', 'Вайп 1 раз в месяц', 'Базы для рейдов', 'Статистика'].map((text) => (
-                <div key={text} className="flex items-center gap-2 text-sm">
-                  <Icon name="Check" className="h-4 w-4 text-primary" />
-                  <span className="text-muted-foreground">{text}</span>
-                </div>
-              ))}
+          {selectedServer && selectedServer.features.length > 0 && (
+            <div className="mt-6 pt-6 border-t">
+              <h3 className="text-base font-semibold mb-3">Особенности сервера</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {selectedServer.features.map((feature, idx) => (
+                  <div key={idx} className="flex items-center gap-2 text-sm">
+                    <Icon name="Check" className="h-4 w-4 text-primary flex-shrink-0" />
+                    <span className="text-muted-foreground">{feature}</span>
+                  </div>
+                ))}
+              </div>
             </div>
+          )}
+          <div className="space-y-4 mt-6 pt-6 border-t">
             <Button className="w-full font-semibold uppercase tracking-wider" size="lg"
               onClick={() => { if (selectedServer) { handleConnect(selectedServer); setIsDialogOpen(false); } }}>
               <Icon name="Rocket" className="mr-2 h-5 w-5" />
