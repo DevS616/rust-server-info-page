@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
 
@@ -46,6 +47,7 @@ const PollCard = ({ poll, onUpdated }: PollCardProps) => {
   const { toast } = useToast();
   const [selected, setSelected] = useState<number[]>(poll.my_votes || []);
   const [submitting, setSubmitting] = useState(false);
+  const [zoomImage, setZoomImage] = useState<string | null>(null);
 
   const showResults = poll.has_voted || poll.is_finished;
   const winner = poll.winner_option_id;
@@ -125,7 +127,12 @@ const PollCard = ({ poll, onUpdated }: PollCardProps) => {
                   />
                   <div className="relative flex items-center gap-3 p-3">
                     {opt.image_url && (
-                      <img src={opt.image_url} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0" />
+                      <img
+                        src={opt.image_url}
+                        alt=""
+                        onClick={(e) => { e.stopPropagation(); setZoomImage(opt.image_url!); }}
+                        className="w-12 h-12 rounded-lg object-cover shrink-0 cursor-zoom-in hover:ring-2 hover:ring-primary transition-all"
+                      />
                     )}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
@@ -156,7 +163,12 @@ const PollCard = ({ poll, onUpdated }: PollCardProps) => {
                     </span>
                   )}
                   {opt.image_url && (
-                    <img src={opt.image_url} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0" />
+                    <img
+                      src={opt.image_url}
+                      alt=""
+                      onClick={(e) => { e.stopPropagation(); setZoomImage(opt.image_url!); }}
+                      className="w-12 h-12 rounded-lg object-cover shrink-0 cursor-zoom-in hover:ring-2 hover:ring-primary transition-all"
+                    />
                   )}
                   <span className="text-white font-medium flex-1">{opt.text}</span>
                 </button>
@@ -175,6 +187,14 @@ const PollCard = ({ poll, onUpdated }: PollCardProps) => {
       {poll.has_voted && !poll.is_finished && (
         <p className="text-center text-xs text-gray-500 mt-3">Вы уже проголосовали. Результаты обновляются в реальном времени.</p>
       )}
+
+      <Dialog open={!!zoomImage} onOpenChange={() => setZoomImage(null)}>
+        <DialogContent className="max-w-3xl p-2 bg-transparent border-0 shadow-none">
+          {zoomImage && (
+            <img src={zoomImage} alt="" className="w-full h-auto max-h-[85vh] object-contain rounded-lg" />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
