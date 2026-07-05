@@ -4,9 +4,9 @@ const ALLOWED = {
   ALLOWED_TAGS: [
     'p', 'br', 'b', 'strong', 'i', 'em', 'u', 's', 'strike', 'del',
     'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-    'ul', 'ol', 'li', 'blockquote', 'a', 'span', 'div', 'font'
+    'ul', 'ol', 'li', 'blockquote', 'a', 'span', 'div', 'font', 'img'
   ],
-  ALLOWED_ATTR: ['href', 'target', 'rel', 'style', 'color'],
+  ALLOWED_ATTR: ['href', 'target', 'rel', 'style', 'color', 'src', 'alt'],
 };
 
 export const sanitizeNewsHtml = (html: string): string => {

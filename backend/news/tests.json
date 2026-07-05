@@ -26,6 +26,17 @@
         "error": "string"
       },
       "bodyMatcher": "partial"
+    },
+    {
+      "name": "Inline image upload requires auth",
+      "method": "POST",
+      "path": "/?action=upload",
+      "body": {"image_base64": "test", "image_type": "png"},
+      "expectedStatus": 401,
+      "expectedBody": {
+        "error": "string"
+      },
+      "bodyMatcher": "partial"
     }
   ]
 }

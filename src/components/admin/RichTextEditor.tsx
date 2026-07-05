@@ -1,11 +1,15 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import Icon from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
+
+const NEWS_API = 'https://functions.poehali.dev/e6be6494-14cb-4278-882b-d4498bef6cf6';
 
 interface RichTextEditorProps {
   value: string;
   onChange: (html: string) => void;
   placeholder?: string;
+  token?: string;
 }
 
 interface ToolButton {
@@ -18,10 +22,14 @@ interface ToolButton {
 
 const COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#a855f7', '#ec4899', '#ffffff', '#000000'];
 
-const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorProps) => {
+const RichTextEditor = ({ value, onChange, placeholder, token }: RichTextEditorProps) => {
+  const { toast } = useToast();
   const editorRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const savedRange = useRef<Range | null>(null);
   const [showColors, setShowColors] = useState(false);
   const [isEmpty, setIsEmpty] = useState(true);
+  const [uploading, setUploading] = useState(false);
   const [active, setActive] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -69,6 +77,58 @@ const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorProps) =
     const url = window.prompt('Введите ссылку (https://...)');
     if (url) exec('createLink', url);
   }, [exec]);
+
+  const saveSelection = useCallback(() => {
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0 && editorRef.current?.contains(sel.anchorNode)) {
+      savedRange.current = sel.getRangeAt(0).cloneRange();
+    }
+  }, []);
+
+  const insertImageAtCursor = useCallback((url: string) => {
+    editorRef.current?.focus();
+    const sel = window.getSelection();
+    if (sel && savedRange.current) {
+      sel.removeAllRanges();
+      sel.addRange(savedRange.current);
+    }
+    document.execCommand('insertHTML', false, `<img src="${url}" alt="" style="max-width:100%;border-radius:8px;margin:8px 0;" /><p><br/></p>`);
+    emit();
+  }, [emit]);
+
+  const handleImagePick = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: 'Ошибка', description: 'Размер файла не должен превышать 5 МБ', variant: 'destructive' });
+      return;
+    }
+    setUploading(true);
+    try {
+      const base64: string = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
+        reader.readAsDataURL(file);
+      });
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+      const res = await fetch(`${NEWS_API}/?action=upload`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Auth-Token': token || '' },
+        body: JSON.stringify({ image_base64: base64, image_type: ext }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        insertImageAtCursor(data.url);
+      } else {
+        toast({ title: 'Ошибка', description: 'Не удалось загрузить изображение', variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: 'Ошибка', description: 'Сбой при загрузке', variant: 'destructive' });
+    } finally {
+      setUploading(false);
+    }
+  }, [token, insertImageAtCursor, toast]);
 
   const inlineButtons: ToolButton[] = [
     { cmd: 'bold', icon: 'Bold', title: 'Жирный' },
@@ -197,6 +257,18 @@ const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorProps) =
         >
           <Icon name="Link" size={16} />
         </button>
+        {token && (
+          <button
+            type="button"
+            title="Вставить изображение"
+            disabled={uploading}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => { saveSelection(); fileInputRef.current?.click(); }}
+            className="h-8 w-8 flex items-center justify-center rounded transition-colors hover:bg-muted disabled:opacity-50"
+          >
+            <Icon name={uploading ? 'Loader2' : 'ImagePlus'} size={16} className={uploading ? 'animate-spin' : ''} />
+          </button>
+        )}
         <button
           type="button"
           title="Убрать форматирование"
@@ -206,6 +278,13 @@ const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorProps) =
         >
           <Icon name="RemoveFormatting" size={16} />
         </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleImagePick}
+        />
       </div>
 
       <div className="relative">
@@ -219,8 +298,8 @@ const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorProps) =
           contentEditable
           suppressContentEditableWarning
           onInput={emit}
-          onKeyUp={updateActive}
-          onMouseUp={updateActive}
+          onKeyUp={() => { updateActive(); saveSelection(); }}
+          onMouseUp={() => { updateActive(); saveSelection(); }}
           onBlur={emit}
           className="news-editor min-h-[200px] max-h-[400px] overflow-y-auto p-3 text-sm focus:outline-none prose prose-sm prose-invert max-w-none"
         />

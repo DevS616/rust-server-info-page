@@ -45,6 +45,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     if not admin_data:
         return error_response('Unauthorized', 401)
     
+    if method == 'POST' and action == 'upload':
+        return upload_inline_image(event)
     if method == 'POST':
         return create_news(event)
     elif method == 'PUT':
@@ -102,6 +104,21 @@ def upload_image(base64_data: str, image_type: str) -> str:
     )
     
     return f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{filename}"
+
+
+def upload_inline_image(event: Dict[str, Any]) -> Dict[str, Any]:
+    body = json.loads(event.get('body', '{}') or '{}')
+    image_base64 = body.get('image_base64')
+    image_type = body.get('image_type', 'jpg')
+    if not image_base64:
+        return error_response('image_base64 is required')
+    url = upload_image(image_base64, image_type)
+    return {
+        'statusCode': 200,
+        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+        'body': json.dumps({'url': url}),
+        'isBase64Encoded': False
+    }
 
 
 def get_published_news() -> Dict[str, Any]:

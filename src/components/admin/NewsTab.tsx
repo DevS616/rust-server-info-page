@@ -315,7 +315,8 @@ const NewsTab = ({ token }: NewsTabProps) => {
               <RichTextEditor
                 value={formData.description}
                 onChange={(html) => setFormData({ ...formData, description: html })}
-                placeholder="Подробное описание новости. Выделяйте текст жирным, добавляйте заголовки, списки и ссылки..."
+                token={token}
+                placeholder="Подробное описание новости. Выделяйте текст жирным, добавляйте заголовки, списки, картинки и ссылки..."
               />
               <p className="text-xs text-muted-foreground">
                 Используйте панель инструментов для форматирования — жирный, курсив, заголовки, списки, цвета и ссылки.
