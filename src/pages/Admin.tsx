@@ -385,6 +385,7 @@ const Admin = () => {
               setSortBy={setSortBy}
               servers={servers.map(s => s.name)}
               adminId={admin ? Number(admin.id) : undefined}
+              onRefresh={() => token && loadTickets(token, false)}
             />
           </TabsContent>
 

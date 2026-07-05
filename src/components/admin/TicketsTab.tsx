@@ -74,6 +74,7 @@ interface TicketsTabProps {
   sortBy: string;
   setSortBy: (sort: string) => void;
   servers: string[];
+  onRefresh?: () => void;
 }
 
 const TicketsTab = ({
@@ -106,12 +107,21 @@ const TicketsTab = ({
   setSearchQuery,
   sortBy,
   setSortBy,
-  servers
+  servers,
+  onRefresh
 }: TicketsTabProps) => {
   const { toast } = useToast();
   const [editingMsgId, setEditingMsgId] = useState<number | null>(null);
   const [editingText, setEditingText] = useState('');
   const [savingEdit, setSavingEdit] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    if (!onRefresh || refreshing) return;
+    setRefreshing(true);
+    await onRefresh();
+    setRefreshing(false);
+  };
 
   const handleSaveEdit = async (messageId: number) => {
     if (!editingText.trim() || !selectedTicket) return;
@@ -387,27 +397,40 @@ const TicketsTab = ({
     <div className="space-y-3 md:space-y-4">
       <Card className="p-3 md:p-4">
         <div className="flex flex-col gap-3 mb-3 md:mb-4">
-          <div className="w-full">
-            <Label className="text-xs md:text-sm mb-2 block">Поиск</Label>
-            <div className="relative">
-              <Icon name="Search" className="absolute left-2 md:left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-              <Input
-                placeholder="Поиск..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8 md:pl-10 text-sm"
-              />
-              {searchQuery && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0"
-                  onClick={() => setSearchQuery('')}
-                >
-                  <Icon name="X" size={14} />
-                </Button>
-              )}
+          <div className="flex gap-2 items-end">
+            <div className="flex-1">
+              <Label className="text-xs md:text-sm mb-2 block">Поиск</Label>
+              <div className="relative">
+                <Icon name="Search" className="absolute left-2 md:left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+                <Input
+                  placeholder="Поиск..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-8 md:pl-10 text-sm"
+                />
+                {searchQuery && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0"
+                    onClick={() => setSearchQuery('')}
+                  >
+                    <Icon name="X" size={14} />
+                  </Button>
+                )}
+              </div>
             </div>
+            {onRefresh && (
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleRefresh}
+                disabled={refreshing}
+                title="Обновить тикеты"
+              >
+                <Icon name="RefreshCw" size={16} className={refreshing ? 'animate-spin' : ''} />
+              </Button>
+            )}
           </div>
         </div>
 
