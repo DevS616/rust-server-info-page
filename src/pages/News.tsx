@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import Icon from '@/components/ui/icon';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import { sanitizeNewsHtml, isHtmlContent, previewText } from '@/utils/newsContent';
 
 interface NewsItem {
   id: number;
@@ -73,8 +74,7 @@ const News = () => {
           ) : (
             <div className="grid md:grid-cols-2 gap-6">
               {newsItems.map((item) => {
-                const isLong = item.description.length > PREVIEW_LENGTH;
-                const preview = isLong ? item.description.slice(0, PREVIEW_LENGTH).trimEnd() + '…' : item.description;
+                const { preview, isLong } = previewText(item.description, PREVIEW_LENGTH);
 
                 return (
                   <Card key={item.id} className="group hover:shadow-lg transition-all duration-300 hover:scale-[1.02] border-muted overflow-hidden flex flex-col">
@@ -165,9 +165,16 @@ const News = () => {
                   </div>
                 )}
 
-                <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                  {selectedNews.description}
-                </p>
+                {isHtmlContent(selectedNews.description) ? (
+                  <div
+                    className="prose prose-sm prose-invert max-w-none text-muted-foreground leading-relaxed"
+                    dangerouslySetInnerHTML={{ __html: sanitizeNewsHtml(selectedNews.description) }}
+                  />
+                ) : (
+                  <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                    {selectedNews.description}
+                  </p>
+                )}
 
                 {selectedNews.button_text && selectedNews.button_url && (
                   <div className="pt-4 border-t mt-2">

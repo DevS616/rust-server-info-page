@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import Icon from '@/components/ui/icon';
+import { sanitizeNewsHtml, isHtmlContent, previewText } from '@/utils/newsContent';
 
 interface NewsItem {
   id: number;
@@ -69,8 +70,7 @@ const NewsSection = () => {
 
         <div className="flex flex-col gap-6 max-w-2xl mx-auto">
           {newsItems.slice(0, 2).map((item, index) => {
-            const isLong = item.description.length > PREVIEW_LENGTH;
-            const preview = isLong ? item.description.slice(0, PREVIEW_LENGTH).trimEnd() + '…' : item.description;
+            const { preview, isLong } = previewText(item.description, PREVIEW_LENGTH);
             const isSecondCut = index === 1;
 
             return (
@@ -181,9 +181,16 @@ const NewsSection = () => {
                 </div>
               )}
 
-              <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                {selectedNews.description}
-              </p>
+              {isHtmlContent(selectedNews.description) ? (
+                <div
+                  className="prose prose-sm prose-invert max-w-none text-muted-foreground leading-relaxed"
+                  dangerouslySetInnerHTML={{ __html: sanitizeNewsHtml(selectedNews.description) }}
+                />
+              ) : (
+                <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                  {selectedNews.description}
+                </p>
+              )}
 
               {selectedNews.button_text && selectedNews.button_url && (
                 <div className="pt-4 border-t mt-2">

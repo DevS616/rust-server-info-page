@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import RichTextEditor from '@/components/admin/RichTextEditor';
+import { stripHtml } from '@/utils/newsContent';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -265,7 +266,7 @@ const NewsTab = ({ token }: NewsTabProps) => {
                         </Badge>
                       )}
                     </div>
-                    <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{item.description}</p>
+                    <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{stripHtml(item.description)}</p>
                     <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
                       <span className="flex items-center gap-1">
                         <Icon name="Calendar" className="h-3 w-3" />
@@ -311,13 +312,14 @@ const NewsTab = ({ token }: NewsTabProps) => {
 
             <div className="space-y-2">
               <Label htmlFor="description">Описание</Label>
-              <Textarea
-                id="description"
+              <RichTextEditor
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Подробное описание новости..."
-                rows={4}
+                onChange={(html) => setFormData({ ...formData, description: html })}
+                placeholder="Подробное описание новости. Выделяйте текст жирным, добавляйте заголовки, списки и ссылки..."
               />
+              <p className="text-xs text-muted-foreground">
+                Используйте панель инструментов для форматирования — жирный, курсив, заголовки, списки, цвета и ссылки.
+              </p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
