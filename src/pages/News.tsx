@@ -183,6 +183,21 @@ const News = () => {
             )}
           </DialogContent>
         </Dialog>
+
+        <div className="mt-16 text-center">
+          <p className="text-muted-foreground mb-4">
+            Хотите быть в курсе всех новостей? Подписывайтесь на наш Telegram!
+          </p>
+          <a
+            href="https://t.me/devilrust"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
+          >
+            <Icon name="Send" className="h-5 w-5" />
+            Telegram канал
+          </a>
+        </div>
       </section>
 
       <Footer />
