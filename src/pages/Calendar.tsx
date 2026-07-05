@@ -115,6 +115,24 @@ const CalendarPage = () => {
           <h1 className="text-3xl font-bold uppercase tracking-wider">Календарь событий</h1>
         </div>
 
+        {hasMapVote && (
+          <button
+            onClick={() => navigate('/vote')}
+            className="w-full mb-6 rounded-xl p-4 bg-primary/15 border-2 border-primary hover:bg-primary/25 transition-colors text-left group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center shrink-0">
+                <Icon name="Map" size={20} className="text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-white">Проголосовать за карту</p>
+                <p className="text-xs text-gray-400">Идёт голосование — выбери следующую карту</p>
+              </div>
+              <Icon name="ChevronRight" size={20} className="text-primary group-hover:translate-x-1 transition-transform shrink-0" />
+            </div>
+          </button>
+        )}
+
         {loading ? (
           <div className="flex justify-center py-20">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" />
@@ -177,25 +195,6 @@ const CalendarPage = () => {
 
             {/* Правая панель */}
             <div className="space-y-4">
-              {/* Голосование за карту */}
-              {hasMapVote && (
-                <button
-                  onClick={() => navigate('/vote')}
-                  className="w-full rounded-xl p-4 bg-primary/15 border-2 border-primary hover:bg-primary/25 transition-colors text-left group"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center shrink-0">
-                      <Icon name="Map" size={20} className="text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold text-white">Проголосовать за карту</p>
-                      <p className="text-xs text-gray-400">Идёт голосование — выбери следующую карту</p>
-                    </div>
-                    <Icon name="ChevronRight" size={20} className="text-primary group-hover:translate-x-1 transition-transform shrink-0" />
-                  </div>
-                </button>
-              )}
-
               {/* Ближайшее событие */}
               {upcomingEvent && (
                 <div

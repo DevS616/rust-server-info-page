@@ -138,12 +138,13 @@ def _connect():
     return psycopg2.connect(os.environ['DATABASE_URL'])
 
 
-def _poll_with_options(cur, poll_row: Dict[str, Any], voter_key: Optional[str]) -> Dict[str, Any]:
+def _poll_with_options(cur, poll_row: Dict[str, Any], voter_key: Optional[str], include_admin: bool = False) -> Dict[str, Any]:
     poll = dict(poll_row)
     pid = poll['id']
 
+    note_col = ', o.admin_note' if include_admin else ''
     cur.execute(f"""
-        SELECT o.id, o.text, o.image_url, o.position,
+        SELECT o.id, o.text, o.image_url, o.position{note_col},
                (SELECT COUNT(*) FROM poll_votes v WHERE v.option_id = o.id) AS votes
         FROM poll_options o
         WHERE o.poll_id = {int(pid)}
@@ -238,7 +239,7 @@ def get_admin_polls() -> Dict[str, Any]:
     cur = conn.cursor(cursor_factory=RealDictCursor)
     cur.execute("SELECT * FROM polls ORDER BY created_at DESC")
     rows = cur.fetchall()
-    result = [_poll_with_options(cur, r, None) for r in rows]
+    result = [_poll_with_options(cur, r, None, include_admin=True) for r in rows]
     cur.close()
     conn.close()
     return json_response({'polls': result})
@@ -314,9 +315,10 @@ def _save_options(cur, pid: int, options: List[Dict[str, Any]]):
         if opt.get('image_base64'):
             image_url = upload_image(opt['image_base64'], opt.get('image_type', 'jpg'))
         img_sql = f"'{escape_sql(image_url)}'" if image_url else 'NULL'
+        note = escape_sql((opt.get('admin_note') or '').strip())
         cur.execute(f"""
-            INSERT INTO poll_options (poll_id, text, image_url, position)
-            VALUES ({pid}, '{text}', {img_sql}, {idx})
+            INSERT INTO poll_options (poll_id, text, image_url, position, admin_note)
+            VALUES ({pid}, '{text}', {img_sql}, {idx}, '{note}')
         """)
 
 
@@ -401,16 +403,17 @@ def update_poll(event: Dict[str, Any]) -> Dict[str, Any]:
         if opt.get('image_base64'):
             image_url = upload_image(opt['image_base64'], opt.get('image_type', 'jpg'))
         img_sql = f"'{escape_sql(image_url)}'" if image_url else 'NULL'
+        note = escape_sql((opt.get('admin_note') or '').strip())
         if oid and int(oid) in old_ids:
             cur.execute(f"""
-                UPDATE poll_options SET text = '{text}', image_url = {img_sql}, position = {idx}
+                UPDATE poll_options SET text = '{text}', image_url = {img_sql}, position = {idx}, admin_note = '{note}'
                 WHERE id = {int(oid)}
             """)
             keep_ids.append(int(oid))
         else:
             cur.execute(f"""
-                INSERT INTO poll_options (poll_id, text, image_url, position)
-                VALUES ({pid}, '{text}', {img_sql}, {idx}) RETURNING id
+                INSERT INTO poll_options (poll_id, text, image_url, position, admin_note)
+                VALUES ({pid}, '{text}', {img_sql}, {idx}, '{note}') RETURNING id
             """)
             keep_ids.append(int(cur.fetchone()['id']))
 

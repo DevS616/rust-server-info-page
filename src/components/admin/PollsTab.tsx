@@ -16,6 +16,7 @@ interface PollOption {
   id?: number;
   text: string;
   image_url?: string | null;
+  admin_note?: string;
   votes?: number;
   image_base64?: string;
   image_type?: string;
@@ -95,7 +96,7 @@ const PollsTab = ({ token }: PollsTabProps) => {
       is_map_vote: poll.is_map_vote,
       is_active: poll.is_active,
       ends_at: toDatetimeLocal(poll.ends_at),
-      options: poll.options.map(o => ({ id: o.id, text: o.text, image_url: o.image_url, _preview: o.image_url })),
+      options: poll.options.map(o => ({ id: o.id, text: o.text, image_url: o.image_url, admin_note: o.admin_note || '', _preview: o.image_url })),
     });
     setDialogOpen(true);
   };
@@ -146,6 +147,7 @@ const PollsTab = ({ token }: PollsTabProps) => {
           id: o.id,
           text: o.text,
           image_url: o.image_url,
+          admin_note: o.admin_note || '',
           image_base64: o.image_base64,
           image_type: o.image_type,
         })),
@@ -296,6 +298,13 @@ const PollsTab = ({ token }: PollsTabProps) => {
                         </label>
                       )}
                     </div>
+                    <Textarea
+                      value={opt.admin_note || ''}
+                      onChange={e => updateOption(idx, { admin_note: e.target.value })}
+                      rows={2}
+                      placeholder="Описание для админа (ссылка на карту и т.п.) — видно только здесь"
+                      className="text-xs bg-background/50"
+                    />
                   </div>
                   {form.options.length > 2 && (
                     <Button size="icon" variant="ghost" onClick={() => removeOption(idx)}>
