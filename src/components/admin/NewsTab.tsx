@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import RichTextEditor from '@/components/admin/RichTextEditor';
+import NewsPreview from '@/components/admin/NewsPreview';
 import { stripHtml } from '@/utils/newsContent';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
@@ -69,6 +70,7 @@ const NewsTab = ({ token }: NewsTabProps) => {
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
 
   const fetchNews = async () => {
     try {
@@ -445,8 +447,12 @@ const NewsTab = ({ token }: NewsTabProps) => {
           </div>
 
           <DialogFooter className="flex-col sm:flex-row gap-2">
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)} className="w-full sm:w-auto">
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)} className="w-full sm:w-auto sm:mr-auto">
               Отмена
+            </Button>
+            <Button variant="secondary" onClick={() => setShowPreview(true)} className="w-full sm:w-auto">
+              <Icon name="Eye" className="h-4 w-4 mr-2" />
+              Предпросмотр
             </Button>
             <Button onClick={handleSave} className="w-full sm:w-auto">
               {editingNews ? 'Сохранить' : 'Создать'}
@@ -454,6 +460,12 @@ const NewsTab = ({ token }: NewsTabProps) => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <NewsPreview
+        open={showPreview}
+        onClose={() => setShowPreview(false)}
+        data={{ ...formData, imagePreview }}
+      />
     </div>
   );
 };
