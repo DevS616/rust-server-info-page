@@ -120,7 +120,7 @@ const HeroSection = () => {
               <span className="block text-primary mt-2 hero-glow-text">DevilRust</span>
             </h1>
             <p className="mx-auto max-w-[700px] text-muted-foreground text-lg md:text-xl">
-              {totalServersCount} уникальных серверов для каждого стиля игры. От хардкорно-ванильного опыта до безумно-модифицированного веселья
+              {onlineServersCount || totalServersCount} уникальных серверов для каждого стиля игры. От хардкорно-ванильного опыта до безумно-модифицированного веселья
             </p>
           </div>
 
@@ -166,7 +166,7 @@ const HeroSection = () => {
 
           <div className="grid grid-cols-3 gap-8 pt-8">
             <div className="flex flex-col items-center p-4 rounded-lg glow-border bg-card/50 backdrop-blur-sm">
-              <div className="text-4xl font-bold text-primary glow-text">{onlineServersCount || 9}</div>
+              <div className="text-4xl font-bold text-primary glow-text">{onlineServersCount || totalServersCount}</div>
               <div className="text-sm text-muted-foreground uppercase tracking-wider">Серверов онлайн</div>
             </div>
             <TooltipProvider>
