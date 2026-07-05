@@ -5,13 +5,18 @@ import MaintenanceSection from './MaintenanceSection';
 import ServersManagement from './ServersManagement';
 import HolidaysSection from './HolidaysSection';
 import ServerDialog, { type Server } from './ServerDialog';
+import PromotionTab from './PromotionTab';
+import PricingTab from './PricingTab';
+import RoadmapTab from './RoadmapTab';
 
 interface ManagementTabProps {
   token: string;
 }
 
+type SubTab = 'maintenance' | 'servers' | 'holidays' | 'promotion' | 'pricing' | 'roadmap';
+
 const ManagementTab = ({ token }: ManagementTabProps) => {
-  const [activeTab, setActiveTab] = useState<'maintenance' | 'servers' | 'holidays'>('maintenance');
+  const [activeTab, setActiveTab] = useState<SubTab>('maintenance');
   const [showServerDialog, setShowServerDialog] = useState(false);
   const [editingServer, setEditingServer] = useState<Server | null>(null);
   const [serversLength, setServersLength] = useState(0);
@@ -39,7 +44,7 @@ const ManagementTab = ({ token }: ManagementTabProps) => {
 
   return (
     <div className="space-y-6">
-      <div className="flex gap-2 mb-6">
+      <div className="flex flex-wrap gap-2 mb-6">
         <Button
           onClick={() => setActiveTab('maintenance')}
           variant={activeTab === 'maintenance' ? 'default' : 'outline'}
@@ -61,6 +66,27 @@ const ManagementTab = ({ token }: ManagementTabProps) => {
           <Icon name="PartyPopper" className="mr-2" />
           Праздники
         </Button>
+        <Button
+          onClick={() => setActiveTab('promotion')}
+          variant={activeTab === 'promotion' ? 'default' : 'outline'}
+        >
+          <Icon name="Gift" className="mr-2" />
+          Акция
+        </Button>
+        <Button
+          onClick={() => setActiveTab('pricing')}
+          variant={activeTab === 'pricing' ? 'default' : 'outline'}
+        >
+          <Icon name="DollarSign" className="mr-2" />
+          Прайс
+        </Button>
+        <Button
+          onClick={() => setActiveTab('roadmap')}
+          variant={activeTab === 'roadmap' ? 'default' : 'outline'}
+        >
+          <Icon name="Map" className="mr-2" />
+          Дорожная карта
+        </Button>
       </div>
 
       {activeTab === 'maintenance' && <MaintenanceSection token={token} />}
@@ -75,6 +101,12 @@ const ManagementTab = ({ token }: ManagementTabProps) => {
       )}
 
       {activeTab === 'holidays' && <HolidaysSection token={token} />}
+
+      {activeTab === 'promotion' && <PromotionTab token={token} />}
+
+      {activeTab === 'pricing' && <PricingTab />}
+
+      {activeTab === 'roadmap' && <RoadmapTab token={token} />}
 
       <ServerDialog
         open={showServerDialog}

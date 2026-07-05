@@ -8,13 +8,10 @@ import { useToast } from '@/hooks/use-toast';
 import AdminLogin from '@/components/admin/AdminLogin';
 import TicketsTab from '@/components/admin/TicketsTab';
 import ManagementTab from '@/components/admin/ManagementTab';
-import PromotionTab from '@/components/admin/PromotionTab';
 import NewsTab from '@/components/admin/NewsTab';
-import PricingTab from '@/components/admin/PricingTab';
 import BonusInfoTab from '@/components/admin/BonusInfoTab';
 import EventsTab from '@/components/admin/EventsTab';
 import ComplaintsTab from '@/components/admin/ComplaintsTab';
-import RoadmapTab from '@/components/admin/RoadmapTab';
 
 import { useAdminAuth } from '@/components/admin/AdminAuth';
 import { useAdminDataLoader, Ticket, Message, Server } from '@/components/admin/AdminDataLoader';
@@ -310,7 +307,7 @@ const Admin = () => {
         </Card>
 
         <Tabs defaultValue="tickets" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-9 h-auto gap-1">
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 h-auto gap-1">
             <TabsTrigger value="tickets" className="text-xs md:text-sm px-1.5 py-2 md:py-2.5 flex-col sm:flex-row gap-0.5 sm:gap-2">
               <Icon name="MessageSquare" className="h-4 w-4" />
               <span className="text-[10px] sm:text-xs md:text-sm">Тикеты</span>
@@ -327,25 +324,13 @@ const Admin = () => {
               <Icon name="Calendar" className="h-4 w-4" />
               <span className="text-[10px] sm:text-xs md:text-sm">События</span>
             </TabsTrigger>
-            <TabsTrigger value="promotion" className="text-xs md:text-sm px-1.5 py-2 md:py-2.5 flex-col sm:flex-row gap-0.5 sm:gap-2">
-              <Icon name="Gift" className="h-4 w-4" />
-              <span className="text-[10px] sm:text-xs md:text-sm">Акция</span>
-            </TabsTrigger>
             <TabsTrigger value="news" className="text-xs md:text-sm px-1.5 py-2 md:py-2.5 flex-col sm:flex-row gap-0.5 sm:gap-2">
               <Icon name="Newspaper" className="h-4 w-4" />
               <span className="text-[10px] sm:text-xs md:text-sm">Новости</span>
             </TabsTrigger>
-            <TabsTrigger value="pricing" className="text-xs md:text-sm px-1.5 py-2 md:py-2.5 flex-col sm:flex-row gap-0.5 sm:gap-2">
-              <Icon name="DollarSign" className="h-4 w-4" />
-              <span className="text-[10px] sm:text-xs md:text-sm">Прайс</span>
-            </TabsTrigger>
             <TabsTrigger value="complaints" className="text-xs md:text-sm px-1.5 py-2 md:py-2.5 flex-col sm:flex-row gap-0.5 sm:gap-2 text-destructive data-[state=active]:text-destructive">
               <Icon name="AlertTriangle" className="h-4 w-4" />
               <span className="text-[10px] sm:text-xs md:text-sm">Жалобы</span>
-            </TabsTrigger>
-            <TabsTrigger value="roadmap" className="text-xs md:text-sm px-1.5 py-2 md:py-2.5 flex-col sm:flex-row gap-0.5 sm:gap-2">
-              <Icon name="Map" className="h-4 w-4" />
-              <span className="text-[10px] sm:text-xs md:text-sm">Дорожная карта</span>
             </TabsTrigger>
           </TabsList>
 
@@ -396,24 +381,12 @@ const Admin = () => {
             <EventsTab token={token!} />
           </TabsContent>
 
-          <TabsContent value="promotion">
-            <PromotionTab token={token!} />
-          </TabsContent>
-
           <TabsContent value="news">
             <NewsTab token={token!} />
           </TabsContent>
 
-          <TabsContent value="pricing">
-            <PricingTab />
-          </TabsContent>
-
           <TabsContent value="complaints">
             <ComplaintsTab token={token!} />
-          </TabsContent>
-
-          <TabsContent value="roadmap">
-            <RoadmapTab token={token!} />
           </TabsContent>
         </Tabs>
       </div>
