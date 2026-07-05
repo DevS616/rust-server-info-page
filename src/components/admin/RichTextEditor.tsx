@@ -33,6 +33,14 @@ const RichTextEditor = ({ value, onChange, placeholder, token }: RichTextEditorP
   const [active, setActive] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
+    try {
+      document.execCommand('defaultParagraphSeparator', false, 'p');
+    } catch {
+      /* not supported */
+    }
+  }, []);
+
+  useEffect(() => {
     if (editorRef.current && editorRef.current.innerHTML !== value) {
       editorRef.current.innerHTML = value || '';
       setIsEmpty(!value || value === '<br>');
@@ -77,6 +85,19 @@ const RichTextEditor = ({ value, onChange, placeholder, token }: RichTextEditorP
     const url = window.prompt('Введите ссылку (https://...)');
     if (url) exec('createLink', url);
   }, [exec]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Enter') {
+      if (e.shiftKey) {
+        e.preventDefault();
+        document.execCommand('insertLineBreak');
+      } else {
+        e.preventDefault();
+        document.execCommand('insertParagraph');
+      }
+      emit();
+    }
+  }, [emit]);
 
   const saveSelection = useCallback(() => {
     const sel = window.getSelection();
@@ -298,6 +319,7 @@ const RichTextEditor = ({ value, onChange, placeholder, token }: RichTextEditorP
           contentEditable
           suppressContentEditableWarning
           onInput={emit}
+          onKeyDown={handleKeyDown}
           onKeyUp={() => { updateActive(); saveSelection(); }}
           onMouseUp={() => { updateActive(); saveSelection(); }}
           onBlur={emit}

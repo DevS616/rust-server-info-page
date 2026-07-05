@@ -4,6 +4,16 @@
 @tailwind components;
 @tailwind utilities;
 
+.news-editor p:empty::before,
+.prose p:empty::before {
+  content: "";
+  display: inline-block;
+}
+.news-editor p,
+.prose p {
+  min-height: 1em;
+}
+
 @layer base {
   :root {
     --background: 0 0% 11%;
