@@ -154,6 +154,23 @@ def _poll_with_options(cur, poll_row: Dict[str, Any], voter_key: Optional[str], 
     for o in options:
         o['votes'] = int(o['votes'])
 
+    for o in options:
+        cur.execute(f"""
+            SELECT voter_name, voter_avatar, voter_steam_id, created_at
+            FROM poll_votes
+            WHERE option_id = {int(o['id'])}
+            ORDER BY created_at ASC, id ASC
+        """)
+        voters = []
+        for vr in cur.fetchall():
+            voters.append({
+                'name': vr['voter_name'] or 'Игрок',
+                'avatar': vr['voter_avatar'] or '',
+                'steam_id': vr['voter_steam_id'] or '',
+            })
+        o['voters'] = voters
+        o['voters_preview'] = voters[:5]
+
     total = sum(o['votes'] for o in options)
     poll['total_votes'] = total
 
@@ -257,7 +274,14 @@ def vote(event: Dict[str, Any]) -> Dict[str, Any]:
     except (ValueError, TypeError):
         return error_response('Invalid ids')
 
-    voter_key = get_voter_key(event, body)
+    steam_id = (body.get('steam_id') or '').strip()
+    if not steam_id:
+        return error_response('Authorization required', 401)
+
+    voter_name = escape_sql((body.get('username') or '').strip())
+    voter_avatar = escape_sql((body.get('avatar') or '').strip())
+    voter_steam = escape_sql(steam_id)
+    voter_key = f"steam:{steam_id}"
 
     conn = _connect()
     cur = conn.cursor(cursor_factory=RealDictCursor)
@@ -295,8 +319,8 @@ def vote(event: Dict[str, Any]) -> Dict[str, Any]:
     cur.execute(f"DELETE FROM poll_votes WHERE poll_id = {pid} AND voter_key = '{vk}'")
     for oid in option_ids:
         cur.execute(f"""
-            INSERT INTO poll_votes (poll_id, option_id, voter_key)
-            VALUES ({pid}, {oid}, '{vk}')
+            INSERT INTO poll_votes (poll_id, option_id, voter_key, voter_name, voter_avatar, voter_steam_id)
+            VALUES ({pid}, {oid}, '{vk}', '{voter_name}', '{voter_avatar}', '{voter_steam}')
         """)
     conn.commit()
 

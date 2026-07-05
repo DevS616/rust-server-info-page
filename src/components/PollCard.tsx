@@ -1,17 +1,25 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
 
 export const POLLS_API = 'https://functions.poehali.dev/b11aeefa-8364-460f-a54e-6338ddb77cf3';
+
+export interface Voter {
+  name: string;
+  avatar: string;
+  steam_id: string;
+}
 
 export interface PollOption {
   id: number;
   text: string;
   image_url?: string | null;
   votes: number;
+  voters?: Voter[];
+  voters_preview?: Voter[];
 }
 
 export interface Poll {
@@ -30,13 +38,34 @@ export interface Poll {
   winner_option_id: number | null;
 }
 
-const getSteamId = (): string => {
+interface SteamUser {
+  steamId: string;
+  username: string;
+  avatar: string;
+}
+
+const getSteamUser = (): SteamUser | null => {
   try {
     const u = localStorage.getItem('steam_user');
-    if (u) return JSON.parse(u).steamId || '';
+    if (u) {
+      const d = JSON.parse(u);
+      if (d.steamId) return { steamId: d.steamId, username: d.username || 'Игрок', avatar: d.avatar || '' };
+    }
   } catch { /* ignore */ }
-  return '';
+  return null;
 };
+
+const Avatar = ({ voter, size = 24 }: { voter: Voter; size?: number }) => (
+  voter.avatar ? (
+    <img src={voter.avatar} alt={voter.name} title={voter.name}
+      className="rounded-full object-cover border-2 border-gray-900" style={{ width: size, height: size }} />
+  ) : (
+    <span className="rounded-full bg-gray-700 border-2 border-gray-900 flex items-center justify-center text-[10px] text-white"
+      title={voter.name} style={{ width: size, height: size }}>
+      {(voter.name || '?').charAt(0).toUpperCase()}
+    </span>
+  )
+);
 
 interface PollCardProps {
   poll: Poll;
@@ -48,7 +77,10 @@ const PollCard = ({ poll, onUpdated }: PollCardProps) => {
   const [selected, setSelected] = useState<number[]>(poll.my_votes || []);
   const [submitting, setSubmitting] = useState(false);
   const [zoomImage, setZoomImage] = useState<string | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
+  const user = getSteamUser();
+  const isAuthed = !!user;
   const showResults = poll.has_voted || poll.is_finished;
   const winner = poll.winner_option_id;
 
@@ -61,6 +93,7 @@ const PollCard = ({ poll, onUpdated }: PollCardProps) => {
   };
 
   const submit = async () => {
+    if (!user) return;
     if (!selected.length) {
       toast({ title: 'Выберите вариант', variant: 'destructive' });
       return;
@@ -70,7 +103,13 @@ const PollCard = ({ poll, onUpdated }: PollCardProps) => {
       const res = await fetch(`${POLLS_API}/?action=vote`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ poll_id: poll.id, option_ids: selected, steam_id: getSteamId() }),
+        body: JSON.stringify({
+          poll_id: poll.id,
+          option_ids: selected,
+          steam_id: user.steamId,
+          username: user.username,
+          avatar: user.avatar,
+        }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -116,6 +155,8 @@ const PollCard = ({ poll, onUpdated }: PollCardProps) => {
           const isMine = poll.my_votes?.includes(opt.id);
           const isWinner = winner === opt.id;
           const percent = pct(opt.votes);
+          const preview = opt.voters_preview || [];
+          const extra = opt.votes - preview.length;
 
           return (
             <div key={opt.id}>
@@ -142,6 +183,16 @@ const PollCard = ({ poll, onUpdated }: PollCardProps) => {
                           <span className="text-xs bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full shrink-0">Победитель</span>
                         )}
                       </div>
+                      {preview.length > 0 && (
+                        <div className="flex items-center mt-1.5">
+                          <div className="flex -space-x-2">
+                            {preview.map((v, i) => <Avatar key={i} voter={v} size={22} />)}
+                          </div>
+                          {extra > 0 && (
+                            <span className="ml-2 text-xs text-gray-400">+{extra}</span>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <div className="text-right shrink-0">
                       <div className="text-white font-bold">{percent}%</div>
@@ -151,9 +202,11 @@ const PollCard = ({ poll, onUpdated }: PollCardProps) => {
                 </div>
               ) : (
                 <button
-                  onClick={() => toggle(opt.id)}
+                  onClick={() => isAuthed && toggle(opt.id)}
+                  disabled={!isAuthed}
                   className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all text-left
-                    ${isSelected ? 'border-primary bg-primary/10' : 'border-gray-700 bg-gray-800/40 hover:bg-gray-800'}`}
+                    ${isSelected ? 'border-primary bg-primary/10' : 'border-gray-700 bg-gray-800/40 hover:bg-gray-800'}
+                    ${!isAuthed ? 'opacity-60 cursor-not-allowed' : ''}`}
                 >
                   {poll.multiple_choice ? (
                     <Checkbox checked={isSelected} className="shrink-0" />
@@ -179,14 +232,62 @@ const PollCard = ({ poll, onUpdated }: PollCardProps) => {
       </div>
 
       {!showResults && (
-        <Button onClick={submit} disabled={submitting || !selected.length} className="w-full mt-4">
-          {submitting ? <Icon name="Loader2" className="animate-spin mr-2 h-4 w-4" /> : <Icon name="Check" className="mr-2 h-4 w-4" />}
-          Проголосовать
-        </Button>
+        isAuthed ? (
+          <Button onClick={submit} disabled={submitting || !selected.length} className="w-full mt-4">
+            {submitting ? <Icon name="Loader2" className="animate-spin mr-2 h-4 w-4" /> : <Icon name="Check" className="mr-2 h-4 w-4" />}
+            Проголосовать
+          </Button>
+        ) : (
+          <div className="mt-4 flex items-center justify-center gap-2 py-3 rounded-xl border border-gray-700 bg-gray-800/40 text-gray-400 text-sm">
+            <Icon name="Lock" size={16} />
+            Авторизуйтесь для участия
+          </div>
+        )
       )}
+
       {poll.has_voted && !poll.is_finished && (
         <p className="text-center text-xs text-gray-500 mt-3">Вы уже проголосовали. Результаты обновляются в реальном времени.</p>
       )}
+
+      {showResults && poll.total_votes > 0 && (
+        <button
+          onClick={() => setDetailsOpen(true)}
+          className="w-full mt-3 flex items-center justify-center gap-1.5 text-sm text-primary hover:text-primary/80 transition-colors"
+        >
+          <Icon name="Users" size={15} />
+          Подробнее — кто голосовал
+        </button>
+      )}
+
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Результаты голосования</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {poll.options.map(opt => (
+              <div key={opt.id}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-medium text-sm">{opt.text}</span>
+                  <span className="text-xs text-muted-foreground">{opt.votes} · {pct(opt.votes)}%</span>
+                </div>
+                {opt.voters && opt.voters.length > 0 ? (
+                  <div className="space-y-1.5">
+                    {opt.voters.map((v, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <Avatar voter={v} size={26} />
+                        <span className="text-sm truncate">{v.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Нет голосов</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!zoomImage} onOpenChange={() => setZoomImage(null)}>
         <DialogContent className="max-w-3xl p-2 bg-transparent border-0 shadow-none">
