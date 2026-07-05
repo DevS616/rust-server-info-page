@@ -67,7 +67,7 @@ const NewsSection = () => {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="flex flex-col gap-6 max-w-2xl mx-auto">
           {newsItems.slice(0, 2).map((item, index) => {
             const isLong = item.description.length > PREVIEW_LENGTH;
             const preview = isLong ? item.description.slice(0, PREVIEW_LENGTH).trimEnd() + '…' : item.description;
