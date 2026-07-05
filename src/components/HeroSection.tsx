@@ -19,6 +19,8 @@ interface ServerEntry {
 
 const allServers = [...serversData.pveServers, ...serversData.pvpServers, ...serversData.creativeServers];
 
+const totalServersCount = allServers.length;
+
 const gameModeCount = Object.keys(serversData).filter(k => k.endsWith('Servers')).length;
 
 const gameModeWord = (() => {
@@ -118,7 +120,7 @@ const HeroSection = () => {
               <span className="block text-primary mt-2 hero-glow-text">DevilRust</span>
             </h1>
             <p className="mx-auto max-w-[700px] text-muted-foreground text-lg md:text-xl">
-              9 уникальных серверов для каждого стиля игры. От хардкорно-ванильного опыта до безумно-модифицированного веселья
+              {totalServersCount} уникальных серверов для каждого стиля игры. От хардкорно-ванильного опыта до безумно-модифицированного веселья
             </p>
           </div>
 
