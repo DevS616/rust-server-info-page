@@ -21,6 +21,14 @@ const allServers = [...serversData.pveServers, ...serversData.pvpServers, ...ser
 
 const totalServersCount = allServers.length;
 
+const serverWord = (n: number) => {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return 'сервер';
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return 'сервера';
+  return 'серверов';
+};
+
 const gameModeCount = Object.keys(serversData).filter(k => k.endsWith('Servers')).length;
 
 const gameModeWord = (() => {
@@ -120,7 +128,7 @@ const HeroSection = () => {
               <span className="block text-primary mt-2 hero-glow-text">DevilRust</span>
             </h1>
             <p className="mx-auto max-w-[700px] text-muted-foreground text-lg md:text-xl">
-              {onlineServersCount || totalServersCount} уникальных серверов для каждого стиля игры. От хардкорно-ванильного опыта до безумно-модифицированного веселья
+              {(() => { const n = onlineServersCount || totalServersCount; return `${n} уникальны${n % 10 === 1 && n % 100 !== 11 ? 'й' : 'х'} ${serverWord(n)}`; })()} для каждого стиля игры. От хардкорно-ванильного опыта до безумно-модифицированного веселья
             </p>
           </div>
 
@@ -167,7 +175,7 @@ const HeroSection = () => {
           <div className="grid grid-cols-3 gap-8 pt-8">
             <div className="flex flex-col items-center p-4 rounded-lg glow-border bg-card/50 backdrop-blur-sm">
               <div className="text-4xl font-bold text-primary glow-text">{onlineServersCount || totalServersCount}</div>
-              <div className="text-sm text-muted-foreground uppercase tracking-wider">Серверов онлайн</div>
+              <div className="text-sm text-muted-foreground uppercase tracking-wider">{serverWord(onlineServersCount || totalServersCount)} онлайн</div>
             </div>
             <TooltipProvider>
               <Tooltip>
