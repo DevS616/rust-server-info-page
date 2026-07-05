@@ -21,6 +21,7 @@ const CalendarPage = () => {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [timeLeft, setTimeLeft] = useState('');
   const [loading, setLoading] = useState(true);
+  const [hasMapVote, setHasMapVote] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -35,6 +36,16 @@ const CalendarPage = () => {
       }
     };
     load();
+  }, []);
+
+  useEffect(() => {
+    fetch('https://functions.poehali.dev/b11aeefa-8364-460f-a54e-6338ddb77cf3/')
+      .then(r => r.ok ? r.json() : { polls: [] })
+      .then(data => {
+        const active = (data.polls || []).some((p: { is_map_vote: boolean; is_finished: boolean }) => p.is_map_vote && !p.is_finished);
+        setHasMapVote(active);
+      })
+      .catch(() => {});
   }, []);
 
   const getUpcomingEvent = useCallback((moscowTime: Date) => {
@@ -166,6 +177,25 @@ const CalendarPage = () => {
 
             {/* Правая панель */}
             <div className="space-y-4">
+              {/* Голосование за карту */}
+              {hasMapVote && (
+                <button
+                  onClick={() => navigate('/vote')}
+                  className="w-full rounded-xl p-4 bg-primary/15 border-2 border-primary hover:bg-primary/25 transition-colors text-left group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center shrink-0">
+                      <Icon name="Map" size={20} className="text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-white">Проголосовать за карту</p>
+                      <p className="text-xs text-gray-400">Идёт голосование — выбери следующую карту</p>
+                    </div>
+                    <Icon name="ChevronRight" size={20} className="text-primary group-hover:translate-x-1 transition-transform shrink-0" />
+                  </div>
+                </button>
+              )}
+
               {/* Ближайшее событие */}
               {upcomingEvent && (
                 <div

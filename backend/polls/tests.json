@@ -1,0 +1,42 @@
+{
+  "tests": [
+    {
+      "name": "Get active polls",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Admin list requires auth",
+      "method": "GET",
+      "path": "/?action=admin-list",
+      "expectedStatus": 401,
+      "expectedBody": {
+        "error": "string"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Create requires auth",
+      "method": "POST",
+      "path": "/",
+      "body": {"title": "Test", "options": [{"text": "A"}, {"text": "B"}]},
+      "expectedStatus": 401,
+      "expectedBody": {
+        "error": "string"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Vote without data fails",
+      "method": "POST",
+      "path": "/?action=vote",
+      "body": {},
+      "expectedStatus": 400,
+      "expectedBody": {
+        "error": "string"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

@@ -23,6 +23,7 @@ import UserAgreement from "./pages/UserAgreement";
 import NotFound from "./pages/NotFound";
 import CalendarPage from "./pages/Calendar";
 import News from "./pages/News";
+import Vote from "./pages/Vote";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -149,6 +150,7 @@ const AppContent = () => {
         <Route path="/img" element={<ImgHosting />} />
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/news" element={<News />} />
+        <Route path="/vote" element={<Vote />} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/agreement" element={<UserAgreement />} />
         <Route path="*" element={<NotFound />} />

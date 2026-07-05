@@ -8,12 +8,13 @@ import ServerDialog, { type Server } from './ServerDialog';
 import PromotionTab from './PromotionTab';
 import PricingTab from './PricingTab';
 import RoadmapTab from './RoadmapTab';
+import PollsTab from './PollsTab';
 
 interface ManagementTabProps {
   token: string;
 }
 
-type SubTab = 'maintenance' | 'servers' | 'holidays' | 'promotion' | 'pricing' | 'roadmap';
+type SubTab = 'maintenance' | 'servers' | 'holidays' | 'promotion' | 'pricing' | 'roadmap' | 'polls';
 
 const ManagementTab = ({ token }: ManagementTabProps) => {
   const [activeTab, setActiveTab] = useState<SubTab>('maintenance');
@@ -87,6 +88,13 @@ const ManagementTab = ({ token }: ManagementTabProps) => {
           <Icon name="Map" className="mr-2" />
           Дорожная карта
         </Button>
+        <Button
+          onClick={() => setActiveTab('polls')}
+          variant={activeTab === 'polls' ? 'default' : 'outline'}
+        >
+          <Icon name="BarChart3" className="mr-2" />
+          Опросы
+        </Button>
       </div>
 
       {activeTab === 'maintenance' && <MaintenanceSection token={token} />}
@@ -107,6 +115,8 @@ const ManagementTab = ({ token }: ManagementTabProps) => {
       {activeTab === 'pricing' && <PricingTab />}
 
       {activeTab === 'roadmap' && <RoadmapTab token={token} />}
+
+      {activeTab === 'polls' && <PollsTab token={token} />}
 
       <ServerDialog
         open={showServerDialog}
