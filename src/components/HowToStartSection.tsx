@@ -1,19 +1,9 @@
-import { useState, memo } from 'react';
+import { memo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Icon from '@/components/ui/icon';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Checkbox } from '@/components/ui/checkbox';
 
 const HowToStartSection = () => {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [hasAgreed, setHasAgreed] = useState(false);
-
-  const handleDialogClose = () => {
-    setIsDialogOpen(false);
-    setHasAgreed(false);
-  };
-
   return (
     <section id="how-to-start" className="py-20 relative">
 
@@ -37,7 +27,7 @@ const HowToStartSection = () => {
                   1
                 </div>
                 <div className="flex-1 pt-1">
-                  <h4 className="font-semibold mb-1">Купите игру в Steam или скачайте Лаунчер</h4>
+                  <h4 className="font-semibold mb-1">Купите игру в Steam</h4>
                   <p className="text-sm text-muted-foreground">
                     Мы не поддерживаем пиратство и советуем купить игру на площадке STEAM, во избежании проблем с подключением к нашим серверам.
                   </p>
@@ -68,7 +58,7 @@ const HowToStartSection = () => {
             </div>
 
             <div className="pt-4 flex flex-col sm:flex-row gap-6 sm:gap-3">
-              <Button size="lg" className="flex-1 bg-[#1b2838] hover:bg-[#2a475e] text-white shadow-lg shadow-[#66c0f4]/30 hover:shadow-[#66c0f4]/50 border border-[#66c0f4]/50 hover:border-[#66c0f4] transition-all relative overflow-hidden group" asChild>
+              <Button size="lg" className="w-full bg-[#1b2838] hover:bg-[#2a475e] text-white shadow-lg shadow-[#66c0f4]/30 hover:shadow-[#66c0f4]/50 border border-[#66c0f4]/50 hover:border-[#66c0f4] transition-all relative overflow-hidden group" asChild>
                 <a href="https://store.steampowered.com/app/252490/Rust/" target="_blank" rel="noopener noreferrer" className="relative z-10">
                   <div className="absolute inset-0 opacity-[0.03] group-hover:opacity-[0.06] transition-opacity">
                     <Icon name="Skull" className="absolute top-2 left-2 w-8 h-8 text-white" />
@@ -81,78 +71,10 @@ const HowToStartSection = () => {
                   Купить игру в Steam
                 </a>
               </Button>
-              <Button 
-                size="lg" 
-                variant="outline" 
-                className="flex-1 border-primary/20 hover:border-primary/50 hover:bg-primary/10 hover:shadow-lg hover:shadow-primary/40 transition-all relative overflow-hidden group"
-                onClick={() => setIsDialogOpen(true)}
-              >
-                <div className="absolute inset-0 opacity-[0.03] group-hover:opacity-[0.06] transition-opacity">
-                  <Icon name="Swords" className="absolute top-2 right-2 w-8 h-8 text-primary" />
-                  <Icon name="Flame" className="absolute bottom-2 left-2 w-10 h-10 text-primary" />
-                  <Icon name="Shield" className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 text-primary" />
-                </div>
-                <Icon name="Download" className="mr-2 h-5 w-5" />
-                Скачать лаунчер
-              </Button>
             </div>
           </CardContent>
         </Card>
       </div>
-
-      <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
-        <DialogContent className="sm:max-w-md border-destructive/30 shadow-destructive/20">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 animate-fade-in">
-              <Icon name="AlertTriangle" className="h-5 w-5 text-destructive animate-pulse" />
-              Важное предупреждение
-            </DialogTitle>
-            <DialogDescription className="text-base pt-4 space-y-4 animate-fade-in">
-              <p className="text-foreground leading-relaxed">
-                <span className="text-destructive font-bold"></span> При установке лаунчера во избежании ошибок <span className="text-destructive font-bold">НЕ ИСПОЛЬЗУЙТЕ КИРИЛЛИЦУ</span> в пути установки.
-              </p>
-              <p className="text-muted-foreground text-sm">
-                Устанавливайте лаунчер только в папки с латинскими буквами (например: C:\Games\Launcher)
-              </p>
-              <p className="text-foreground leading-relaxed border-t border-destructive/20 pt-4 mt-4">• Данный проект никак не относится к решению ошибок и проблем с подключением связанными при использовании любых пиратских лаунчеров и в целом не поддерживает пиратство. Устанавливая бесплатную версию игры вы автоматически соглашаетесь с данной политикой.</p>
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-6 pt-4">
-            <div className="flex items-start space-x-3 p-4 rounded-lg bg-muted/50 border border-primary/20 transition-all duration-300 hover:border-primary/40 animate-fade-in">
-              <Checkbox 
-                id="agree" 
-                checked={hasAgreed}
-                onCheckedChange={(checked) => setHasAgreed(checked as boolean)}
-                className="mt-1 transition-all duration-200"
-              />
-              <label
-                htmlFor="agree"
-                className="text-sm leading-relaxed cursor-pointer select-none transition-colors hover:text-foreground"
-              >Я прочитал условия и согласен с ними.</label>
-            </div>
-
-            <Button 
-              size="lg" 
-              className="w-full transition-all duration-300 animate-fade-in" 
-              disabled={!hasAgreed}
-              asChild={hasAgreed}
-            >
-              {hasAgreed ? (
-                <a href="https://ulauncher.lol/" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center">
-                  <Icon name="Download" className="mr-2 h-5 w-5" />
-                  Скачать лаунчер
-                </a>
-              ) : (
-                <>
-                  <Icon name="Download" className="mr-2 h-5 w-5" />
-                  Скачать лаунчер
-                </>
-              )}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </section>
   );
 };
