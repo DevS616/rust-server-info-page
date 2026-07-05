@@ -7,7 +7,6 @@ import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
 import AdminLogin from '@/components/admin/AdminLogin';
 import TicketsTab from '@/components/admin/TicketsTab';
-import ServersTab from '@/components/admin/ServersTab';
 import ManagementTab from '@/components/admin/ManagementTab';
 import PromotionTab from '@/components/admin/PromotionTab';
 import NewsTab from '@/components/admin/NewsTab';
@@ -311,14 +310,10 @@ const Admin = () => {
         </Card>
 
         <Tabs defaultValue="tickets" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 sm:grid-cols-10 h-auto gap-1">
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-9 h-auto gap-1">
             <TabsTrigger value="tickets" className="text-xs md:text-sm px-1.5 py-2 md:py-2.5 flex-col sm:flex-row gap-0.5 sm:gap-2">
               <Icon name="MessageSquare" className="h-4 w-4" />
               <span className="text-[10px] sm:text-xs md:text-sm">Тикеты</span>
-            </TabsTrigger>
-            <TabsTrigger value="servers" className="text-xs md:text-sm px-1.5 py-2 md:py-2.5 flex-col sm:flex-row gap-0.5 sm:gap-2">
-              <Icon name="Database" className="h-4 w-4" />
-              <span className="text-[10px] sm:text-xs md:text-sm">Серверы</span>
             </TabsTrigger>
             <TabsTrigger value="management" className="text-xs md:text-sm px-1.5 py-2 md:py-2.5 flex-col sm:flex-row gap-0.5 sm:gap-2">
               <Icon name="Settings" className="h-4 w-4" />
@@ -387,10 +382,6 @@ const Admin = () => {
               adminId={admin ? Number(admin.id) : undefined}
               onRefresh={() => token && loadTickets(token, false)}
             />
-          </TabsContent>
-
-          <TabsContent value="servers">
-            <ServersTab token={token!} />
           </TabsContent>
 
           <TabsContent value="management">

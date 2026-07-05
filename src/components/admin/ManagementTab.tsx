@@ -70,6 +70,7 @@ const ManagementTab = ({ token }: ManagementTabProps) => {
           token={token}
           onAddServer={handleAddServer}
           onEditServer={handleEditServer}
+          onServersLoaded={setServersLength}
         />
       )}
 

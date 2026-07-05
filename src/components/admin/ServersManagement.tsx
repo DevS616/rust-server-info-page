@@ -13,9 +13,10 @@ interface ServersManagementProps {
   token: string;
   onEditServer: (server: Server) => void;
   onAddServer: () => void;
+  onServersLoaded?: (count: number) => void;
 }
 
-const ServersManagement = ({ token, onEditServer, onAddServer }: ServersManagementProps) => {
+const ServersManagement = ({ token, onEditServer, onAddServer, onServersLoaded }: ServersManagementProps) => {
   const { toast } = useToast();
   const [servers, setServers] = useState<Server[]>([]);
   const [loadingServers, setLoadingServers] = useState(false);
@@ -30,7 +31,9 @@ const ServersManagement = ({ token, onEditServer, onAddServer }: ServersManageme
       const res = await fetch(`${API_BASE}/cd63f370-b8ea-4adc-ace4-a274aa6f6e34/`);
       if (res.ok) {
         const data = await res.json();
-        setServers(data.servers || []);
+        const list = data.servers || [];
+        setServers(list);
+        onServersLoaded?.(list.length);
       }
     } catch (error) {
       console.error('Failed to load servers:', error);
