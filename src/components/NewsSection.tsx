@@ -1,4 +1,5 @@
 import { useState, useEffect, memo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -28,6 +29,7 @@ const categoryConfig = {
 const PREVIEW_LENGTH = 300;
 
 const NewsSection = () => {
+  const navigate = useNavigate();
   const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedNews, setSelectedNews] = useState<NewsItem | null>(null);
@@ -66,12 +68,16 @@ const NewsSection = () => {
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">
-          {newsItems.map((item) => {
+          {newsItems.slice(0, 2).map((item, index) => {
             const isLong = item.description.length > PREVIEW_LENGTH;
             const preview = isLong ? item.description.slice(0, PREVIEW_LENGTH).trimEnd() + '…' : item.description;
+            const isSecondCut = index === 1;
 
             return (
-              <Card key={item.id} className="group hover:shadow-lg transition-all duration-300 hover:scale-[1.02] border-muted overflow-hidden flex flex-col">
+              <Card
+                key={item.id}
+                className={`group hover:shadow-lg transition-all duration-300 hover:scale-[1.02] border-muted overflow-hidden flex flex-col ${isSecondCut ? 'relative max-h-[420px]' : ''}`}
+              >
                 {item.image_url && (
                   <div className="w-full h-48 overflow-hidden">
                     <img
@@ -102,34 +108,50 @@ const NewsSection = () => {
                 </CardHeader>
                 <CardContent className="flex flex-col flex-1">
                   <p className="text-muted-foreground leading-relaxed flex-1">{preview}</p>
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    {isLong && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="self-start text-primary hover:text-primary/80 px-0"
-                        onClick={() => setSelectedNews(item)}
-                      >
-                        Читать полностью
-                        <Icon name="ChevronRight" size={16} className="ml-1" />
-                      </Button>
-                    )}
-                    {item.button_text && item.button_url && (
-                      <a href={item.button_url} target="_blank" rel="noopener noreferrer">
-                        <Button size="sm" variant="outline">
-                          {item.button_text}
-                          <Icon name="ExternalLink" size={14} className="ml-1.5" />
+                  {!isSecondCut && (
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      {isLong && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="self-start text-primary hover:text-primary/80 px-0"
+                          onClick={() => setSelectedNews(item)}
+                        >
+                          Читать полностью
+                          <Icon name="ChevronRight" size={16} className="ml-1" />
                         </Button>
-                      </a>
-                    )}
-                  </div>
+                      )}
+                      {item.button_text && item.button_url && (
+                        <a href={item.button_url} target="_blank" rel="noopener noreferrer">
+                          <Button size="sm" variant="outline">
+                            {item.button_text}
+                            <Icon name="ExternalLink" size={14} className="ml-1.5" />
+                          </Button>
+                        </a>
+                      )}
+                    </div>
+                  )}
                 </CardContent>
+                {isSecondCut && (
+                  <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-background to-transparent pointer-events-none" />
+                )}
               </Card>
             );
           })}
         </div>
 
-        <div className="mt-12 text-center">
+        <div className="mt-10 text-center">
+          <Button
+            size="lg"
+            onClick={() => navigate('/news')}
+            className="font-medium"
+          >
+            Прочитать все
+            <Icon name="ArrowRight" size={18} className="ml-2" />
+          </Button>
+        </div>
+
+        <div className="mt-10 text-center">
           <p className="text-muted-foreground mb-4">
             Хотите быть в курсе всех новостей? Подписывайтесь на наш Telegram!
           </p>

@@ -1,0 +1,193 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import Icon from '@/components/ui/icon';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
+
+interface NewsItem {
+  id: number;
+  title: string;
+  description: string;
+  date: string;
+  category: 'update' | 'event' | 'wipe' | 'news';
+  icon: string;
+  image_url?: string;
+  button_text?: string;
+  button_url?: string;
+  is_published: boolean;
+}
+
+const categoryConfig = {
+  update: { label: 'Обновление', color: 'bg-muted text-muted-foreground border-border' },
+  event: { label: 'Ивент', color: 'bg-primary/10 text-primary border-primary/20' },
+  wipe: { label: 'Вайп', color: 'bg-muted text-muted-foreground border-border' },
+  news: { label: 'Новость', color: 'bg-muted text-muted-foreground border-border' }
+};
+
+const PREVIEW_LENGTH = 300;
+
+const News = () => {
+  const navigate = useNavigate();
+  const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedNews, setSelectedNews] = useState<NewsItem | null>(null);
+
+  useEffect(() => {
+    fetch('https://functions.poehali.dev/e6be6494-14cb-4278-882b-d4498bef6cf6/')
+      .then(r => r.ok ? r.json() : [])
+      .then(data => setNewsItems(data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Header onOpenBonus={() => {}} onOpenTelegram={() => {}} bonusAvailable={false} />
+
+      <section className="py-16 px-4">
+        <div className="container mx-auto max-w-7xl">
+          <Button variant="ghost" className="mb-6" onClick={() => navigate('/')}>
+            <Icon name="ArrowLeft" size={18} className="mr-2" />
+            На главную
+          </Button>
+
+          <div className="text-center mb-12">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+              Все новости и обновления
+            </h1>
+            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+              Полная лента событий, обновлений и анонсов серверов DevilRust
+            </p>
+          </div>
+
+          {loading ? (
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
+            </div>
+          ) : newsItems.length === 0 ? (
+            <p className="text-center text-muted-foreground">Новостей пока нет</p>
+          ) : (
+            <div className="grid md:grid-cols-2 gap-6">
+              {newsItems.map((item) => {
+                const isLong = item.description.length > PREVIEW_LENGTH;
+                const preview = isLong ? item.description.slice(0, PREVIEW_LENGTH).trimEnd() + '…' : item.description;
+
+                return (
+                  <Card key={item.id} className="group hover:shadow-lg transition-all duration-300 hover:scale-[1.02] border-muted overflow-hidden flex flex-col">
+                    {item.image_url && (
+                      <div className="w-full h-48 overflow-hidden">
+                        <img
+                          src={item.image_url}
+                          alt={item.title}
+                          loading="lazy"
+                          decoding="async"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      </div>
+                    )}
+                    <CardHeader>
+                      <div className="flex items-start justify-between gap-4 mb-2">
+                        <div className="p-3 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                          <Icon name={item.icon as Parameters<typeof Icon>[0]['name']} className="h-6 w-6 text-primary" />
+                        </div>
+                        <Badge variant="outline" className={categoryConfig[item.category].color}>
+                          {categoryConfig[item.category].label}
+                        </Badge>
+                      </div>
+                      <CardTitle className="text-xl group-hover:text-primary transition-colors">
+                        {item.title}
+                      </CardTitle>
+                      <CardDescription className="flex items-center gap-2 text-sm">
+                        <Icon name="Calendar" className="h-4 w-4" />
+                        {item.date}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex flex-col flex-1">
+                      <p className="text-muted-foreground leading-relaxed flex-1">{preview}</p>
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        {isLong && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="self-start text-primary hover:text-primary/80 px-0"
+                            onClick={() => setSelectedNews(item)}
+                          >
+                            Читать полностью
+                            <Icon name="ChevronRight" size={16} className="ml-1" />
+                          </Button>
+                        )}
+                        {item.button_text && item.button_url && (
+                          <a href={item.button_url} target="_blank" rel="noopener noreferrer">
+                            <Button size="sm" variant="outline">
+                              {item.button_text}
+                              <Icon name="ExternalLink" size={14} className="ml-1.5" />
+                            </Button>
+                          </a>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <Dialog open={!!selectedNews} onOpenChange={() => setSelectedNews(null)}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            {selectedNews && (
+              <>
+                <DialogHeader>
+                  <div className="flex items-start justify-between gap-3 mb-1">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 rounded-lg bg-primary/10">
+                        <Icon name={selectedNews.icon as Parameters<typeof Icon>[0]['name']} className="h-5 w-5 text-primary" />
+                      </div>
+                      <Badge variant="outline" className={categoryConfig[selectedNews.category].color}>
+                        {categoryConfig[selectedNews.category].label}
+                      </Badge>
+                    </div>
+                  </div>
+                  <DialogTitle className="text-xl leading-snug">{selectedNews.title}</DialogTitle>
+                  <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                    <Icon name="Calendar" size={13} />
+                    {selectedNews.date}
+                  </p>
+                </DialogHeader>
+
+                {selectedNews.image_url && (
+                  <div className="w-full h-56 overflow-hidden rounded-lg">
+                    <img src={selectedNews.image_url} alt={selectedNews.title} className="w-full h-full object-cover" />
+                  </div>
+                )}
+
+                <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                  {selectedNews.description}
+                </p>
+
+                {selectedNews.button_text && selectedNews.button_url && (
+                  <div className="pt-4 border-t mt-2">
+                    <a href={selectedNews.button_url} target="_blank" rel="noopener noreferrer">
+                      <Button className="w-full sm:w-auto">
+                        {selectedNews.button_text}
+                        <Icon name="ExternalLink" size={15} className="ml-2" />
+                      </Button>
+                    </a>
+                  </div>
+                )}
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
+      </section>
+
+      <Footer />
+    </div>
+  );
+};
+
+export default News;
