@@ -6,7 +6,6 @@ import Header from '@/components/Header';
 import HeroSection from '@/components/HeroSection';
 import ServersSection from '@/components/ServersSection';
 import NewsSection from '@/components/NewsSection';
-import RoadmapSection from '@/components/RoadmapSection';
 import HowToStartSection from '@/components/HowToStartSection';
 import Footer from '@/components/Footer';
 import DailyBonusButton from '@/components/DailyBonusButton';
@@ -77,7 +76,6 @@ const Index = () => {
       <HeroSection />
       <ServersSection />
       <NewsSection />
-      <RoadmapSection />
       <HowToStartSection />
       <Footer />
 

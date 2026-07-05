@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import Icon from '@/components/ui/icon';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import RoadmapSection from '@/components/RoadmapSection';
 import { sanitizeNewsHtml, isHtmlContent, previewText } from '@/utils/newsContent';
 
 interface NewsItem {
@@ -206,6 +207,8 @@ const News = () => {
           </a>
         </div>
       </section>
+
+      <RoadmapSection />
 
       <Footer />
     </div>
