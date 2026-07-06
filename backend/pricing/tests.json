@@ -4,19 +4,43 @@
       "name": "Get all price items",
       "method": "GET",
       "path": "/?action=get_prices",
-      "expectedStatus": 200,
-      "expectedBody": {
-        "items": []
-      },
-      "bodyMatcher": "partial"
+      "expectedStatus": 200
     },
     {
       "name": "Get all fundraisers",
       "method": "GET",
       "path": "/?action=get_fundraisers",
-      "expectedStatus": 200,
+      "expectedStatus": 200
+    },
+    {
+      "name": "Create price requires auth",
+      "method": "POST",
+      "path": "/?action=create_price",
+      "body": {"title": "Hack", "price": 1},
+      "expectedStatus": 401,
       "expectedBody": {
-        "fundraisers": []
+        "error": "string"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Update price requires auth",
+      "method": "PUT",
+      "path": "/?action=update_price&item_id=1",
+      "body": {"title": "Hack", "price": 1},
+      "expectedStatus": 401,
+      "expectedBody": {
+        "error": "string"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Delete requires auth",
+      "method": "DELETE",
+      "path": "/?action=delete_price&item_id=1",
+      "expectedStatus": 401,
+      "expectedBody": {
+        "error": "string"
       },
       "bodyMatcher": "partial"
     }

@@ -1,7 +1,21 @@
 import json
 import os
+import jwt
 import psycopg2
 from datetime import datetime
+from typing import Optional
+
+
+def verify_admin_token(token: Optional[str]) -> bool:
+    if not token:
+        return False
+    try:
+        secret = os.environ['JWT_SECRET']
+        payload = jwt.decode(token, secret, algorithms=['HS256'])
+        return bool(payload.get('is_admin'))
+    except Exception:
+        return False
+
 
 def handler(event: dict, context) -> dict:
     """API для управления прайс-листом и сборами средств"""
@@ -14,10 +28,21 @@ def handler(event: dict, context) -> dict:
             'headers': {
                 'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type, X-Authorization'
+                'Access-Control-Allow-Headers': 'Content-Type, X-Authorization, X-Auth-Token'
             },
             'body': ''
         }
+
+    # Все изменяющие операции требуют админ-токен
+    if method in ('POST', 'PUT', 'DELETE'):
+        headers = event.get('headers') or {}
+        token = headers.get('x-auth-token') or headers.get('X-Auth-Token')
+        if not verify_admin_token(token):
+            return {
+                'statusCode': 401,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'error': 'Unauthorized'})
+            }
     
     dsn = os.environ.get('DATABASE_URL')
     

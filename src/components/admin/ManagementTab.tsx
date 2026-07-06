@@ -112,7 +112,7 @@ const ManagementTab = ({ token }: ManagementTabProps) => {
 
       {activeTab === 'promotion' && <PromotionTab token={token} />}
 
-      {activeTab === 'pricing' && <PricingTab />}
+      {activeTab === 'pricing' && <PricingTab token={token} />}
 
       {activeTab === 'roadmap' && <RoadmapTab token={token} />}
 

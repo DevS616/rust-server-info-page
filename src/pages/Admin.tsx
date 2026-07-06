@@ -17,6 +17,7 @@ import { useAdminAuth } from '@/components/admin/AdminAuth';
 import { useAdminDataLoader, Ticket, Message, Server } from '@/components/admin/AdminDataLoader';
 import { useTicketFilters } from '@/components/admin/AdminTicketFilters';
 import { apiCache } from '@/utils/apiCache';
+import { isValidAdminToken } from '@/utils/adminToken';
 
 const API_BASE = 'https://functions.poehali.dev';
 
@@ -46,19 +47,20 @@ const Admin = () => {
 
   useEffect(() => {
     const storedToken = localStorage.getItem('admin_token');
-    console.log('Admin useEffect:', { hasToken: !!storedToken, tokenLength: storedToken?.length });
+    if (storedToken && !isValidAdminToken(storedToken)) {
+      localStorage.removeItem('admin_token');
+      setToken(null);
+      return;
+    }
     if (storedToken) {
-      console.log('Admin token found, loading data...');
       setToken(storedToken);
       loadTickets(storedToken, false);
       loadServers(storedToken, false);
-    } else {
-      console.log('No admin token found in localStorage');
-    }
-    
-    const ticketId = searchParams.get('ticket');
-    if (ticketId && storedToken) {
-      loadTicketDetails(ticketId, storedToken);
+
+      const ticketId = searchParams.get('ticket');
+      if (ticketId) {
+        loadTicketDetails(ticketId, storedToken);
+      }
     }
   }, [searchParams]);
 

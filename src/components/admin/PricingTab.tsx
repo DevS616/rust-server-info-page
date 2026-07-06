@@ -39,7 +39,12 @@ interface Donation {
   created_at: string;
 }
 
-const PricingTab = () => {
+interface PricingTabProps {
+  token: string;
+}
+
+const PricingTab = ({ token }: PricingTabProps) => {
+  const authHeaders = { 'Content-Type': 'application/json', 'X-Auth-Token': token };
   const [priceItems, setPriceItems] = useState<PriceItem[]>([]);
   const [fundraisers, setFundraisers] = useState<Fundraiser[]>([]);
   const [selectedFundraiser, setSelectedFundraiser] = useState<Fundraiser | null>(null);
@@ -114,7 +119,7 @@ const PricingTab = () => {
 
       await fetch(url, {
         method: editingPrice ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders,
         body: JSON.stringify(priceForm)
       });
 
@@ -135,7 +140,7 @@ const PricingTab = () => {
 
       await fetch(url, {
         method: editingFundraiser ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders,
         body: JSON.stringify(fundraiserForm)
       });
 
