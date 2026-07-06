@@ -3,7 +3,7 @@ Allow: /
 Disallow: /admin
 Disallow: /steam-callback
 
-Sitemap: https://devilrust.poehali.dev/sitemap.xml
+Sitemap: https://devilrust.ru/sitemap.xml
 
 # Yandex
 User-agent: Yandex
