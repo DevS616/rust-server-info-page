@@ -126,6 +126,11 @@ const PollCard = ({ poll, onUpdated }: PollCardProps) => {
     }
   };
 
+  const loginSteam = () => {
+    const currentUrl = encodeURIComponent(window.location.origin);
+    window.location.href = `https://functions.poehali.dev/560196bb-a6d4-41dc-9b1c-0008c13bece3/?base_url=${currentUrl}`;
+  };
+
   const pct = (votes: number) => poll.total_votes ? Math.round((votes / poll.total_votes) * 100) : 0;
 
   return (
@@ -238,10 +243,13 @@ const PollCard = ({ poll, onUpdated }: PollCardProps) => {
             Проголосовать
           </Button>
         ) : (
-          <div className="mt-4 flex items-center justify-center gap-2 py-3 rounded-xl border border-gray-700 bg-gray-800/40 text-gray-400 text-sm">
-            <Icon name="Lock" size={16} />
+          <button
+            onClick={loginSteam}
+            className="mt-4 w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-primary/40 bg-primary/10 text-white text-sm font-medium hover:bg-primary/20 hover:border-primary transition-colors"
+          >
+            <Icon name="LogIn" size={16} />
             Авторизуйтесь для участия
-          </div>
+          </button>
         )
       )}
 
