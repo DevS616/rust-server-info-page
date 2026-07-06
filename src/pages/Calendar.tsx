@@ -39,22 +39,29 @@ const CalendarPage = () => {
   }, []);
 
   useEffect(() => {
-    interface PollLite { is_map_vote?: boolean; is_active?: boolean; is_finished?: boolean; ends_at?: string | null; }
-    fetch('https://functions.poehali.dev/b11aeefa-8364-460f-a54e-6338ddb77cf3/')
-      .then(r => r.ok ? r.json() : { polls: [] })
-      .then((data: { polls?: PollLite[] }) => {
-        const polls = data.polls || [];
+    interface PollLite { is_map_vote?: boolean; is_active?: boolean; ends_at?: string | null; }
+    const checkMapVote = async () => {
+      try {
+        const res = await fetch('https://functions.poehali.dev/b11aeefa-8364-460f-a54e-6338ddb77cf3/');
+        console.log('[MapVote] status:', res.status);
+        if (!res.ok) return;
+        const data = await res.json();
+        const polls: PollLite[] = data.polls || [];
         const active = polls.some((p) => {
           if (!p.is_map_vote || p.is_active === false) return false;
           if (p.ends_at) {
-            const end = new Date((p.ends_at as string).replace(' ', 'T') + 'Z');
+            const end = new Date(String(p.ends_at).replace(' ', 'T') + 'Z');
             if (!isNaN(end.getTime()) && Date.now() >= end.getTime()) return false;
           }
           return true;
         });
+        console.log('[MapVote] pollsCount:', polls.length, 'active:', active);
         setHasMapVote(active);
-      })
-      .catch((e) => console.error('map vote check failed:', e));
+      } catch (e) {
+        console.error('[MapVote] failed:', e);
+      }
+    };
+    checkMapVote();
   }, []);
 
   const getUpcomingEvent = useCallback((moscowTime: Date) => {
