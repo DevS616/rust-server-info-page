@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
@@ -15,17 +16,44 @@ const MONTHS = ['Январь', 'Февраль', 'Март', 'Апрель', '�
 
 
 const EventCalendar = ({ isOpen, onClose }: EventCalendarProps) => {
+  const navigate = useNavigate();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [loading, setLoading] = useState(false);
   const [timeLeft, setTimeLeft] = useState<string>('');
+  const [hasMapVote, setHasMapVote] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       loadEvents();
+      checkMapVote();
     }
   }, [isOpen]);
+
+  const checkMapVote = async () => {
+    interface PollLite { is_map_vote?: boolean; is_active?: boolean; ends_at?: string | null; }
+    try {
+      const res = await fetch('https://functions.poehali.dev/b11aeefa-8364-460f-a54e-6338ddb77cf3/');
+      if (!res.ok) return;
+      const data = await res.json();
+      const polls: PollLite[] = data.polls || [];
+      const active = polls.some((p) => {
+        if (!p.is_map_vote || p.is_active === false) return false;
+        if (p.ends_at) {
+          const end = new Date(String(p.ends_at).replace(' ', 'T') + 'Z');
+          if (!isNaN(end.getTime()) && Date.now() >= end.getTime()) return false;
+        }
+        return true;
+      });
+      setHasMapVote(active);
+    } catch { /* ignore */ }
+  };
+
+  const goToVote = () => {
+    onClose();
+    navigate('/vote');
+  };
 
   useEffect(() => {
     if (!isOpen || events.length === 0) return;
@@ -155,6 +183,24 @@ const EventCalendar = ({ isOpen, onClose }: EventCalendarProps) => {
             КАЛЕНДАРЬ
           </DialogTitle>
         </DialogHeader>
+
+        {hasMapVote && (
+          <button
+            onClick={goToVote}
+            className="w-full mb-2 rounded-xl p-4 bg-primary/15 border-2 border-primary hover:bg-primary/25 transition-colors text-left group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center shrink-0">
+                <Icon name="Map" size={20} className="text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-white">Проголосовать за карту</p>
+                <p className="text-xs text-gray-400">Идёт голосование — выбери следующую карту</p>
+              </div>
+              <Icon name="ChevronRight" size={20} className="text-primary group-hover:translate-x-1 transition-transform shrink-0" />
+            </div>
+          </button>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Left side - Calendar */}

@@ -43,7 +43,6 @@ const CalendarPage = () => {
     const checkMapVote = async () => {
       try {
         const res = await fetch('https://functions.poehali.dev/b11aeefa-8364-460f-a54e-6338ddb77cf3/');
-        console.log('[MapVote] status:', res.status);
         if (!res.ok) return;
         const data = await res.json();
         const polls: PollLite[] = data.polls || [];
@@ -55,11 +54,8 @@ const CalendarPage = () => {
           }
           return true;
         });
-        console.log('[MapVote] pollsCount:', polls.length, 'active:', active);
         setHasMapVote(active);
-      } catch (e) {
-        console.error('[MapVote] failed:', e);
-      }
+      } catch { /* ignore */ }
     };
     checkMapVote();
   }, []);
