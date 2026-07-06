@@ -235,17 +235,18 @@ const BonusInfoTab = ({ token }: BonusInfoTabProps) => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Статистика рулетки</h2>
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div className="min-w-0">
+          <h2 className="text-xl md:text-2xl font-bold">Статистика рулетки</h2>
           <p className="text-sm text-muted-foreground mt-1">
             Всего игроков: {records.length} | Без никнейма: {records.filter(r => !r.steam_username).length}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           <Button 
             onClick={handleDeleteNoUsername} 
             variant="destructive"
+            className="w-full sm:w-auto"
             disabled={deletingNoUsername || records.filter(r => !r.steam_username).length === 0}
           >
             {deletingNoUsername ? (
@@ -260,7 +261,7 @@ const BonusInfoTab = ({ token }: BonusInfoTabProps) => {
               </>
             )}
           </Button>
-          <Button onClick={loadBonusRecords} variant="outline">
+          <Button onClick={loadBonusRecords} variant="outline" className="w-full sm:w-auto">
             <Icon name="RefreshCw" className="mr-2 h-4 w-4" />
             Обновить
           </Button>
@@ -269,26 +270,26 @@ const BonusInfoTab = ({ token }: BonusInfoTabProps) => {
 
       <div className="grid gap-4">
         {records.map((record) => (
-          <Card key={record.id} className="p-4">
-            <div className="flex items-start gap-4">
+          <Card key={record.id} className="p-3 md:p-4">
+            <div className="flex items-start gap-3 md:gap-4">
               <img
                 src={record.steam_avatar || 'https://via.placeholder.com/64?text=No+Avatar'}
                 alt={record.steam_username || 'Unknown'}
-                className="w-16 h-16 rounded-full bg-muted"
+                className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-muted flex-shrink-0"
               />
               
               <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-4 mb-2">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-lg">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-4 mb-2">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-base md:text-lg break-words">
                       {record.steam_username || 'Без никнейма'}
                     </h3>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-muted-foreground break-all">
                       Steam ID: {record.steam_id}
                     </p>
                   </div>
                   
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2 flex-shrink-0">
                     <Button
                       onClick={() => handleResetLimit(record.steam_id, 'daily')}
                       disabled={resettingDaily === record.steam_id}

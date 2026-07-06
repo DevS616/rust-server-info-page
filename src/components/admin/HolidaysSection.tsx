@@ -115,7 +115,7 @@ const HolidaysSection = ({ token }: HolidaysSectionProps) => {
   ];
 
   return (
-    <Card className="p-6">
+    <Card className="p-4 md:p-6">
       <div className="mb-6">
         <h2 className="text-2xl font-semibold mb-2">Праздничное оформление</h2>
         <p className="text-muted-foreground">
@@ -130,22 +130,22 @@ const HolidaysSection = ({ token }: HolidaysSectionProps) => {
           return (
             <div
               key={holiday.id}
-              className={`flex items-center justify-between p-6 rounded-lg border-2 transition-all ${
+              className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 md:p-6 rounded-lg border-2 transition-all ${
                 isActive 
                   ? 'bg-primary/10 border-primary' 
                   : 'bg-muted border-transparent'
               }`}
             >
-              <div className="flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+              <div className="flex items-center gap-3 md:gap-4 min-w-0">
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
                   isActive ? 'bg-primary/20' : 'bg-muted-foreground/20'
                 }`}>
                   <Icon 
-                    name={holiday.icon as any} 
+                    name={holiday.icon} 
                     className={`h-6 w-6 ${isActive ? holiday.color : 'text-muted-foreground'}`} 
                   />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <div className="text-lg font-medium">{holiday.name}</div>
                   <p className="text-sm text-muted-foreground mt-1">
                     {holiday.description}
@@ -158,7 +158,7 @@ const HolidaysSection = ({ token }: HolidaysSectionProps) => {
                 disabled={loading}
                 variant={isActive ? 'default' : 'outline'}
                 size="lg"
-                className="min-w-[160px]"
+                className="w-full sm:w-auto sm:min-w-[160px] flex-shrink-0"
               >
                 <Icon name={isActive ? 'Check' : 'Sparkles'} className="mr-2" />
                 {loading ? 'Применение...' : isActive ? 'Отключить' : 'Включить'}

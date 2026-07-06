@@ -100,15 +100,15 @@ const ServersManagement = ({ token, onEditServer, onAddServer, onServersLoaded }
   };
 
   return (
-    <Card className="p-6">
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-semibold mb-2">Управление карточками серверов</h2>
-          <p className="text-muted-foreground">
+    <Card className="p-4 md:p-6">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+        <div className="min-w-0">
+          <h2 className="text-xl md:text-2xl font-semibold mb-2">Управление карточками серверов</h2>
+          <p className="text-sm md:text-base text-muted-foreground">
             Редактирование информации о серверах на главной странице
           </p>
         </div>
-        <Button onClick={onAddServer}>
+        <Button onClick={onAddServer} className="w-full sm:w-auto flex-shrink-0">
           <Icon name="Plus" className="mr-2" />
           Добавить сервер
         </Button>
@@ -128,17 +128,17 @@ const ServersManagement = ({ token, onEditServer, onAddServer, onServersLoaded }
       ) : (
         <div className="space-y-4">
           {servers.map((server) => (
-            <Card key={server.id} className="p-4">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="text-lg font-semibold">{server.name}</h3>
+            <Card key={server.id} className="p-3 md:p-4">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center flex-wrap gap-2 md:gap-3 mb-2">
+                    <h3 className="text-base md:text-lg font-semibold break-words">{server.name}</h3>
                     {server.mode && (
-                      <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                      <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded flex-shrink-0">
                         {server.mode}
                       </span>
                     )}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-shrink-0">
                       <Switch
                         checked={server.is_active}
                         onCheckedChange={(checked) => handleToggleActive(server, checked)}
@@ -149,28 +149,28 @@ const ServersManagement = ({ token, onEditServer, onAddServer, onServersLoaded }
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-muted-foreground">
                     {server.ip && (
-                      <div className="flex items-center gap-2">
-                        <Icon name="Globe" size={14} />
-                        <span>{server.ip}</span>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Icon name="Globe" size={14} className="flex-shrink-0" />
+                        <span className="truncate">{server.ip}</span>
                       </div>
                     )}
                     {server.server_ip && (
-                      <div className="flex items-center gap-2">
-                        <Icon name="Network" size={14} />
-                        <span>{server.server_ip}</span>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Icon name="Network" size={14} className="flex-shrink-0" />
+                        <span className="truncate">{server.server_ip}</span>
                       </div>
                     )}
                     {server.battlemetrics_id && (
-                      <div className="flex items-center gap-2">
-                        <Icon name="BarChart" size={14} />
-                        <span>BM: {server.battlemetrics_id}</span>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Icon name="BarChart" size={14} className="flex-shrink-0" />
+                        <span className="truncate">BM: {server.battlemetrics_id}</span>
                       </div>
                     )}
-                    <div className="flex items-center gap-2">
-                      <Icon name="Hash" size={14} />
-                      <span>Порядок: {server.display_order}</span>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Icon name="Hash" size={14} className="flex-shrink-0" />
+                      <span className="truncate">Порядок: {server.display_order}</span>
                     </div>
                   </div>
 
@@ -196,7 +196,7 @@ const ServersManagement = ({ token, onEditServer, onAddServer, onServersLoaded }
                   )}
                 </div>
 
-                <div className="flex gap-2 ml-4">
+                <div className="flex gap-2 ml-2 md:ml-4 flex-shrink-0">
                   <Button
                     size="sm"
                     variant="outline"
