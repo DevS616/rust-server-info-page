@@ -30,6 +30,7 @@ interface Poll {
   multiple_choice: boolean;
   is_map_vote: boolean;
   is_active: boolean;
+  starts_at: string | null;
   ends_at: string | null;
   total_votes: number;
   options: PollOption[];
@@ -46,6 +47,7 @@ const emptyForm = {
   multiple_choice: false,
   is_map_vote: false,
   is_active: true,
+  starts_at: '',
   ends_at: '',
   options: [{ text: '' }, { text: '' }] as PollOption[],
 };
@@ -95,6 +97,7 @@ const PollsTab = ({ token }: PollsTabProps) => {
       multiple_choice: poll.multiple_choice,
       is_map_vote: poll.is_map_vote,
       is_active: poll.is_active,
+      starts_at: toDatetimeLocal(poll.starts_at),
       ends_at: toDatetimeLocal(poll.ends_at),
       options: poll.options.map(o => ({ id: o.id, text: o.text, image_url: o.image_url, admin_note: o.admin_note || '', _preview: o.image_url })),
     });
@@ -142,6 +145,7 @@ const PollsTab = ({ token }: PollsTabProps) => {
         multiple_choice: form.multiple_choice,
         is_map_vote: form.is_map_vote,
         is_active: form.is_active,
+        starts_at: form.starts_at ? new Date(form.starts_at).toISOString() : null,
         ends_at: form.ends_at ? new Date(form.ends_at).toISOString() : null,
         options: validOptions.map(o => ({
           id: o.id,
@@ -237,6 +241,9 @@ const PollsTab = ({ token }: PollsTabProps) => {
                     <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
                       <span className="flex items-center gap-1"><Icon name="Users" size={12} />{poll.total_votes} голосов</span>
                       <span className="flex items-center gap-1"><Icon name="List" size={12} />{poll.options.length} вариантов</span>
+                      {poll.starts_at && (
+                        <span className="flex items-center gap-1"><Icon name="Play" size={12} />с {new Date(poll.starts_at).toLocaleString('ru-RU')}</span>
+                      )}
                       {poll.ends_at && (
                         <span className="flex items-center gap-1"><Icon name="Clock" size={12} />до {new Date(poll.ends_at).toLocaleString('ru-RU')}</span>
                       )}
@@ -321,9 +328,15 @@ const PollsTab = ({ token }: PollsTabProps) => {
             </div>
 
             <div className="space-y-2">
+              <Label>Дата начала (необязательно)</Label>
+              <Input type="datetime-local" value={form.starts_at} onChange={e => setForm({ ...form, starts_at: e.target.value })} />
+              <p className="text-xs text-muted-foreground">Опрос появится на сайте, когда наступит это время. Если пусто — сразу.</p>
+            </div>
+
+            <div className="space-y-2">
               <Label>Дата завершения (необязательно)</Label>
               <Input type="datetime-local" value={form.ends_at} onChange={e => setForm({ ...form, ends_at: e.target.value })} />
-              <p className="text-xs text-muted-foreground">После завершения покажется вариант-победитель</p>
+              <p className="text-xs text-muted-foreground">После завершения опрос скроется, покажется вариант-победитель</p>
             </div>
 
             <div className="space-y-3 border-t pt-4">

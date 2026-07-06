@@ -217,12 +217,31 @@ def _poll_with_options(cur, poll_row: Dict[str, Any], voter_key: Optional[str], 
     return poll
 
 
+def _dt_or_none(value):
+    if not value:
+        return None
+    try:
+        return value if isinstance(value, datetime) else datetime.fromisoformat(str(value))
+    except Exception:
+        return None
+
+
 def get_active_polls(event: Dict[str, Any]) -> Dict[str, Any]:
     conn = _connect()
     cur = conn.cursor(cursor_factory=RealDictCursor)
     cur.execute("SELECT * FROM polls WHERE is_active = TRUE ORDER BY created_at DESC")
     rows = cur.fetchall()
-    result = [_poll_with_options(cur, r, None) for r in rows]
+    now = datetime.utcnow()
+    visible = []
+    for r in rows:
+        starts = _dt_or_none(r.get('starts_at'))
+        ends = _dt_or_none(r.get('ends_at'))
+        if starts and now < starts:
+            continue
+        if ends and now >= ends:
+            continue
+        visible.append(r)
+    result = [_poll_with_options(cur, r, None) for r in visible]
     cur.close()
     conn.close()
     return json_response({'polls': result})
@@ -362,12 +381,14 @@ def create_poll(event: Dict[str, Any]) -> Dict[str, Any]:
     is_active = 'TRUE' if body.get('is_active', True) else 'FALSE'
     ends_at = body.get('ends_at')
     ends_sql = f"'{escape_sql(ends_at)}'" if ends_at else 'NULL'
+    starts_at = body.get('starts_at')
+    starts_sql = f"'{escape_sql(starts_at)}'" if starts_at else 'NULL'
 
     conn = _connect()
     cur = conn.cursor(cursor_factory=RealDictCursor)
     cur.execute(f"""
-        INSERT INTO polls (title, description, multiple_choice, is_map_vote, is_active, ends_at)
-        VALUES ('{escape_sql(title)}', '{description}', {multiple}, {is_map}, {is_active}, {ends_sql})
+        INSERT INTO polls (title, description, multiple_choice, is_map_vote, is_active, ends_at, starts_at)
+        VALUES ('{escape_sql(title)}', '{description}', {multiple}, {is_map}, {is_active}, {ends_sql}, {starts_sql})
         RETURNING id
     """)
     pid = int(cur.fetchone()['id'])
@@ -402,6 +423,8 @@ def update_poll(event: Dict[str, Any]) -> Dict[str, Any]:
     is_active = 'TRUE' if body.get('is_active', True) else 'FALSE'
     ends_at = body.get('ends_at')
     ends_sql = f"'{escape_sql(ends_at)}'" if ends_at else 'NULL'
+    starts_at = body.get('starts_at')
+    starts_sql = f"'{escape_sql(starts_at)}'" if starts_at else 'NULL'
 
     conn = _connect()
     cur = conn.cursor(cursor_factory=RealDictCursor)
@@ -413,6 +436,7 @@ def update_poll(event: Dict[str, Any]) -> Dict[str, Any]:
             is_map_vote = {is_map},
             is_active = {is_active},
             ends_at = {ends_sql},
+            starts_at = {starts_sql},
             updated_at = CURRENT_TIMESTAMP
         WHERE id = {pid}
     """)
