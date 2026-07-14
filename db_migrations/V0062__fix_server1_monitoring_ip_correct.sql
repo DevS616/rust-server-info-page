@@ -1,0 +1,1 @@
+UPDATE servers SET server_ip = '195.18.27.20:35000', updated_at = CURRENT_TIMESTAMP WHERE id = 4;

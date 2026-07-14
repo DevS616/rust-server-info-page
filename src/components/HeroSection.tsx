@@ -17,9 +17,7 @@ interface ServerEntry {
   playersMax: number;
 }
 
-const allServers = [...serversData.pveServers, ...serversData.pvpServers, ...serversData.creativeServers];
-
-const totalServersCount = allServers.length;
+const SERVERS_API = 'https://functions.poehali.dev/cd63f370-b8ea-4adc-ace4-a274aa6f6e34';
 
 const serverWord = (n: number) => {
   const mod10 = n % 10;
@@ -41,6 +39,7 @@ const HeroSection = () => {
   const [totalPlayers, setTotalPlayers] = useState<number | null>(null);
   const [displayPlayers, setDisplayPlayers] = useState<number>(0);
   const [onlineServersCount, setOnlineServersCount] = useState<number>(0);
+  const [activeServerIps, setActiveServerIps] = useState<string[]>([]);
   const [coinRain, setCoinRain] = useState(false);
   const lastVendingSound = useRef(0);
   const displayPlayersRef = useRef(0);
@@ -73,6 +72,18 @@ const HeroSection = () => {
   }, []);
 
   useEffect(() => {
+    fetch(`${SERVERS_API}/?active=true`)
+      .then(r => r.json())
+      .then(data => {
+        const ips = (data.servers || [])
+          .map((s: { server_ip?: string }) => s.server_ip || '')
+          .filter(Boolean);
+        setActiveServerIps(ips);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
     const unsubscribe = monitoringService.subscribe((data) => {
       if (data?.result === 'success' && data.data?.total?.players !== undefined) {
         setTotalPlayers(data.data.total.players);
@@ -80,14 +91,13 @@ const HeroSection = () => {
         let onlineCount = 0;
         data.data.servers.forEach((server: ServerEntry) => {
           const serverIp = `${server.ip}:${server.port}`;
-          const matched = allServers.find(s => s.serverIp === serverIp);
-          if (matched && server.playersMax > 0) onlineCount++;
+          if (activeServerIps.includes(serverIp) && server.playersMax > 0) onlineCount++;
         });
         setOnlineServersCount(onlineCount);
       }
     });
     return unsubscribe;
-  }, []);
+  }, [activeServerIps]);
 
   useEffect(() => {
     if (totalPlayers === null) return;
@@ -128,7 +138,7 @@ const HeroSection = () => {
               <span className="block text-primary mt-2 hero-glow-text">DevilRust</span>
             </h1>
             <p className="mx-auto max-w-[700px] text-muted-foreground text-lg md:text-xl">
-              {(() => { const n = onlineServersCount || totalServersCount; return `${n} уникальны${n % 10 === 1 && n % 100 !== 11 ? 'й' : 'х'} ${serverWord(n)}`; })()} для каждого стиля игры. От хардкорно-ванильного опыта до безумно-модифицированного веселья
+              {(() => { const n = activeServerIps.length; return `${n} уникальны${n % 10 === 1 && n % 100 !== 11 ? 'й' : 'х'} ${serverWord(n)}`; })()} для каждого стиля игры. От хардкорно-ванильного опыта до безумно-модифицированного веселья
             </p>
           </div>
 
@@ -174,8 +184,8 @@ const HeroSection = () => {
 
           <div className="grid grid-cols-3 gap-8 pt-8">
             <div className="flex flex-col items-center p-4 rounded-lg glow-border bg-card/50 backdrop-blur-sm">
-              <div className="text-4xl font-bold text-primary glow-text">{onlineServersCount || totalServersCount}</div>
-              <div className="text-sm text-muted-foreground uppercase tracking-wider">{serverWord(onlineServersCount || totalServersCount)} онлайн</div>
+              <div className="text-4xl font-bold text-primary glow-text">{onlineServersCount}</div>
+              <div className="text-sm text-muted-foreground uppercase tracking-wider">{serverWord(onlineServersCount)} онлайн</div>
             </div>
             <TooltipProvider>
               <Tooltip>
