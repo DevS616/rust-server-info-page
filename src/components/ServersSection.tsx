@@ -244,7 +244,7 @@ const ServerSlider = ({ servers, serverStats, onConnect, onDetails, onCopyIP, la
             <ServerCard
               key={server.id}
               server={server}
-              stats={serverStats[server.battlemetricsId]}
+              stats={serverStats[server.id]}
               onConnect={onConnect}
               onDetails={onDetails}
               onCopyIP={onCopyIP}
@@ -302,7 +302,7 @@ const MobileSlider = ({ servers, serverStats, onConnect, onDetails, onCopyIP, la
           <div key={s.id} style={{ width: '80vw', maxWidth: 300, flexShrink: 0, scrollSnapAlign: 'start' }}>
             <ServerCard
               server={s}
-              stats={serverStats[s.battlemetricsId]}
+              stats={serverStats[s.id]}
               onConnect={onConnect}
               onDetails={onDetails}
               onCopyIP={onCopyIP}
@@ -366,7 +366,7 @@ const ServersSection = () => {
           const serverIp = `${server.ip}:${server.port}`;
           const matched = allServersFlat.find(s => s.serverIp === serverIp);
           if (matched) {
-            newStats[matched.battlemetricsId] = { players: server.players, maxPlayers: server.playersMax };
+            newStats[matched.id] = { players: server.players, maxPlayers: server.playersMax };
           }
         });
         setServerStats(newStats);
