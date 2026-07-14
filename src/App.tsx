@@ -35,10 +35,10 @@ const queryClient = new QueryClient({
 });
 
 const CACHE_KEY = 'maintenance_cache';
-const CACHE_DURATION = 2 * 60 * 60 * 1000;
-const MIN_CHECK_INTERVAL = 2 * 60 * 60 * 1000;
-const POLL_INTERVAL = 30 * 60 * 1000;
-const VISIBILITY_THRESHOLD = 10 * 60 * 1000;
+const CACHE_DURATION = 60 * 1000;
+const MIN_CHECK_INTERVAL = 60 * 1000;
+const POLL_INTERVAL = 10 * 60 * 1000;
+const VISIBILITY_THRESHOLD = 60 * 1000;
 
 const AppContent = () => {
   const location = useLocation();
