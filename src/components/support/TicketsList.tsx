@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Icon from '@/components/ui/icon';
+import { formatMskDateTime } from '@/utils/dateFormat';
 
 interface Ticket {
   id: number;
@@ -45,17 +46,7 @@ const TicketsList = ({ tickets, loading, onNewTicket }: TicketsListProps) => {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('ru-RU', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      timeZone: 'Europe/Moscow'
-    }).format(date);
-  };
+  const formatDate = (dateString: string) => formatMskDateTime(dateString);
 
   if (loading) {
     return (

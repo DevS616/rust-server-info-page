@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
+import { formatMskDateTime, formatMskDate } from '@/utils/dateFormat';
 
 const TICKETS_API = 'https://functions.poehali.dev/887805c0-0d3a-4f32-8436-1ba1adda4a4f';
 
@@ -298,11 +299,11 @@ const TicketsTab = ({
                       )}
                       <div className="flex items-center gap-2 mt-2">
                         <p className="text-xs opacity-70">
-                          {new Date(msg.created_at).toLocaleString('ru-RU')}
+                          {formatMskDateTime(msg.created_at)}
                         </p>
                         {msg.edited_at && !msg.is_admin_reply && (
                           <span className="text-xs opacity-60 italic">
-                            изм. {new Date(msg.edited_at).toLocaleString('ru-RU')}
+                            изм. {formatMskDateTime(msg.edited_at)}
                           </span>
                         )}
                         {msg.edited_at && msg.is_admin_reply && (
@@ -537,7 +538,7 @@ const TicketsTab = ({
                   <p className="text-xs md:text-sm text-muted-foreground">Сервер: {ticket.server}</p>
                   <div className="flex items-center gap-2 md:gap-4 mt-2 text-xs md:text-sm text-muted-foreground flex-wrap">
                     <span className="whitespace-nowrap">Сообщений: {ticket.message_count}</span>
-                    <span className="whitespace-nowrap">{new Date(ticket.created_at).toLocaleDateString('ru-RU')}</span>
+                    <span className="whitespace-nowrap">{formatMskDate(ticket.created_at)}</span>
                     {ticket.rating && (
                       <div className="flex items-center gap-1 text-yellow-500">
                         <Icon name="Star" size={14} className="fill-yellow-500" />

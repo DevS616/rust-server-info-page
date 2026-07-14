@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
+import { formatMskDateTime } from '@/utils/dateFormat';
 
 const COMPLAINTS_API = 'https://functions.poehali.dev/76a02e7f-8572-4035-9cd5-8533e8fb1c6d';
 const UPLOAD_API = 'https://functions.poehali.dev/b36ed6dc-c690-4e62-b1e9-e3dd1b1d15c5';
@@ -530,10 +531,10 @@ const ComplaintsTab = ({ token }: ComplaintsTabProps) => {
                       )}
                     </div>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs text-muted-foreground">{new Date(msg.created_at).toLocaleString('ru-RU')}</span>
+                      <span className="text-xs text-muted-foreground">{formatMskDateTime(msg.created_at)}</span>
                       {msg.edited_at && !msg.is_admin_reply && (
                         <span className="text-xs text-muted-foreground italic">
-                          изм. {new Date(msg.edited_at).toLocaleString('ru-RU')}
+                          изм. {formatMskDateTime(msg.edited_at)}
                         </span>
                       )}
                       {msg.edited_at && msg.is_admin_reply && (
@@ -652,7 +653,7 @@ const ComplaintsTab = ({ token }: ComplaintsTabProps) => {
                       #{c.id} <Icon name="Copy" size={10} />
                     </button>
                   </div>
-                  <p className="text-xs text-muted-foreground">{c.steam_username} · {new Date(c.created_at).toLocaleString('ru-RU')}</p>
+                  <p className="text-xs text-muted-foreground">{c.steam_username} · {formatMskDateTime(c.created_at)}</p>
                   {c.steam_id && (
                     <div className="flex items-center gap-1 mt-0.5" onClick={e => e.stopPropagation()}>
                       <p className="text-xs text-muted-foreground">Steam ID: {c.steam_id}</p>

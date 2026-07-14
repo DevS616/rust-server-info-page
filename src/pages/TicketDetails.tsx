@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import RatingModal from '@/components/support/RatingModal';
+import { formatMskDateTime } from '@/utils/dateFormat';
 
 
 const API_BASE = 'https://functions.poehali.dev';
@@ -398,7 +399,7 @@ const TicketDetails = () => {
                   </button>
                 </div>
                 <p className="text-muted-foreground">Сервер: {ticket.server}</p>
-                <p className="text-sm text-muted-foreground">{new Date(ticket.created_at).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}</p>
+                <p className="text-sm text-muted-foreground">{formatMskDateTime(ticket.created_at)}</p>
               </div>
             </div>
 
@@ -462,7 +463,7 @@ const TicketDetails = () => {
                           </p>
                         </div>
                         <p className="text-xs text-muted-foreground/50 mt-2">
-                          {new Date(msg.created_at).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}
+                          {formatMskDateTime(msg.created_at)}
                         </p>
                       </div>
                     </div>
@@ -512,7 +513,7 @@ const TicketDetails = () => {
                         )}
                         <div className="flex items-center gap-2 mt-2">
                           <p className="text-xs opacity-70">
-                            {new Date(msg.created_at).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}
+                            {formatMskDateTime(msg.created_at)}
                           </p>
                           {msg.edited_at && (
                             <span className="text-xs opacity-50 italic">изм.</span>
@@ -614,7 +615,7 @@ const TicketDetails = () => {
                       <p className="text-sm text-slate-300 mt-2">"{ticket.rating_comment}"</p>
                     )}
                     <p className="text-xs text-slate-500 mt-2">
-                      Оценено {new Date(ticket.rated_at!).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}
+                      Оценено {formatMskDateTime(ticket.rated_at!)}
                     </p>
                   </div>
                 ) : (

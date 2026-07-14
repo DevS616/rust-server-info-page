@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import ComplaintForm from '@/components/complaints/ComplaintForm';
+import { formatMskDate, formatMskDateTime } from '@/utils/dateFormat';
 
 const COMPLAINTS_API = 'https://functions.poehali.dev/76a02e7f-8572-4035-9cd5-8533e8fb1c6d';
 const STEAM_AUTH_URL = 'https://functions.poehali.dev/560196bb-a6d4-41dc-9b1c-0008c13bece3';
@@ -366,7 +367,7 @@ const ComplaintsList = memo(({
                         : <span>{c.complaint_against === 'admin' ? 'На администратора' : 'На игрока'}</span>
                       }
                       <span>·</span>
-                      <span>{new Date(c.created_at).toLocaleDateString('ru-RU')}</span>
+                      <span>{formatMskDate(c.created_at)}</span>
                       {c.message_count > 0 && (
                         <><span>·</span><span><Icon name="MessageCircle" size={12} className="inline mr-1" />{c.message_count}</span></>
                       )}
@@ -668,7 +669,7 @@ const ComplaintDetail = memo(({
                     </div>
                     <div className="flex items-center gap-2 mt-1 px-1">
                       <span className="text-xs text-slate-600">
-                        {new Date(msg.created_at).toLocaleString('ru-RU')}
+                        {formatMskDateTime(msg.created_at)}
                       </span>
                       {msg.edited_at && (
                         <span className="text-xs text-slate-600 italic">изм.</span>

@@ -4,6 +4,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
+import { formatMskDateTime } from '@/utils/dateFormat';
 
 export const POLLS_API = 'https://functions.poehali.dev/b11aeefa-8364-460f-a54e-6338ddb77cf3';
 
@@ -151,7 +152,7 @@ const PollCard = ({ poll, onUpdated }: PollCardProps) => {
       {poll.description && <p className="text-sm text-gray-400 mb-2">{poll.description}</p>}
       <p className="text-xs text-gray-500 mb-4">
         {poll.multiple_choice ? 'Можно выбрать несколько · ' : ''}{poll.total_votes} голосов
-        {poll.ends_at && !poll.is_finished && ` · до ${new Date(poll.ends_at).toLocaleString('ru-RU')}`}
+        {poll.ends_at && !poll.is_finished && ` · до ${formatMskDateTime(poll.ends_at)}`}
       </p>
 
       <div className="space-y-2.5">

@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { formatMskDateTime } from '@/utils/dateFormat';
 
 const POLLS_API = 'https://functions.poehali.dev/b11aeefa-8364-460f-a54e-6338ddb77cf3';
 
@@ -242,10 +243,10 @@ const PollsTab = ({ token }: PollsTabProps) => {
                       <span className="flex items-center gap-1"><Icon name="Users" size={12} />{poll.total_votes} голосов</span>
                       <span className="flex items-center gap-1"><Icon name="List" size={12} />{poll.options.length} вариантов</span>
                       {poll.starts_at && (
-                        <span className="flex items-center gap-1"><Icon name="Play" size={12} />с {new Date(poll.starts_at).toLocaleString('ru-RU')}</span>
+                        <span className="flex items-center gap-1"><Icon name="Play" size={12} />с {formatMskDateTime(poll.starts_at)}</span>
                       )}
                       {poll.ends_at && (
-                        <span className="flex items-center gap-1"><Icon name="Clock" size={12} />до {new Date(poll.ends_at).toLocaleString('ru-RU')}</span>
+                        <span className="flex items-center gap-1"><Icon name="Clock" size={12} />до {formatMskDateTime(poll.ends_at)}</span>
                       )}
                       <span>ID: {poll.id}</span>
                     </div>

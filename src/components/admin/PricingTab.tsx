@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import Icon from '@/components/ui/icon';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
+import { formatMskDateTime } from '@/utils/dateFormat';
 
 const PRICING_API = 'https://functions.poehali.dev/3682a8f1-28c6-47a6-b68b-36b371bdd6a8';
 
@@ -428,13 +429,7 @@ const PricingTab = ({ token }: PricingTabProps) => {
                       <div className="flex items-center gap-2 mb-1">
                         <span className="font-semibold">{donation.steam_username}</span>
                         <span className="text-xs text-muted-foreground">
-                          {new Date(donation.created_at).toLocaleDateString('ru-RU', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
+                          {formatMskDateTime(donation.created_at)}
                         </span>
                       </div>
                       {donation.steam_id && (

@@ -1,4 +1,5 @@
 import { Ticket } from './AdminDataLoader';
+import { parseDbDate } from '@/utils/dateFormat';
 
 export const useTicketFilters = () => {
   const applyFilters = (
@@ -35,10 +36,10 @@ export const useTicketFilters = () => {
 
     switch (sortBy) {
       case 'date_desc':
-        filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        filtered.sort((a, b) => parseDbDate(b.created_at).getTime() - parseDbDate(a.created_at).getTime());
         break;
       case 'date_asc':
-        filtered.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        filtered.sort((a, b) => parseDbDate(a.created_at).getTime() - parseDbDate(b.created_at).getTime());
         break;
       case 'unread_desc':
         filtered.sort((a, b) => (b.unread_count || 0) - (a.unread_count || 0));
