@@ -46,9 +46,6 @@ const AppContent = () => {
   const [maintenanceTitle, setMaintenanceTitle] = useState('');
   const [maintenanceSubtitle, setMaintenanceSubtitle] = useState('');
   const [loading, setLoading] = useState(true);
-  const [maintenanceCheckEnabled] = useState(
-    () => localStorage.getItem('maintenanceCheckEnabled') !== 'false'
-  );
   const isAdminPath = location.pathname.startsWith('/admin');
 
   useEffect(() => {
@@ -93,8 +90,6 @@ const AppContent = () => {
   }, []);
 
   useEffect(() => {
-    if (!maintenanceCheckEnabled) { setLoading(false); return; }
-
     let lastCheckTime = 0;
 
     const run = async (skipCache = false) => {
@@ -116,7 +111,7 @@ const AppContent = () => {
       clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [maintenanceCheckEnabled, checkMaintenance]);
+  }, [checkMaintenance]);
 
   if (loading) {
     return (

@@ -20,9 +20,6 @@ const MaintenanceSection = ({ token }: MaintenanceSectionProps) => {
   const [maintenanceSubtitle, setMaintenanceSubtitle] = useState('Подпишитесь на наш Telegram, чтобы узнать больше о завершении работ');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [checkEnabled, setCheckEnabled] = useState(() => {
-    return localStorage.getItem('maintenanceCheckEnabled') !== 'false';
-  });
 
   useEffect(() => {
     loadMaintenanceStatus();
@@ -129,18 +126,6 @@ const MaintenanceSection = ({ token }: MaintenanceSectionProps) => {
     }
   };
 
-  const toggleCheckEnabled = () => {
-    const newValue = !checkEnabled;
-    setCheckEnabled(newValue);
-    localStorage.setItem('maintenanceCheckEnabled', String(newValue));
-    toast({
-      title: newValue ? 'Мониторинг включен' : 'Мониторинг отключен',
-      description: newValue 
-        ? 'Сайт будет проверять статус технических работ каждые 10 минут' 
-        : 'Проверки технических работ отключены, функция не будет вызываться'
-    });
-  };
-
   return (
     <Card className="p-6">
       <div className="flex items-start justify-between mb-6">
@@ -153,24 +138,6 @@ const MaintenanceSection = ({ token }: MaintenanceSectionProps) => {
       </div>
 
       <div className="space-y-6">
-        <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg border">
-          <div>
-            <Label className="text-base font-medium">Мониторинг технических работ</Label>
-            <p className="text-sm text-muted-foreground mt-1">
-              {checkEnabled 
-                ? 'Сайт проверяет статус каждые 10 минут' 
-                : 'Проверки отключены, функция не вызывается'}
-            </p>
-          </div>
-          <Button
-            onClick={toggleCheckEnabled}
-            variant={checkEnabled ? 'default' : 'outline'}
-            size="sm"
-          >
-            <Icon name={checkEnabled ? 'Eye' : 'EyeOff'} className="mr-2" size={16} />
-            {checkEnabled ? 'Включен' : 'Отключен'}
-          </Button>
-        </div>
         <div className="flex items-center justify-between p-6 bg-muted rounded-lg">
           <div className="flex items-center gap-4">
             <div className={`w-4 h-4 rounded-full ${isMaintenance ? 'bg-destructive animate-pulse' : 'bg-green-500'}`}></div>
