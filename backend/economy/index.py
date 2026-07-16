@@ -130,8 +130,9 @@ def get_top(limit: int) -> Dict[str, Any]:
     return {'top': top, 'total': len(top)}
 
 
-PLAYERSTATS_TABLE = 'uleaderboard_dbplayerstats'
-STORAGE_TABLE = 'uleaderboard_dbstatsstorage'
+# Таблицы статистики по каждому серверу (объединяем оба)
+PLAYERSTATS_TABLES = ['uleaderboard_dbplayerstats', 'uleaderboard_db_srv2playerstats']
+STORAGE_TABLES = ['uleaderboard_dbstatsstorage', 'uleaderboard_db_srv2statsstorage']
 
 
 def _to_float(v) -> float:
@@ -142,17 +143,25 @@ def _to_float(v) -> float:
 
 
 def get_stats_top(field: str, limit: int) -> Dict[str, Any]:
-    order = 'Points' if field == 'points' else 'CAST(TotalPlayTime AS DECIMAL(20,4))'
+    order_col = 'points' if field == 'points' else 'playtime'
+    union = " UNION ALL ".join(
+        f"SELECT UserId, LastName, Points, TotalPlayTime FROM `{t}` "
+        f"WHERE HiddenFromLeaderboard = 0"
+        for t in PLAYERSTATS_TABLES
+    )
+    sql = (
+        f"SELECT UserId, "
+        f"MAX(LastName) AS LastName, "
+        f"SUM(Points) AS points, "
+        f"SUM(CAST(TotalPlayTime AS DECIMAL(20,4))) AS playtime "
+        f"FROM ({union}) u "
+        f"GROUP BY UserId "
+        f"ORDER BY {order_col} DESC LIMIT %s"
+    )
     conn = stats_conn()
     try:
         with conn.cursor() as cur:
-            cur.execute(
-                f"SELECT UserId, LastName, Points, TotalPlayTime "
-                f"FROM `{PLAYERSTATS_TABLE}` "
-                f"WHERE HiddenFromLeaderboard = 0 "
-                f"ORDER BY {order} DESC LIMIT %s",
-                (limit,),
-            )
+            cur.execute(sql, (limit,))
             rows = cur.fetchall()
     finally:
         conn.close()
@@ -168,24 +177,27 @@ def get_stats_top(field: str, limit: int) -> Dict[str, Any]:
             'steamid': sid,
             'username': p.get('username') or r['LastName'] or 'Игрок',
             'avatar': p.get('avatar') or '',
-            'points': round(_to_float(r['Points']), 1),
-            'playtime_minutes': round(_to_float(r['TotalPlayTime']), 1),
+            'points': round(_to_float(r['points']), 1),
+            'playtime_minutes': round(_to_float(r['playtime']), 1),
         })
     return {'top': top, 'total': len(top)}
 
 
 def get_dp_top(limit: int) -> Dict[str, Any]:
+    union = " UNION ALL ".join(
+        f"SELECT UserId, ItemValue FROM `{t}` WHERE ShortName = 'Economics'"
+        for t in STORAGE_TABLES
+    )
+    sql = (
+        f"SELECT UserId, SUM(ItemValue) AS total "
+        f"FROM ({union}) u "
+        f"GROUP BY UserId "
+        f"ORDER BY total DESC LIMIT %s"
+    )
     conn = stats_conn()
     try:
         with conn.cursor() as cur:
-            cur.execute(
-                f"SELECT UserId, SUM(ItemValue) AS total "
-                f"FROM `{STORAGE_TABLE}` "
-                f"WHERE ShortName = 'Economics' "
-                f"GROUP BY UserId "
-                f"ORDER BY total DESC LIMIT %s",
-                (limit,),
-            )
+            cur.execute(sql, (limit,))
             rows = cur.fetchall()
     finally:
         conn.close()
