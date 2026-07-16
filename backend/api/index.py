@@ -1,3 +1,4 @@
+import os
 import json
 import pymysql
 import urllib.request
@@ -60,11 +61,11 @@ def get_banlist() -> Dict[str, Any]:
     connection = None
     try:
         connection = pymysql.connect(
-            host='37.230.228.84',
-            port=3306,
-            user='u7314_B695R2b5bC',
-            password='YTB5fwwZTG6v0mgYM@1w!PU=',
-            database='s7314_Bans_table',
+            host=os.environ['BANLIST_MYSQL_HOST'],
+            port=int(os.environ['BANLIST_MYSQL_PORT']),
+            user=os.environ['BANLIST_MYSQL_USER'],
+            password=os.environ['BANLIST_MYSQL_PASSWORD'],
+            database=os.environ['BANLIST_MYSQL_DB'],
             charset='utf8mb4',
             cursorclass=pymysql.cursors.DictCursor,
             connect_timeout=5
