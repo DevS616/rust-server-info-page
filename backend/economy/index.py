@@ -106,41 +106,72 @@ def _steam_profiles(steamids) -> Dict[str, Dict[str, str]]:
 
 
 def enrich_profiles(steamids) -> Dict[str, Dict[str, str]]:
-    ids = [s for s in steamids if s]
+    ids = list({s for s in steamids if s})
     if not ids:
         return {}
     s = schema()
     conn = pg_conn()
     try:
+        # 1) Профили авторизованных на сайте (самые точные)
         with conn.cursor() as cur:
             cur.execute(
                 f'SELECT steam_id, steam_username, steam_avatar '
                 f'FROM {s}.users WHERE steam_id = ANY(%s)',
                 (ids,),
             )
-            rows = cur.fetchall()
+            user_rows = cur.fetchall()
+        profiles = {
+            r['steam_id']: {
+                'username': r['steam_username'] or '',
+                'avatar': r['steam_avatar'] or '',
+            }
+            for r in user_rows
+        }
+
+        # 2) Steam-кэш из БД (свежесть 24 часа) для остальных
+        need_cache = [sid for sid in ids
+                      if not profiles.get(sid) or not profiles[sid].get('avatar')]
+        fresh_cached = set()
+        if need_cache:
+            with conn.cursor() as cur:
+                cur.execute(
+                    f'SELECT steam_id, username, avatar, '
+                    f'(updated_at > NOW() - INTERVAL \'24 hours\') AS fresh '
+                    f'FROM {s}.steam_profile_cache WHERE steam_id = ANY(%s)',
+                    (need_cache,),
+                )
+                for r in cur.fetchall():
+                    if not profiles.get(r['steam_id']) or not profiles[r['steam_id']].get('avatar'):
+                        profiles[r['steam_id']] = {
+                            'username': r['username'] or '',
+                            'avatar': r['avatar'] or '',
+                        }
+                    if r['fresh']:
+                        fresh_cached.add(r['steam_id'])
+
+        # 3) Steam API только для тех, кого нет в свежем кэше
+        need_steam = [sid for sid in need_cache if sid not in fresh_cached]
+        if need_steam:
+            steam = _steam_profiles(need_steam)
+            for sid, data in steam.items():
+                existing = profiles.get(sid) or {}
+                profiles[sid] = {
+                    'username': existing.get('username') or data['username'],
+                    'avatar': existing.get('avatar') or data['avatar'],
+                }
+                # Сохраняем в кэш
+                with conn.cursor() as cur:
+                    cur.execute(
+                        f'INSERT INTO {s}.steam_profile_cache (steam_id, username, avatar, updated_at) '
+                        f'VALUES (%s, %s, %s, NOW()) '
+                        f'ON CONFLICT (steam_id) DO UPDATE SET '
+                        f'username = EXCLUDED.username, avatar = EXCLUDED.avatar, updated_at = NOW()',
+                        (sid, data['username'][:255], data['avatar']),
+                    )
+            conn.commit()
     finally:
         conn.close()
 
-    profiles = {
-        r['steam_id']: {
-            'username': r['steam_username'] or '',
-            'avatar': r['steam_avatar'] or '',
-        }
-        for r in rows
-    }
-
-    # Для игроков без ника/аватара в базе — берём из Steam API
-    missing = [sid for sid in ids
-               if not profiles.get(sid) or not profiles[sid].get('avatar')]
-    if missing:
-        steam = _steam_profiles(missing)
-        for sid, data in steam.items():
-            existing = profiles.get(sid) or {}
-            profiles[sid] = {
-                'username': existing.get('username') or data['username'],
-                'avatar': existing.get('avatar') or data['avatar'],
-            }
     return profiles
 
 
@@ -524,6 +555,64 @@ def set_balance(steamid: str, balance: int) -> Dict[str, Any]:
     return {'ok': True, 'steamid': steamid, 'balance': balance}
 
 
+TOP_CACHE_TTL_MIN = 5
+
+
+def cache_get(cache_key: str) -> Optional[Dict[str, Any]]:
+    '''Читает готовый топ из кэша, если он свежий (< TTL минут).'''
+    s = schema()
+    conn = pg_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"SELECT payload FROM {s}.stats_top_cache "
+                f"WHERE cache_key = %s "
+                f"AND updated_at > NOW() - INTERVAL '{TOP_CACHE_TTL_MIN} minutes'",
+                (cache_key,),
+            )
+            row = cur.fetchone()
+    finally:
+        conn.close()
+    return row['payload'] if row else None
+
+
+def cache_set(cache_key: str, payload: Dict[str, Any]) -> None:
+    s = schema()
+    conn = pg_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"INSERT INTO {s}.stats_top_cache (cache_key, payload, updated_at) "
+                f"VALUES (%s, %s, NOW()) "
+                f"ON CONFLICT (cache_key) DO UPDATE SET "
+                f"payload = EXCLUDED.payload, updated_at = NOW()",
+                (cache_key, json.dumps(payload, ensure_ascii=False, default=str)),
+            )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+    finally:
+        conn.close()
+
+
+def cached_stats(cat: str, period: str) -> Dict[str, Any]:
+    '''Топ по категории/периоду с кэшированием на бэкенде (кроме "вчера" — оно стабильно).'''
+    key = f"{cat}:{period}"
+    if period != 'yesterday':
+        cached = cache_get(key)
+        if cached is not None:
+            return cached
+    if period == 'today':
+        save_snapshot_if_needed()
+        result = get_snapshot_today(cat)
+    elif period == 'yesterday':
+        return get_snapshot_top(cat, 1)
+    else:
+        result = get_legends(cat)
+    cache_set(key, result)
+    return result
+
+
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     '''Экономика: топ богачей (публично), чтение и изменение баланса игрока (админ)'''
     method = event.get('httpMethod', 'GET')
@@ -536,31 +625,30 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
     if method == 'GET':
         action = params.get('action', 'top')
-        if action == 'top':
+        direct = {
+            'top': lambda lim: get_top(lim),
+            'points': lambda lim: get_stats_top('points', lim),
+            'playtime': lambda lim: get_stats_top('playtime', lim),
+            'dp': lambda lim: get_dp_top(lim),
+            'npc': lambda lim: get_npc_top(lim),
+        }
+        if action in direct:
             limit = min(int(params.get('limit', 100)), 500)
-            return resp(200, get_top(limit))
-        if action == 'points':
-            limit = min(int(params.get('limit', 100)), 500)
-            return resp(200, get_stats_top('points', limit))
-        if action == 'playtime':
-            limit = min(int(params.get('limit', 100)), 500)
-            return resp(200, get_stats_top('playtime', limit))
-        if action == 'dp':
-            limit = min(int(params.get('limit', 100)), 500)
-            return resp(200, get_dp_top(limit))
+            key = f"direct:{action}:{limit}"
+            cached = cache_get(key)
+            if cached is not None:
+                return resp(200, cached)
+            result = direct[action](limit)
+            cache_set(key, result)
+            return resp(200, result)
         if action == 'stats':
             cat = params.get('category', 'top')
             if cat not in CATEGORIES:
                 return resp(400, {'error': 'unknown category'})
             period = params.get('period', 'today')
-            if period == 'today':
-                save_snapshot_if_needed()
-                return resp(200, get_snapshot_today(cat))
-            if period == 'yesterday':
-                return resp(200, get_snapshot_top(cat, 1))
-            if period == 'legends':
-                return resp(200, get_legends(cat))
-            return resp(400, {'error': 'unknown period'})
+            if period not in ('today', 'yesterday', 'legends'):
+                return resp(400, {'error': 'unknown period'})
+            return resp(200, cached_stats(cat, period))
         if action == 'get':
             if not verify_admin(token):
                 return resp(403, {'error': 'forbidden'})
