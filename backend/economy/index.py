@@ -206,6 +206,131 @@ def get_dp_top(limit: int) -> Dict[str, Any]:
     return {'top': items, 'total': len(items)}
 
 
+CATEGORIES = ('top', 'dp', 'points', 'playtime')
+
+
+def fetch_category(cat: str, limit: int) -> list:
+    '''Единый формат: список игроков с полем value (число) по категории.'''
+    if cat == 'top':
+        raw = get_top(limit)['top']
+        return [{'steamid': r['steamid'], 'username': r['username'],
+                 'avatar': r['avatar'], 'value': r['balance']} for r in raw]
+    if cat == 'dp':
+        raw = get_dp_top(limit)['top']
+        return [{'steamid': r['steamid'], 'username': r['username'],
+                 'avatar': r['avatar'], 'value': r['balance']} for r in raw]
+    if cat == 'points':
+        raw = get_stats_top('points', limit)['top']
+        return [{'steamid': r['steamid'], 'username': r['username'],
+                 'avatar': r['avatar'], 'value': int(r['points'] * 10)} for r in raw]
+    if cat == 'playtime':
+        raw = get_stats_top('playtime', limit)['top']
+        return [{'steamid': r['steamid'], 'username': r['username'],
+                 'avatar': r['avatar'], 'value': int(r['playtime_minutes'])} for r in raw]
+    return []
+
+
+def value_to_output(cat: str, value: int) -> Dict[str, Any]:
+    '''Обратное преобразование value в поле фронтенда.'''
+    if cat == 'points':
+        return {'points': round(value / 10, 1)}
+    if cat == 'playtime':
+        return {'playtime_minutes': value}
+    return {'balance': value}
+
+
+def save_snapshot_if_needed() -> None:
+    '''Сохраняет срез топ-10 по всем категориям за сегодня, если ещё не сохранён.'''
+    s = schema()
+    conn = pg_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"SELECT COUNT(*) AS c FROM {s}.stats_daily_snapshots "
+                f"WHERE snapshot_date = CURRENT_DATE"
+            )
+            if cur.fetchone()['c'] > 0:
+                return
+        for cat in CATEGORIES:
+            players = fetch_category(cat, 10)
+            with conn.cursor() as cur:
+                for i, p in enumerate(players):
+                    cur.execute(
+                        f"INSERT INTO {s}.stats_daily_snapshots "
+                        f"(snapshot_date, category, rank, steamid, username, avatar, value) "
+                        f"VALUES (CURRENT_DATE, %s, %s, %s, %s, %s, %s) "
+                        f"ON CONFLICT (snapshot_date, category, rank) DO NOTHING",
+                        (cat, i + 1, p['steamid'], p['username'][:255],
+                         p['avatar'], p['value']),
+                    )
+            conn.commit()
+    except Exception:
+        conn.rollback()
+    finally:
+        conn.close()
+
+
+def get_snapshot_top(cat: str, day_offset: int) -> Dict[str, Any]:
+    '''Топ-10 из снапшота: day_offset=0 сегодня, 1 вчера.'''
+    s = schema()
+    conn = pg_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"SELECT rank, steamid, username, avatar, value "
+                f"FROM {s}.stats_daily_snapshots "
+                f"WHERE category = %s AND snapshot_date = CURRENT_DATE - %s "
+                f"ORDER BY rank ASC LIMIT 10",
+                (cat, day_offset),
+            )
+            rows = cur.fetchall()
+    finally:
+        conn.close()
+    top = []
+    for r in rows:
+        item = {
+            'rank': r['rank'],
+            'steamid': r['steamid'],
+            'username': r['username'] or 'Игрок',
+            'avatar': r['avatar'] or '',
+        }
+        item.update(value_to_output(cat, int(r['value'])))
+        top.append(item)
+    return {'top': top, 'total': len(top)}
+
+
+def get_snapshot_today(cat: str) -> Dict[str, Any]:
+    '''Живой топ-10 за сегодня (актуальные данные).'''
+    players = fetch_category(cat, 10)
+    top = []
+    for i, p in enumerate(players):
+        item = {
+            'rank': i + 1,
+            'steamid': p['steamid'],
+            'username': p['username'] or 'Игрок',
+            'avatar': p['avatar'] or '',
+        }
+        item.update(value_to_output(cat, int(p['value'])))
+        top.append(item)
+    return {'top': top, 'total': len(top)}
+
+
+def get_legends(cat: str) -> Dict[str, Any]:
+    '''Полный список всех игроков категории (Легенды вайпа).'''
+    players = fetch_category(cat, 500)
+    top = []
+    for i, p in enumerate(players):
+        item = {
+            'rank': i + 1,
+            'steamid': p['steamid'],
+            'username': p['username'] or 'Игрок',
+            'avatar': p['avatar'] or '',
+        }
+        item.update(value_to_output(cat, int(p['value'])))
+        top.append(item)
+    return {'top': top, 'total': len(top)}
+
+
 def get_player(steamid: str) -> Dict[str, Any]:
     conn = my_conn()
     try:
@@ -263,6 +388,19 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         if action == 'dp':
             limit = min(int(params.get('limit', 100)), 500)
             return resp(200, get_dp_top(limit))
+        if action == 'stats':
+            cat = params.get('category', 'top')
+            if cat not in CATEGORIES:
+                return resp(400, {'error': 'unknown category'})
+            period = params.get('period', 'today')
+            if period == 'today':
+                save_snapshot_if_needed()
+                return resp(200, get_snapshot_today(cat))
+            if period == 'yesterday':
+                return resp(200, get_snapshot_top(cat, 1))
+            if period == 'legends':
+                return resp(200, get_legends(cat))
+            return resp(400, {'error': 'unknown period'})
         if action == 'get':
             if not verify_admin(token):
                 return resp(403, {'error': 'forbidden'})

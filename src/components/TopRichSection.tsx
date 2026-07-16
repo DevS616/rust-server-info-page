@@ -100,17 +100,29 @@ const readInitialTab = (): { main: MainKey; sub: TabKey } => {
   return { main: 'balance', sub: 'top' };
 };
 
+type Period = 'today' | 'yesterday' | 'legends';
+
+const PERIODS: { key: Period; label: string; icon: string }[] = [
+  { key: 'today', label: 'Сегодня', icon: 'Sun' },
+  { key: 'yesterday', label: 'Вчера', icon: 'History' },
+  { key: 'legends', label: 'Легенды вайпа', icon: 'Award' },
+];
+
+const PAGE_SIZE = 10;
+
 const TopRichSection = () => {
   const initial = readInitialTab();
   const [mainTab, setMainTab] = useState<MainKey>(initial.main);
   const [balanceSub, setBalanceSub] = useState<TabKey>(initial.sub);
   const activeTab: TabKey = mainTab === 'balance' ? balanceSub : mainTab;
+  const [period, setPeriod] = useState<Period>('today');
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
 
-  const fetchData = useCallback(async (tab: TabKey, skipCache = false) => {
-    const cacheKey = `stats_cache_${tab}`;
+  const fetchData = useCallback(async (tab: TabKey, per: Period, skipCache = false) => {
+    const cacheKey = `stats_cache_${tab}_${per}`;
     if (!skipCache) {
       try {
         const cached = localStorage.getItem(cacheKey);
@@ -126,7 +138,7 @@ const TopRichSection = () => {
     }
     setLoading(true);
     try {
-      const res = await fetch(`${ECONOMY_API}?action=${tab}&limit=100`);
+      const res = await fetch(`${ECONOMY_API}?action=stats&category=${tab}&period=${per}`);
       const json = await res.json();
       const top = json.top || [];
       setPlayers(top);
@@ -138,7 +150,8 @@ const TopRichSection = () => {
     }
   }, []);
 
-  useEffect(() => { fetchData(activeTab); }, [activeTab, fetchData]);
+  useEffect(() => { setPage(1); fetchData(activeTab, period); }, [activeTab, period, fetchData]);
+  useEffect(() => { setPage(1); }, [searchQuery]);
 
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -147,6 +160,12 @@ const TopRichSection = () => {
       (p) => p.username.toLowerCase().includes(q) || p.steamid.includes(q)
     );
   }, [players, searchQuery]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pageItems = useMemo(
+    () => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [filtered, page]
+  );
 
   const currentTab = TABS.find((t) => t.key === activeTab)!;
 
@@ -217,7 +236,7 @@ const TopRichSection = () => {
               />
             </div>
             <Button
-              onClick={() => fetchData(activeTab, true)}
+              onClick={() => fetchData(activeTab, period, true)}
               disabled={loading}
               variant="outline"
               className="h-12 px-4"
@@ -225,6 +244,23 @@ const TopRichSection = () => {
               <Icon name="RefreshCw" className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
             </Button>
           </div>
+        </div>
+
+        <div className="flex flex-wrap justify-center gap-2 mb-8">
+          {PERIODS.map((per) => (
+            <button
+              key={per.key}
+              onClick={() => setPeriod(per.key)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-md text-xs font-semibold uppercase tracking-wider transition-all ${
+                period === per.key
+                  ? 'bg-primary text-primary-foreground shadow'
+                  : 'bg-card/40 text-muted-foreground hover:text-foreground border border-primary/20'
+              }`}
+            >
+              <Icon name={per.icon} className="h-4 w-4" />
+              {per.label}
+            </button>
+          ))}
         </div>
 
         {loading ? (
@@ -246,15 +282,45 @@ const TopRichSection = () => {
                   {filtered.length === 0 ? (
                     <tr>
                       <td colSpan={3} className="px-6 py-8 text-center text-muted-foreground">
-                        {searchQuery ? 'Ничего не найдено' : 'Данных пока нет'}
+                        {searchQuery
+                          ? 'Ничего не найдено'
+                          : period === 'yesterday'
+                          ? 'За вчера данных пока нет — появятся завтра'
+                          : 'Данных пока нет'}
                       </td>
                     </tr>
                   ) : (
-                    filtered.map((p, i) => <PlayerRow key={`${p.steamid}-${i}`} p={p} tab={activeTab} />)
+                    pageItems.map((p, i) => <PlayerRow key={`${p.steamid}-${i}`} p={p} tab={activeTab} />)
                   )}
                 </tbody>
               </table>
             </div>
+
+            {filtered.length > PAGE_SIZE && (
+              <div className="flex items-center justify-between gap-4 px-6 py-4 border-t border-primary/20">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                >
+                  <Icon name="ChevronLeft" className="h-4 w-4 mr-1" />
+                  Назад
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  Страница {page} из {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                >
+                  Вперёд
+                  <Icon name="ChevronRight" className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>
