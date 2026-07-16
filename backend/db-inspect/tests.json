@@ -1,0 +1,12 @@
+{
+  "tests": [
+    {
+      "name": "Inspect economy DB",
+      "method": "GET",
+      "path": "/?target=economy",
+      "expectedStatus": 200,
+      "expectedBody": {"ok": "boolean"},
+      "bodyMatcher": "partial"
+    }
+  ]
+}
