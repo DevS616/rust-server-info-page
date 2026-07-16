@@ -55,8 +55,66 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         return get_banlist()
 
 
+CACHE_KEY = 'banlist'
+CACHE_TTL_MIN = 5
+
+
+def _banlist_cache_get() -> Any:
+    """Читает кэш банлиста из PostgreSQL, если он свежий (< TTL минут)."""
+    try:
+        import psycopg2
+        from psycopg2.extras import RealDictCursor
+        schema = os.environ['MAIN_DB_SCHEMA']
+        conn = psycopg2.connect(os.environ['DATABASE_URL'], cursor_factory=RealDictCursor)
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    f"SELECT payload FROM {schema}.stats_top_cache "
+                    f"WHERE cache_key = %s "
+                    f"AND updated_at > NOW() - INTERVAL '{CACHE_TTL_MIN} minutes'",
+                    (CACHE_KEY,),
+                )
+                row = cur.fetchone()
+            return row['payload'] if row else None
+        finally:
+            conn.close()
+    except Exception:
+        return None
+
+
+def _banlist_cache_set(payload: Dict[str, Any]) -> None:
+    """Сохраняет банлист в кэш PostgreSQL."""
+    try:
+        import psycopg2
+        schema = os.environ['MAIN_DB_SCHEMA']
+        conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    f"INSERT INTO {schema}.stats_top_cache (cache_key, payload, updated_at) "
+                    f"VALUES (%s, %s, NOW()) "
+                    f"ON CONFLICT (cache_key) DO UPDATE SET "
+                    f"payload = EXCLUDED.payload, updated_at = NOW()",
+                    (CACHE_KEY, json.dumps(payload, ensure_ascii=False, default=str)),
+                )
+            conn.commit()
+        finally:
+            conn.close()
+    except Exception:
+        pass
+
+
 def get_banlist() -> Dict[str, Any]:
-    """Получает список банов напрямую из новой MySQL базы (IQBanSystem_Db)"""
+    """Получает список банов из новой MySQL базы (IQBanSystem_Db) с кэшем на 5 минут"""
+    cached = _banlist_cache_get()
+    if cached is not None:
+        return {
+            'statusCode': 200,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'body': json.dumps(cached, ensure_ascii=False, default=str),
+            'isBase64Encoded': False
+        }
+
     connection = None
     try:
         import pymysql
@@ -84,16 +142,16 @@ def get_banlist() -> Dict[str, Any]:
             )
             bans: List[Dict[str, Any]] = cursor.fetchall()
 
+        payload = {'bans': bans, 'total': len(bans)}
+        _banlist_cache_set(payload)
+
         return {
             'statusCode': 200,
             'headers': {
                 'Content-Type': 'application/json',
                 'Access-Control-Allow-Origin': '*'
             },
-            'body': json.dumps({
-                'bans': bans,
-                'total': len(bans)
-            }, ensure_ascii=False, default=str),
+            'body': json.dumps(payload, ensure_ascii=False, default=str),
             'isBase64Encoded': False
         }
 
