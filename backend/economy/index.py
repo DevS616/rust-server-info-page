@@ -144,6 +144,34 @@ def enrich_profiles(steamids) -> Dict[str, Dict[str, str]]:
     return profiles
 
 
+# Таблицы статистики по каждому серверу (объединяем оба)
+PLAYERSTATS_TABLES = ['uleaderboard_dbplayerstats', 'uleaderboard_db_srv2playerstats']
+STORAGE_TABLES = ['uleaderboard_dbstatsstorage', 'uleaderboard_db_srv2statsstorage']
+
+
+def stats_names(steamids) -> Dict[str, str]:
+    '''Ник игрока (LastName) из таблиц статистики сервера по steamid.'''
+    ids = [s for s in steamids if s]
+    if not ids:
+        return {}
+    placeholders = ', '.join(['%s'] * len(ids))
+    union = " UNION ALL ".join(
+        f"SELECT UserId, LastName FROM `{t}`" for t in PLAYERSTATS_TABLES
+    )
+    sql = (
+        f"SELECT UserId, MAX(LastName) AS LastName FROM ({union}) u "
+        f"WHERE UserId IN ({placeholders}) GROUP BY UserId"
+    )
+    conn = stats_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(sql, ids)
+            rows = cur.fetchall()
+    finally:
+        conn.close()
+    return {str(r['UserId']): (r['LastName'] or '') for r in rows}
+
+
 def get_top(limit: int) -> Dict[str, Any]:
     conn = my_conn()
     try:
@@ -158,23 +186,24 @@ def get_top(limit: int) -> Dict[str, Any]:
     finally:
         conn.close()
 
-    profiles = enrich_profiles([r['steamid'] for r in rows])
+    steamids = [r['steamid'] for r in rows]
+    profiles = enrich_profiles(steamids)
+    # Фолбэк-ники из плагина статистики для тех, у кого нет профиля
+    need_name = [sid for sid in steamids if not (profiles.get(sid) or {}).get('username')]
+    names = stats_names(need_name) if need_name else {}
+
     top = []
     for i, r in enumerate(rows):
-        p = profiles.get(r['steamid'], {})
+        sid = r['steamid']
+        p = profiles.get(sid, {})
         top.append({
             'rank': i + 1,
-            'steamid': r['steamid'],
+            'steamid': sid,
             'balance': _to_int(r['balance']),
-            'username': p.get('username') or 'Игрок',
+            'username': p.get('username') or names.get(sid) or 'Игрок',
             'avatar': p.get('avatar') or '',
         })
     return {'top': top, 'total': len(top)}
-
-
-# Таблицы статистики по каждому серверу (объединяем оба)
-PLAYERSTATS_TABLES = ['uleaderboard_dbplayerstats', 'uleaderboard_db_srv2playerstats']
-STORAGE_TABLES = ['uleaderboard_dbstatsstorage', 'uleaderboard_db_srv2statsstorage']
 
 
 def _to_float(v) -> float:
@@ -258,6 +287,8 @@ def get_dp_top(limit: int) -> Dict[str, Any]:
 
     steamids = list({str(r['UserId']) for r in rows})
     profiles = enrich_profiles(steamids)
+    need_name = [sid for sid in steamids if not (profiles.get(sid) or {}).get('username')]
+    names = stats_names(need_name) if need_name else {}
     items = []
     for i, r in enumerate(rows):
         sid = str(r['UserId'])
@@ -265,7 +296,7 @@ def get_dp_top(limit: int) -> Dict[str, Any]:
         items.append({
             'rank': i + 1,
             'steamid': sid,
-            'username': p.get('username') or 'Игрок',
+            'username': p.get('username') or names.get(sid) or 'Игрок',
             'avatar': p.get('avatar') or '',
             'balance': _to_int(r['total']),
             'servers': _servers_list(r['servers']),
