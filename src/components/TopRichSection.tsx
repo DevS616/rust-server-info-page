@@ -66,10 +66,14 @@ const PlayerRow = memo(({ p, tab }: { p: Player; tab: TabKey }) => (
             <Icon name="User" className="h-4 w-4 text-muted-foreground" />
           </div>
         )}
-        <span className="text-sm font-medium text-foreground">{p.username}</span>
+        <span
+          className="text-sm font-medium text-foreground cursor-help border-b border-dotted border-muted-foreground/40"
+          title={`Steam ID: ${p.steamid}`}
+        >
+          {p.username}
+        </span>
       </div>
     </td>
-    <td className="px-6 py-4 text-sm text-muted-foreground font-mono">{p.steamid}</td>
     <td className="px-6 py-4 text-right">
       <span className="text-sm font-bold text-primary">{renderValue(tab, p)}</span>
     </td>
@@ -223,14 +227,13 @@ const TopRichSection = () => {
                   <tr>
                     <th className="px-6 py-4 text-sm font-semibold text-foreground uppercase tracking-wider text-left">#</th>
                     <th className="px-6 py-4 text-sm font-semibold text-foreground uppercase tracking-wider text-left">Игрок</th>
-                    <th className="px-6 py-4 text-sm font-semibold text-foreground uppercase tracking-wider text-left">Steam ID</th>
                     <th className="px-6 py-4 text-sm font-semibold text-foreground uppercase tracking-wider text-right">{currentTab.valueHeader}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-primary/10">
                   {filtered.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="px-6 py-8 text-center text-muted-foreground">
+                      <td colSpan={3} className="px-6 py-8 text-center text-muted-foreground">
                         {searchQuery ? 'Ничего не найдено' : 'Данных пока нет'}
                       </td>
                     </tr>
