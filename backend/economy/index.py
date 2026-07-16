@@ -174,14 +174,15 @@ def get_stats_top(field: str, limit: int) -> Dict[str, Any]:
     return {'top': top, 'total': len(top)}
 
 
-def get_resources_top(limit: int) -> Dict[str, Any]:
+def get_dp_top(limit: int) -> Dict[str, Any]:
     conn = stats_conn()
     try:
         with conn.cursor() as cur:
             cur.execute(
-                f"SELECT UserId, ShortName, SUM(ItemValue) AS total "
+                f"SELECT UserId, SUM(ItemValue) AS total "
                 f"FROM `{STORAGE_TABLE}` "
-                f"GROUP BY UserId, ShortName "
+                f"WHERE ShortName = 'Economics' "
+                f"GROUP BY UserId "
                 f"ORDER BY total DESC LIMIT %s",
                 (limit,),
             )
@@ -200,8 +201,7 @@ def get_resources_top(limit: int) -> Dict[str, Any]:
             'steamid': sid,
             'username': p.get('username') or 'Игрок',
             'avatar': p.get('avatar') or '',
-            'resource': r['ShortName'] or '',
-            'amount': _to_int(r['total']),
+            'balance': _to_int(r['total']),
         })
     return {'top': items, 'total': len(items)}
 
@@ -260,9 +260,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         if action == 'playtime':
             limit = min(int(params.get('limit', 100)), 500)
             return resp(200, get_stats_top('playtime', limit))
-        if action == 'resources':
+        if action == 'dp':
             limit = min(int(params.get('limit', 100)), 500)
-            return resp(200, get_resources_top(limit))
+            return resp(200, get_dp_top(limit))
         if action == 'get':
             if not verify_admin(token):
                 return resp(403, {'error': 'forbidden'})

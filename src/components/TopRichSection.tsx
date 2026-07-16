@@ -6,7 +6,7 @@ import Icon from '@/components/ui/icon';
 const ECONOMY_API = 'https://functions.poehali.dev/520c0947-b56d-41e1-a8bd-1de788b6f722';
 const CACHE_DURATION = 5 * 60 * 1000;
 
-type TabKey = 'top' | 'points' | 'playtime' | 'resources';
+type TabKey = 'top' | 'dp' | 'points' | 'playtime';
 
 interface Player {
   rank: number;
@@ -16,15 +16,13 @@ interface Player {
   balance?: number;
   points?: number;
   playtime_minutes?: number;
-  resource?: string;
-  amount?: number;
 }
 
-const TABS: { key: TabKey; label: string; icon: string; valueHeader: string }[] = [
-  { key: 'top', label: 'Баланс', icon: 'Coins', valueHeader: 'Баланс' },
-  { key: 'points', label: 'Очки', icon: 'Star', valueHeader: 'Очки' },
-  { key: 'playtime', label: 'Время игры', icon: 'Clock', valueHeader: 'Время' },
-  { key: 'resources', label: 'Ресурсы', icon: 'Package', valueHeader: 'Добыто' },
+const TABS: { key: TabKey; label: string; icon: string; valueHeader: string; group: 'balance' | 'stats' }[] = [
+  { key: 'top', label: 'DC', icon: 'Coins', valueHeader: 'Баланс DC', group: 'balance' },
+  { key: 'dp', label: 'DP', icon: 'Gem', valueHeader: 'Баланс DP', group: 'balance' },
+  { key: 'points', label: 'Очки', icon: 'Star', valueHeader: 'Очки', group: 'stats' },
+  { key: 'playtime', label: 'Время игры', icon: 'Clock', valueHeader: 'Время', group: 'stats' },
 ];
 
 const formatNum = (n: number): string => n.toLocaleString('ru-RU');
@@ -46,9 +44,9 @@ const rankStyle = (rank: number): string => {
 
 const renderValue = (tab: TabKey, p: Player): string => {
   if (tab === 'top') return `${formatNum(p.balance || 0)} DC`;
+  if (tab === 'dp') return `${formatNum(p.balance || 0)} DP`;
   if (tab === 'points') return formatNum(p.points || 0);
-  if (tab === 'playtime') return formatPlaytime(p.playtime_minutes || 0);
-  return formatNum(p.amount || 0);
+  return formatPlaytime(p.playtime_minutes || 0);
 };
 
 const PlayerRow = memo(({ p, tab }: { p: Player; tab: TabKey }) => (
@@ -72,9 +70,6 @@ const PlayerRow = memo(({ p, tab }: { p: Player; tab: TabKey }) => (
       </div>
     </td>
     <td className="px-6 py-4 text-sm text-muted-foreground font-mono">{p.steamid}</td>
-    {tab === 'resources' && (
-      <td className="px-6 py-4 text-sm text-muted-foreground font-mono">{p.resource}</td>
-    )}
     <td className="px-6 py-4 text-right">
       <span className="text-sm font-bold text-primary">{renderValue(tab, p)}</span>
     </td>
@@ -82,8 +77,18 @@ const PlayerRow = memo(({ p, tab }: { p: Player; tab: TabKey }) => (
 ));
 PlayerRow.displayName = 'PlayerRow';
 
+type MainKey = 'balance' | 'points' | 'playtime';
+
+const MAIN_TABS: { key: MainKey; label: string; icon: string }[] = [
+  { key: 'balance', label: 'Баланс', icon: 'Wallet' },
+  { key: 'points', label: 'Очки', icon: 'Star' },
+  { key: 'playtime', label: 'Время игры', icon: 'Clock' },
+];
+
 const TopRichSection = () => {
-  const [activeTab, setActiveTab] = useState<TabKey>('top');
+  const [mainTab, setMainTab] = useState<MainKey>('balance');
+  const [balanceSub, setBalanceSub] = useState<TabKey>('top');
+  const activeTab: TabKey = mainTab === 'balance' ? balanceSub : mainTab;
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -147,13 +152,13 @@ const TopRichSection = () => {
           </p>
         </div>
 
-        <div className="flex flex-wrap justify-center gap-2 mb-8">
-          {TABS.map((tab) => (
+        <div className="flex flex-wrap justify-center gap-2 mb-4">
+          {MAIN_TABS.map((tab) => (
             <button
               key={tab.key}
-              onClick={() => { setActiveTab(tab.key); setSearchQuery(''); }}
+              onClick={() => { setMainTab(tab.key); setSearchQuery(''); }}
               className={`flex items-center gap-2 px-5 py-3 rounded-lg text-sm font-semibold uppercase tracking-wider transition-all ${
-                activeTab === tab.key
+                mainTab === tab.key
                   ? 'bg-primary text-primary-foreground shadow-lg'
                   : 'bg-card/50 text-muted-foreground hover:text-foreground border border-primary/20'
               }`}
@@ -163,6 +168,25 @@ const TopRichSection = () => {
             </button>
           ))}
         </div>
+
+        {mainTab === 'balance' && (
+          <div className="flex justify-center gap-2 mb-8">
+            {TABS.filter((t) => t.group === 'balance').map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => { setBalanceSub(tab.key); setSearchQuery(''); }}
+                className={`flex items-center gap-2 px-4 py-2 rounded-md text-xs font-semibold uppercase tracking-wider transition-all ${
+                  balanceSub === tab.key
+                    ? 'bg-primary/20 text-primary border border-primary/40'
+                    : 'bg-card/30 text-muted-foreground hover:text-foreground border border-primary/10'
+                }`}
+              >
+                <Icon name={tab.icon} className="h-4 w-4" />
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="mb-8 max-w-2xl mx-auto">
           <div className="flex gap-2">
@@ -200,16 +224,13 @@ const TopRichSection = () => {
                     <th className="px-6 py-4 text-sm font-semibold text-foreground uppercase tracking-wider text-left">#</th>
                     <th className="px-6 py-4 text-sm font-semibold text-foreground uppercase tracking-wider text-left">Игрок</th>
                     <th className="px-6 py-4 text-sm font-semibold text-foreground uppercase tracking-wider text-left">Steam ID</th>
-                    {activeTab === 'resources' && (
-                      <th className="px-6 py-4 text-sm font-semibold text-foreground uppercase tracking-wider text-left">Ресурс</th>
-                    )}
                     <th className="px-6 py-4 text-sm font-semibold text-foreground uppercase tracking-wider text-right">{currentTab.valueHeader}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-primary/10">
                   {filtered.length === 0 ? (
                     <tr>
-                      <td colSpan={activeTab === 'resources' ? 5 : 4} className="px-6 py-8 text-center text-muted-foreground">
+                      <td colSpan={4} className="px-6 py-8 text-center text-muted-foreground">
                         {searchQuery ? 'Ничего не найдено' : 'Данных пока нет'}
                       </td>
                     </tr>
