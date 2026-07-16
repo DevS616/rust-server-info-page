@@ -4,6 +4,7 @@ from typing import Dict, Any, Optional
 
 import psycopg2
 from psycopg2.extras import RealDictCursor
+import pymysql
 import jwt
 
 CORS_HEADERS = {
@@ -13,9 +14,24 @@ CORS_HEADERS = {
     'Access-Control-Max-Age': '86400',
 }
 
+ECO_TABLE = 'IQEconomic_Db'
+
 
 def pg_conn():
     return psycopg2.connect(os.environ['DATABASE_URL'], cursor_factory=RealDictCursor)
+
+
+def my_conn():
+    return pymysql.connect(
+        host=os.environ['NEW_MYSQL_HOST'],
+        port=int(os.environ.get('NEW_MYSQL_PORT', '3306')),
+        user=os.environ['NEW_MYSQL_USER'],
+        password=os.environ['NEW_MYSQL_PASSWORD'],
+        database=os.environ['NEW_MYSQL_DB'],
+        charset='utf8mb4',
+        connect_timeout=10,
+        cursorclass=pymysql.cursors.DictCursor,
+    )
 
 
 def schema() -> str:
@@ -41,42 +57,72 @@ def verify_admin(token: Optional[str]) -> bool:
         return False
 
 
-def get_top(limit: int) -> Dict[str, Any]:
+def _to_int(v) -> int:
+    try:
+        return int(float(str(v)))
+    except (ValueError, TypeError):
+        return 0
+
+
+def enrich_profiles(steamids) -> Dict[str, Dict[str, str]]:
+    ids = [s for s in steamids if s]
+    if not ids:
+        return {}
     s = schema()
     conn = pg_conn()
     try:
         with conn.cursor() as cur:
             cur.execute(
-                f'SELECT e.steamid, e.balance, u.steam_username, u.steam_avatar '
-                f'FROM {s}.economy_balances e '
-                f'LEFT JOIN {s}.users u ON u.steam_id = e.steamid '
-                f'WHERE e.is_hide = FALSE '
-                f'ORDER BY e.balance DESC LIMIT %s',
+                f'SELECT steam_id, steam_username, steam_avatar '
+                f'FROM {s}.users WHERE steam_id = ANY(%s)',
+                (ids,),
+            )
+            rows = cur.fetchall()
+    finally:
+        conn.close()
+    return {
+        r['steam_id']: {
+            'username': r['steam_username'] or '',
+            'avatar': r['steam_avatar'] or '',
+        }
+        for r in rows
+    }
+
+
+def get_top(limit: int) -> Dict[str, Any]:
+    conn = my_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"SELECT steamid, balance FROM `{ECO_TABLE}` "
+                f"WHERE is_hide = 'false' "
+                f"ORDER BY CAST(balance AS SIGNED) DESC LIMIT %s",
                 (limit,),
             )
             rows = cur.fetchall()
     finally:
         conn.close()
 
+    profiles = enrich_profiles([r['steamid'] for r in rows])
     top = []
     for i, r in enumerate(rows):
+        p = profiles.get(r['steamid'], {})
         top.append({
             'rank': i + 1,
             'steamid': r['steamid'],
-            'balance': int(r['balance']),
-            'username': r['steam_username'] or 'Игрок',
-            'avatar': r['steam_avatar'] or '',
+            'balance': _to_int(r['balance']),
+            'username': p.get('username') or 'Игрок',
+            'avatar': p.get('avatar') or '',
         })
     return {'top': top, 'total': len(top)}
 
 
 def get_player(steamid: str) -> Dict[str, Any]:
-    s = schema()
-    conn = pg_conn()
+    conn = my_conn()
     try:
         with conn.cursor() as cur:
             cur.execute(
-                f'SELECT steamid, balance FROM {s}.economy_balances WHERE steamid = %s',
+                f"SELECT steamid, balance FROM `{ECO_TABLE}` WHERE steamid = %s",
                 (steamid,),
             )
             row = cur.fetchone()
@@ -84,18 +130,16 @@ def get_player(steamid: str) -> Dict[str, Any]:
         conn.close()
     if not row:
         return {'found': False}
-    return {'found': True, 'steamid': row['steamid'], 'balance': int(row['balance'])}
+    return {'found': True, 'steamid': row['steamid'], 'balance': _to_int(row['balance'])}
 
 
 def set_balance(steamid: str, balance: int) -> Dict[str, Any]:
-    s = schema()
-    conn = pg_conn()
+    conn = my_conn()
     try:
         with conn.cursor() as cur:
             cur.execute(
-                f'UPDATE {s}.economy_balances SET balance = %s, updated_at = CURRENT_TIMESTAMP '
-                f'WHERE steamid = %s',
-                (balance, steamid),
+                f"UPDATE `{ECO_TABLE}` SET balance = %s WHERE steamid = %s",
+                (str(int(balance)), steamid),
             )
             if cur.rowcount == 0:
                 conn.rollback()

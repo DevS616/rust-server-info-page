@@ -106,10 +106,10 @@ const TopRichSection = () => {
       <div className="container relative z-10">
         <div className="text-center mb-12 animate-fade-in">
           <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl mb-4 glow-text">
-            <span className="text-primary">Топ богачей</span>
+            <span className="text-primary">Статистика</span>
           </h1>
           <p className="text-muted-foreground text-lg max-w-[700px] mx-auto">
-            Самые состоятельные игроки серверов DevilRust
+            Статистика игроков серверов DevilRust
           </p>
         </div>
 

@@ -56,31 +56,29 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
 
 def get_banlist() -> Dict[str, Any]:
-    """Получает список банов из PostgreSQL базы данных проекта"""
+    """Получает список банов напрямую из новой MySQL базы (IQBanSystem_Db)"""
     connection = None
     try:
-        import psycopg2
-        from psycopg2.extras import RealDictCursor
-        schema = os.environ['MAIN_DB_SCHEMA']
-        connection = psycopg2.connect(os.environ['DATABASE_URL'], cursor_factory=RealDictCursor)
+        import pymysql
+        connection = pymysql.connect(
+            host=os.environ['NEW_MYSQL_HOST'],
+            port=int(os.environ.get('NEW_MYSQL_PORT', '3306')),
+            user=os.environ['NEW_MYSQL_USER'],
+            password=os.environ['NEW_MYSQL_PASSWORD'],
+            database=os.environ['NEW_MYSQL_DB'],
+            charset='utf8mb4',
+            connect_timeout=10,
+            cursorclass=pymysql.cursors.DictCursor,
+        )
 
         with connection.cursor() as cursor:
             cursor.execute(
-                f"""
+                """
                 SELECT
-                    id,
-                    steamid,
-                    ip_address AS "ipAdress",
-                    CASE WHEN permanent THEN '1' ELSE '0' END AS permanent,
-                    time_unbanned AS "timeUnbanned",
-                    reason,
-                    server_name AS "serverName",
-                    server_address AS "serverAdress",
-                    owner,
-                    name_history AS "nameHistory",
-                    ip_history AS "ipHistory",
-                    steamid_history AS "steamIdHistory"
-                FROM {schema}.bans
+                    id, steamid, ipAdress, permanent, timeUnbanned,
+                    reason, serverName, serverAdress, owner,
+                    nameHistory, ipHistory, steamIdHistory
+                FROM IQBanSystem_Db
                 ORDER BY id DESC
                 """
             )
