@@ -16,6 +16,7 @@ interface Player {
   balance?: number;
   points?: number;
   playtime_minutes?: number;
+  servers?: number[];
 }
 
 const TABS: { key: TabKey; label: string; icon: string; valueHeader: string; group: 'balance' | 'stats' }[] = [
@@ -49,6 +50,15 @@ const renderValue = (tab: TabKey, p: Player): string => {
   return formatPlaytime(p.playtime_minutes || 0);
 };
 
+const buildTitle = (tab: TabKey, p: Player): string => {
+  const base = `Steam ID: ${p.steamid}`;
+  if (tab === 'top') return base;
+  const servers = p.servers || [];
+  if (servers.length === 0) return base;
+  const label = servers.map((s) => `[Сервер #${s}]`).join(' ');
+  return `${base}\n${label}`;
+};
+
 const PlayerRow = memo(({ p, tab }: { p: Player; tab: TabKey }) => (
   <tr className="hover:bg-primary/5 transition-colors">
     <td className="px-6 py-4">
@@ -68,7 +78,7 @@ const PlayerRow = memo(({ p, tab }: { p: Player; tab: TabKey }) => (
         )}
         <span
           className="text-sm font-medium text-foreground cursor-help border-b border-dotted border-muted-foreground/40"
-          title={`Steam ID: ${p.steamid}`}
+          title={buildTitle(tab, p)}
         >
           {p.username}
         </span>

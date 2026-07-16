@@ -142,18 +142,28 @@ def _to_float(v) -> float:
         return 0.0
 
 
+def _servers_list(raw) -> list:
+    if raw is None:
+        return []
+    if isinstance(raw, (bytes, bytearray)):
+        raw = raw.decode('utf-8', 'ignore')
+    nums = sorted({int(x) for x in str(raw).split(',') if x.strip().isdigit()})
+    return nums
+
+
 def get_stats_top(field: str, limit: int) -> Dict[str, Any]:
     order_col = 'points' if field == 'points' else 'playtime'
     union = " UNION ALL ".join(
-        f"SELECT UserId, LastName, Points, TotalPlayTime FROM `{t}` "
+        f"SELECT UserId, LastName, Points, TotalPlayTime, {idx + 1} AS srv FROM `{t}` "
         f"WHERE HiddenFromLeaderboard = 0"
-        for t in PLAYERSTATS_TABLES
+        for idx, t in enumerate(PLAYERSTATS_TABLES)
     )
     sql = (
         f"SELECT UserId, "
         f"MAX(LastName) AS LastName, "
         f"SUM(Points) AS points, "
-        f"SUM(CAST(TotalPlayTime AS DECIMAL(20,4))) AS playtime "
+        f"SUM(CAST(TotalPlayTime AS DECIMAL(20,4))) AS playtime, "
+        f"CAST(GROUP_CONCAT(DISTINCT srv ORDER BY srv) AS CHAR) AS servers "
         f"FROM ({union}) u "
         f"GROUP BY UserId "
         f"ORDER BY {order_col} DESC LIMIT %s"
@@ -179,17 +189,19 @@ def get_stats_top(field: str, limit: int) -> Dict[str, Any]:
             'avatar': p.get('avatar') or '',
             'points': round(_to_float(r['points']), 1),
             'playtime_minutes': round(_to_float(r['playtime']), 1),
+            'servers': _servers_list(r['servers']),
         })
     return {'top': top, 'total': len(top)}
 
 
 def get_dp_top(limit: int) -> Dict[str, Any]:
     union = " UNION ALL ".join(
-        f"SELECT UserId, ItemValue FROM `{t}` WHERE ShortName = 'Economics'"
-        for t in STORAGE_TABLES
+        f"SELECT UserId, ItemValue, {idx + 1} AS srv FROM `{t}` WHERE ShortName = 'Economics'"
+        for idx, t in enumerate(STORAGE_TABLES)
     )
     sql = (
-        f"SELECT UserId, SUM(ItemValue) AS total "
+        f"SELECT UserId, SUM(ItemValue) AS total, "
+        f"CAST(GROUP_CONCAT(DISTINCT srv ORDER BY srv) AS CHAR) AS servers "
         f"FROM ({union}) u "
         f"GROUP BY UserId "
         f"ORDER BY total DESC LIMIT %s"
@@ -214,6 +226,7 @@ def get_dp_top(limit: int) -> Dict[str, Any]:
             'username': p.get('username') or 'Игрок',
             'avatar': p.get('avatar') or '',
             'balance': _to_int(r['total']),
+            'servers': _servers_list(r['servers']),
         })
     return {'top': items, 'total': len(items)}
 
@@ -226,19 +239,22 @@ def fetch_category(cat: str, limit: int) -> list:
     if cat == 'top':
         raw = get_top(limit)['top']
         return [{'steamid': r['steamid'], 'username': r['username'],
-                 'avatar': r['avatar'], 'value': r['balance']} for r in raw]
+                 'avatar': r['avatar'], 'value': r['balance'], 'servers': []} for r in raw]
     if cat == 'dp':
         raw = get_dp_top(limit)['top']
         return [{'steamid': r['steamid'], 'username': r['username'],
-                 'avatar': r['avatar'], 'value': r['balance']} for r in raw]
+                 'avatar': r['avatar'], 'value': r['balance'],
+                 'servers': r.get('servers', [])} for r in raw]
     if cat == 'points':
         raw = get_stats_top('points', limit)['top']
         return [{'steamid': r['steamid'], 'username': r['username'],
-                 'avatar': r['avatar'], 'value': int(r['points'] * 10)} for r in raw]
+                 'avatar': r['avatar'], 'value': int(r['points'] * 10),
+                 'servers': r.get('servers', [])} for r in raw]
     if cat == 'playtime':
         raw = get_stats_top('playtime', limit)['top']
         return [{'steamid': r['steamid'], 'username': r['username'],
-                 'avatar': r['avatar'], 'value': int(r['playtime_minutes'])} for r in raw]
+                 'avatar': r['avatar'], 'value': int(r['playtime_minutes']),
+                 'servers': r.get('servers', [])} for r in raw]
     return []
 
 
@@ -321,6 +337,7 @@ def get_snapshot_today(cat: str) -> Dict[str, Any]:
             'steamid': p['steamid'],
             'username': p['username'] or 'Игрок',
             'avatar': p['avatar'] or '',
+            'servers': p.get('servers', []),
         }
         item.update(value_to_output(cat, int(p['value'])))
         top.append(item)
@@ -337,6 +354,7 @@ def get_legends(cat: str) -> Dict[str, Any]:
             'steamid': p['steamid'],
             'username': p['username'] or 'Игрок',
             'avatar': p['avatar'] or '',
+            'servers': p.get('servers', []),
         }
         item.update(value_to_output(cat, int(p['value'])))
         top.append(item)
