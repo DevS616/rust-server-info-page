@@ -145,9 +145,7 @@ const ServerLegends = () => {
           <p className="text-muted-foreground text-lg">
             Лучшие игроки в реальном времени, которые борются за право быть лучшим на наших серверах!
           </p>
-          <p className="text-sm text-muted-foreground/70 mt-3">
-            За попадание в этот топ игрок получает награду — реальный донат на баланс донат-магазина.
-          </p>
+          <p className="text-sm text-muted-foreground/70 mt-3">За попадание в этот топ игрок получает награду — реальный донат на баланс донат-магазина после глобального вайпа.</p>
         </div>
 
         <div className={`md:hidden transition-opacity duration-300 max-w-md mx-auto ${fade ? 'opacity-100' : 'opacity-0'}`}>
