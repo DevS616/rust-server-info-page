@@ -66,7 +66,7 @@ const EconomyTab = ({ token }: EconomyTabProps) => {
       const data = await res.json();
       if (data.ok) {
         setPlayer({ ...player, balance: value });
-        toast({ title: 'Баланс обновлён', description: `Новый баланс: ${value.toLocaleString('ru-RU')} ₽` });
+        toast({ title: 'Баланс обновлён', description: `Новый баланс: ${value.toLocaleString('ru-RU')} DC` });
       } else {
         toast({ title: 'Ошибка', description: data.error || 'Не удалось сохранить', variant: 'destructive' });
       }
@@ -112,7 +112,7 @@ const EconomyTab = ({ token }: EconomyTabProps) => {
           </div>
           <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
             <div className="flex-1 w-full">
-              <Label className="text-sm text-muted-foreground mb-1 block">Баланс (₽)</Label>
+              <Label className="text-sm text-muted-foreground mb-1 block">Баланс (DC)</Label>
               <Input
                 type="number"
                 value={newBalance}
@@ -126,7 +126,7 @@ const EconomyTab = ({ token }: EconomyTabProps) => {
             </Button>
           </div>
           <p className="text-xs text-muted-foreground mt-3">
-            Текущий баланс в игре: <span className="font-semibold text-foreground">{(player.balance ?? 0).toLocaleString('ru-RU')} ₽</span>. Изменение применится и в игре.
+            Текущий баланс в игре: <span className="font-semibold text-foreground">{(player.balance ?? 0).toLocaleString('ru-RU')} DC</span>. Изменение применится и в игре.
           </p>
         </Card>
       )}
