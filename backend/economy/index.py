@@ -34,6 +34,19 @@ def my_conn():
     )
 
 
+def stats_conn():
+    return pymysql.connect(
+        host=os.environ['NEW_MYSQL_HOST'],
+        port=int(os.environ.get('NEW_MYSQL_PORT', '3306')),
+        user=os.environ['NEW_MYSQL_USER'],
+        password=os.environ['NEW_MYSQL_PASSWORD'],
+        database=os.environ['NEW_MYSQL_STATS_DB'],
+        charset='utf8mb4',
+        connect_timeout=10,
+        cursorclass=pymysql.cursors.DictCursor,
+    )
+
+
 def schema() -> str:
     return os.environ['MAIN_DB_SCHEMA']
 
@@ -117,6 +130,82 @@ def get_top(limit: int) -> Dict[str, Any]:
     return {'top': top, 'total': len(top)}
 
 
+PLAYERSTATS_TABLE = 'uleaderboard_dbplayerstats'
+STORAGE_TABLE = 'uleaderboard_dbstatsstorage'
+
+
+def _to_float(v) -> float:
+    try:
+        return float(str(v))
+    except (ValueError, TypeError):
+        return 0.0
+
+
+def get_stats_top(field: str, limit: int) -> Dict[str, Any]:
+    order = 'Points' if field == 'points' else 'CAST(TotalPlayTime AS DECIMAL(20,4))'
+    conn = stats_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"SELECT UserId, LastName, Points, TotalPlayTime "
+                f"FROM `{PLAYERSTATS_TABLE}` "
+                f"WHERE HiddenFromLeaderboard = 0 "
+                f"ORDER BY {order} DESC LIMIT %s",
+                (limit,),
+            )
+            rows = cur.fetchall()
+    finally:
+        conn.close()
+
+    steamids = [str(r['UserId']) for r in rows]
+    profiles = enrich_profiles(steamids)
+    top = []
+    for i, r in enumerate(rows):
+        sid = str(r['UserId'])
+        p = profiles.get(sid, {})
+        top.append({
+            'rank': i + 1,
+            'steamid': sid,
+            'username': p.get('username') or r['LastName'] or 'Игрок',
+            'avatar': p.get('avatar') or '',
+            'points': round(_to_float(r['Points']), 1),
+            'playtime_minutes': round(_to_float(r['TotalPlayTime']), 1),
+        })
+    return {'top': top, 'total': len(top)}
+
+
+def get_resources_top(limit: int) -> Dict[str, Any]:
+    conn = stats_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"SELECT UserId, ShortName, SUM(ItemValue) AS total "
+                f"FROM `{STORAGE_TABLE}` "
+                f"GROUP BY UserId, ShortName "
+                f"ORDER BY total DESC LIMIT %s",
+                (limit,),
+            )
+            rows = cur.fetchall()
+    finally:
+        conn.close()
+
+    steamids = list({str(r['UserId']) for r in rows})
+    profiles = enrich_profiles(steamids)
+    items = []
+    for i, r in enumerate(rows):
+        sid = str(r['UserId'])
+        p = profiles.get(sid, {})
+        items.append({
+            'rank': i + 1,
+            'steamid': sid,
+            'username': p.get('username') or 'Игрок',
+            'avatar': p.get('avatar') or '',
+            'resource': r['ShortName'] or '',
+            'amount': _to_int(r['total']),
+        })
+    return {'top': items, 'total': len(items)}
+
+
 def get_player(steamid: str) -> Dict[str, Any]:
     conn = my_conn()
     try:
@@ -165,6 +254,15 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         if action == 'top':
             limit = min(int(params.get('limit', 100)), 500)
             return resp(200, get_top(limit))
+        if action == 'points':
+            limit = min(int(params.get('limit', 100)), 500)
+            return resp(200, get_stats_top('points', limit))
+        if action == 'playtime':
+            limit = min(int(params.get('limit', 100)), 500)
+            return resp(200, get_stats_top('playtime', limit))
+        if action == 'resources':
+            limit = min(int(params.get('limit', 100)), 500)
+            return resp(200, get_resources_top(limit))
         if action == 'get':
             if not verify_admin(token):
                 return resp(403, {'error': 'forbidden'})

@@ -4,18 +4,38 @@ import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
 
 const ECONOMY_API = 'https://functions.poehali.dev/520c0947-b56d-41e1-a8bd-1de788b6f722';
-const CACHE_KEY = 'top_rich_cache';
 const CACHE_DURATION = 5 * 60 * 1000;
 
-interface RichPlayer {
+type TabKey = 'top' | 'points' | 'playtime' | 'resources';
+
+interface Player {
   rank: number;
   steamid: string;
-  balance: number;
   username: string;
   avatar: string;
+  balance?: number;
+  points?: number;
+  playtime_minutes?: number;
+  resource?: string;
+  amount?: number;
 }
 
-const formatMoney = (n: number): string => n.toLocaleString('ru-RU');
+const TABS: { key: TabKey; label: string; icon: string; valueHeader: string }[] = [
+  { key: 'top', label: 'Баланс', icon: 'Coins', valueHeader: 'Баланс' },
+  { key: 'points', label: 'Очки', icon: 'Star', valueHeader: 'Очки' },
+  { key: 'playtime', label: 'Время игры', icon: 'Clock', valueHeader: 'Время' },
+  { key: 'resources', label: 'Ресурсы', icon: 'Package', valueHeader: 'Добыто' },
+];
+
+const formatNum = (n: number): string => n.toLocaleString('ru-RU');
+
+const formatPlaytime = (minutes: number): string => {
+  const total = Math.floor(minutes);
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  if (h > 0) return `${h} ч ${m} мин`;
+  return `${m} мин`;
+};
 
 const rankStyle = (rank: number): string => {
   if (rank === 1) return 'text-yellow-400';
@@ -24,7 +44,14 @@ const rankStyle = (rank: number): string => {
   return 'text-muted-foreground';
 };
 
-const PlayerRow = memo(({ p }: { p: RichPlayer }) => (
+const renderValue = (tab: TabKey, p: Player): string => {
+  if (tab === 'top') return `${formatNum(p.balance || 0)} DC`;
+  if (tab === 'points') return formatNum(p.points || 0);
+  if (tab === 'playtime') return formatPlaytime(p.playtime_minutes || 0);
+  return formatNum(p.amount || 0);
+};
+
+const PlayerRow = memo(({ p, tab }: { p: Player; tab: TabKey }) => (
   <tr className="hover:bg-primary/5 transition-colors">
     <td className="px-6 py-4">
       <span className={`text-lg font-bold ${rankStyle(p.rank)}`}>
@@ -45,22 +72,27 @@ const PlayerRow = memo(({ p }: { p: RichPlayer }) => (
       </div>
     </td>
     <td className="px-6 py-4 text-sm text-muted-foreground font-mono">{p.steamid}</td>
+    {tab === 'resources' && (
+      <td className="px-6 py-4 text-sm text-muted-foreground font-mono">{p.resource}</td>
+    )}
     <td className="px-6 py-4 text-right">
-      <span className="text-sm font-bold text-primary">{formatMoney(p.balance)} DC</span>
+      <span className="text-sm font-bold text-primary">{renderValue(tab, p)}</span>
     </td>
   </tr>
 ));
 PlayerRow.displayName = 'PlayerRow';
 
 const TopRichSection = () => {
-  const [players, setPlayers] = useState<RichPlayer[]>([]);
+  const [activeTab, setActiveTab] = useState<TabKey>('top');
+  const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const fetchTop = useCallback(async (skipCache = false) => {
+  const fetchData = useCallback(async (tab: TabKey, skipCache = false) => {
+    const cacheKey = `stats_cache_${tab}`;
     if (!skipCache) {
       try {
-        const cached = localStorage.getItem(CACHE_KEY);
+        const cached = localStorage.getItem(cacheKey);
         if (cached) {
           const { data, ts } = JSON.parse(cached);
           if (Date.now() - ts < CACHE_DURATION) {
@@ -73,11 +105,11 @@ const TopRichSection = () => {
     }
     setLoading(true);
     try {
-      const res = await fetch(`${ECONOMY_API}?action=top&limit=100`);
+      const res = await fetch(`${ECONOMY_API}?action=${tab}&limit=100`);
       const json = await res.json();
       const top = json.top || [];
       setPlayers(top);
-      localStorage.setItem(CACHE_KEY, JSON.stringify({ data: top, ts: Date.now() }));
+      localStorage.setItem(cacheKey, JSON.stringify({ data: top, ts: Date.now() }));
     } catch {
       setPlayers([]);
     } finally {
@@ -85,7 +117,7 @@ const TopRichSection = () => {
     }
   }, []);
 
-  useEffect(() => { fetchTop(); }, [fetchTop]);
+  useEffect(() => { fetchData(activeTab); }, [activeTab, fetchData]);
 
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -94,6 +126,8 @@ const TopRichSection = () => {
       (p) => p.username.toLowerCase().includes(q) || p.steamid.includes(q)
     );
   }, [players, searchQuery]);
+
+  const currentTab = TABS.find((t) => t.key === activeTab)!;
 
   return (
     <section className="py-20 min-h-screen bg-background relative">
@@ -104,13 +138,30 @@ const TopRichSection = () => {
       </div>
 
       <div className="container relative z-10">
-        <div className="text-center mb-12 animate-fade-in">
+        <div className="text-center mb-10 animate-fade-in">
           <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl mb-4 glow-text">
             <span className="text-primary">Статистика</span>
           </h1>
           <p className="text-muted-foreground text-lg max-w-[700px] mx-auto">
             Статистика игроков серверов DevilRust
           </p>
+        </div>
+
+        <div className="flex flex-wrap justify-center gap-2 mb-8">
+          {TABS.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => { setActiveTab(tab.key); setSearchQuery(''); }}
+              className={`flex items-center gap-2 px-5 py-3 rounded-lg text-sm font-semibold uppercase tracking-wider transition-all ${
+                activeTab === tab.key
+                  ? 'bg-primary text-primary-foreground shadow-lg'
+                  : 'bg-card/50 text-muted-foreground hover:text-foreground border border-primary/20'
+              }`}
+            >
+              <Icon name={tab.icon} className="h-4 w-4" />
+              {tab.label}
+            </button>
+          ))}
         </div>
 
         <div className="mb-8 max-w-2xl mx-auto">
@@ -126,7 +177,7 @@ const TopRichSection = () => {
               />
             </div>
             <Button
-              onClick={() => fetchTop(true)}
+              onClick={() => fetchData(activeTab, true)}
               disabled={loading}
               variant="outline"
               className="h-12 px-4"
@@ -146,25 +197,24 @@ const TopRichSection = () => {
               <table className="w-full">
                 <thead className="bg-primary/10 border-b border-primary/20">
                   <tr>
-                    {['#', 'Игрок', 'Steam ID', 'Баланс'].map((h, i) => (
-                      <th
-                        key={h}
-                        className={`px-6 py-4 text-sm font-semibold text-foreground uppercase tracking-wider ${i === 3 ? 'text-right' : 'text-left'}`}
-                      >
-                        {h}
-                      </th>
-                    ))}
+                    <th className="px-6 py-4 text-sm font-semibold text-foreground uppercase tracking-wider text-left">#</th>
+                    <th className="px-6 py-4 text-sm font-semibold text-foreground uppercase tracking-wider text-left">Игрок</th>
+                    <th className="px-6 py-4 text-sm font-semibold text-foreground uppercase tracking-wider text-left">Steam ID</th>
+                    {activeTab === 'resources' && (
+                      <th className="px-6 py-4 text-sm font-semibold text-foreground uppercase tracking-wider text-left">Ресурс</th>
+                    )}
+                    <th className="px-6 py-4 text-sm font-semibold text-foreground uppercase tracking-wider text-right">{currentTab.valueHeader}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-primary/10">
                   {filtered.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="px-6 py-8 text-center text-muted-foreground">
+                      <td colSpan={activeTab === 'resources' ? 5 : 4} className="px-6 py-8 text-center text-muted-foreground">
                         {searchQuery ? 'Ничего не найдено' : 'Данных пока нет'}
                       </td>
                     </tr>
                   ) : (
-                    filtered.map((p) => <PlayerRow key={p.steamid} p={p} />)
+                    filtered.map((p, i) => <PlayerRow key={`${p.steamid}-${i}`} p={p} tab={activeTab} />)
                   )}
                 </tbody>
               </table>
