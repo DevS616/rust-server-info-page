@@ -1,0 +1,11 @@
+{
+  "tests": [
+    {
+      "name": "Ping new mysql",
+      "method": "GET",
+      "path": "/?action=ping",
+      "expectedStatus": 200,
+      "bodyMatcher": "partial"
+    }
+  ]
+}
