@@ -1,6 +1,5 @@
 import os
 import json
-import pymysql
 import urllib.request
 import urllib.error
 from typing import Dict, Any, List
@@ -57,41 +56,36 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
 
 def get_banlist() -> Dict[str, Any]:
-    """Получает список банов из MySQL базы данных"""
+    """Получает список банов из PostgreSQL базы данных проекта"""
     connection = None
     try:
-        connection = pymysql.connect(
-            host=os.environ['BANLIST_MYSQL_HOST'],
-            port=int(os.environ['BANLIST_MYSQL_PORT']),
-            user=os.environ['BANLIST_MYSQL_USER'],
-            password=os.environ['BANLIST_MYSQL_PASSWORD'],
-            database=os.environ['BANLIST_MYSQL_DB'],
-            charset='utf8mb4',
-            cursorclass=pymysql.cursors.DictCursor,
-            connect_timeout=5
-        )
-        
+        import psycopg2
+        from psycopg2.extras import RealDictCursor
+        schema = os.environ['MAIN_DB_SCHEMA']
+        connection = psycopg2.connect(os.environ['DATABASE_URL'], cursor_factory=RealDictCursor)
+
         with connection.cursor() as cursor:
-            sql = """
-                SELECT 
+            cursor.execute(
+                f"""
+                SELECT
                     id,
                     steamid,
-                    ipAdress,
-                    permanent,
-                    timeUnbanned,
+                    ip_address AS "ipAdress",
+                    CASE WHEN permanent THEN '1' ELSE '0' END AS permanent,
+                    time_unbanned AS "timeUnbanned",
                     reason,
-                    serverName,
-                    serverAdress,
+                    server_name AS "serverName",
+                    server_address AS "serverAdress",
                     owner,
-                    nameHistory,
-                    ipHistory,
-                    steamIdHistory
-                FROM IQBanSystem_Db
+                    name_history AS "nameHistory",
+                    ip_history AS "ipHistory",
+                    steamid_history AS "steamIdHistory"
+                FROM {schema}.bans
                 ORDER BY id DESC
-            """
-            cursor.execute(sql)
+                """
+            )
             bans: List[Dict[str, Any]] = cursor.fetchall()
-        
+
         return {
             'statusCode': 200,
             'headers': {
@@ -101,24 +95,10 @@ def get_banlist() -> Dict[str, Any]:
             'body': json.dumps({
                 'bans': bans,
                 'total': len(bans)
-            }, ensure_ascii=False),
+            }, ensure_ascii=False, default=str),
             'isBase64Encoded': False
         }
-    
-    except pymysql.MySQLError as e:
-        return {
-            'statusCode': 500,
-            'headers': {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*'
-            },
-            'body': json.dumps({
-                'error': 'Database error',
-                'message': str(e)
-            }),
-            'isBase64Encoded': False
-        }
-    
+
     except Exception as e:
         return {
             'statusCode': 500,
