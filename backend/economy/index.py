@@ -304,7 +304,57 @@ def get_dp_top(limit: int) -> Dict[str, Any]:
     return {'top': items, 'total': len(items)}
 
 
-CATEGORIES = ('top', 'dp', 'points', 'playtime')
+# Условия отбора для агрегированных топов по таблице statsstorage.
+# LootType: 3=события/боссы, 6=убийства+бочки, 1/8/16=строительство, 11=ящики.
+LOOT_TOPS = {
+    'kills': "(LootType = 3 OR (LootType = 6 AND (ShortName = 'kills' OR ShortName LIKE 'scientistnpc%%')))",
+    'building': "(LootType IN (1, 8, 16))",
+    'crates': "((LootType = 11) OR (LootType = 6 AND (ShortName LIKE 'loot_barrel%%' OR ShortName = 'oil_barrel')))",
+}
+
+
+def get_loot_top(cond: str, limit: int) -> Dict[str, Any]:
+    union = " UNION ALL ".join(
+        f"SELECT UserId, LootType, ShortName, ItemValue, {idx + 1} AS srv FROM `{t}`"
+        for idx, t in enumerate(STORAGE_TABLES)
+    )
+    sql = (
+        f"SELECT UserId, SUM(ItemValue) AS total, "
+        f"CAST(GROUP_CONCAT(DISTINCT srv ORDER BY srv) AS CHAR) AS servers "
+        f"FROM ({union}) u "
+        f"WHERE {cond} "
+        f"GROUP BY UserId "
+        f"HAVING total > 0 "
+        f"ORDER BY total DESC LIMIT %s"
+    )
+    conn = stats_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(sql, (limit,))
+            rows = cur.fetchall()
+    finally:
+        conn.close()
+
+    steamids = list({str(r['UserId']) for r in rows})
+    profiles = enrich_profiles(steamids)
+    need_name = [sid for sid in steamids if not (profiles.get(sid) or {}).get('username')]
+    names = stats_names(need_name) if need_name else {}
+    items = []
+    for i, r in enumerate(rows):
+        sid = str(r['UserId'])
+        p = profiles.get(sid, {})
+        items.append({
+            'rank': i + 1,
+            'steamid': sid,
+            'username': p.get('username') or names.get(sid) or 'Игрок',
+            'avatar': p.get('avatar') or '',
+            'amount': _to_int(r['total']),
+            'servers': _servers_list(r['servers']),
+        })
+    return {'top': items, 'total': len(items)}
+
+
+CATEGORIES = ('top', 'dp', 'points', 'playtime', 'kills', 'building', 'crates')
 
 
 def fetch_category(cat: str, limit: int) -> list:
@@ -328,6 +378,11 @@ def fetch_category(cat: str, limit: int) -> list:
         return [{'steamid': r['steamid'], 'username': r['username'],
                  'avatar': r['avatar'], 'value': int(r['playtime_minutes']),
                  'servers': r.get('servers', [])} for r in raw]
+    if cat in LOOT_TOPS:
+        raw = get_loot_top(LOOT_TOPS[cat], limit)['top']
+        return [{'steamid': r['steamid'], 'username': r['username'],
+                 'avatar': r['avatar'], 'value': int(r['amount']),
+                 'servers': r.get('servers', [])} for r in raw]
     return []
 
 
@@ -337,6 +392,8 @@ def value_to_output(cat: str, value: int) -> Dict[str, Any]:
         return {'points': round(value / 10, 1)}
     if cat == 'playtime':
         return {'playtime_minutes': value}
+    if cat in LOOT_TOPS:
+        return {'amount': value}
     return {'balance': value}
 
 

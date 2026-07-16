@@ -6,7 +6,7 @@ import Icon from '@/components/ui/icon';
 const ECONOMY_API = 'https://functions.poehali.dev/520c0947-b56d-41e1-a8bd-1de788b6f722';
 const CACHE_DURATION = 5 * 60 * 1000;
 
-type TabKey = 'top' | 'dp' | 'points' | 'playtime';
+type TabKey = 'top' | 'dp' | 'points' | 'playtime' | 'kills' | 'building' | 'crates';
 
 interface Player {
   rank: number;
@@ -16,6 +16,7 @@ interface Player {
   balance?: number;
   points?: number;
   playtime_minutes?: number;
+  amount?: number;
   servers?: number[];
 }
 
@@ -24,6 +25,9 @@ const TABS: { key: TabKey; label: string; icon: string; valueHeader: string; gro
   { key: 'dp', label: 'DP', icon: 'Coins', valueHeader: 'Баланс DP', group: 'balance' },
   { key: 'points', label: 'Очки', icon: 'Star', valueHeader: 'Очки', group: 'stats' },
   { key: 'playtime', label: 'Время игры', icon: 'Clock', valueHeader: 'Время', group: 'stats' },
+  { key: 'kills', label: 'Убийства', icon: 'Swords', valueHeader: 'Убийств', group: 'stats' },
+  { key: 'building', label: 'Строительство', icon: 'Hammer', valueHeader: 'Блоков', group: 'stats' },
+  { key: 'crates', label: 'Ящики/бочки', icon: 'Package', valueHeader: 'Открыто', group: 'stats' },
 ];
 
 const formatNum = (n: number): string => n.toLocaleString('ru-RU');
@@ -47,7 +51,8 @@ const renderValue = (tab: TabKey, p: Player): string => {
   if (tab === 'top') return `${formatNum(p.balance || 0)} DC`;
   if (tab === 'dp') return `${formatNum(p.balance || 0)} DP`;
   if (tab === 'points') return formatNum(p.points || 0);
-  return formatPlaytime(p.playtime_minutes || 0);
+  if (tab === 'playtime') return formatPlaytime(p.playtime_minutes || 0);
+  return formatNum(p.amount || 0);
 };
 
 const buildTitle = (tab: TabKey, p: Player): string => {
@@ -91,12 +96,15 @@ const PlayerRow = memo(({ p, tab }: { p: Player; tab: TabKey }) => (
 ));
 PlayerRow.displayName = 'PlayerRow';
 
-type MainKey = 'balance' | 'points' | 'playtime';
+type MainKey = 'balance' | 'points' | 'playtime' | 'kills' | 'building' | 'crates';
 
 const MAIN_TABS: { key: MainKey; label: string; icon: string }[] = [
   { key: 'balance', label: 'Баланс', icon: 'Wallet' },
   { key: 'points', label: 'Очки', icon: 'Star' },
   { key: 'playtime', label: 'Время игры', icon: 'Clock' },
+  { key: 'kills', label: 'Убийства', icon: 'Swords' },
+  { key: 'building', label: 'Строительство', icon: 'Hammer' },
+  { key: 'crates', label: 'Ящики/бочки', icon: 'Package' },
 ];
 
 const readInitialTab = (): { main: MainKey; sub: TabKey } => {
@@ -106,6 +114,9 @@ const readInitialTab = (): { main: MainKey; sub: TabKey } => {
     if (t === 'top') return { main: 'balance', sub: 'top' };
     if (t === 'points') return { main: 'points', sub: 'top' };
     if (t === 'playtime') return { main: 'playtime', sub: 'top' };
+    if (t === 'kills') return { main: 'kills', sub: 'top' };
+    if (t === 'building') return { main: 'building', sub: 'top' };
+    if (t === 'crates') return { main: 'crates', sub: 'top' };
   } catch { /* ignore */ }
   return { main: 'balance', sub: 'top' };
 };
