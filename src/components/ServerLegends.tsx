@@ -25,11 +25,53 @@ const formatPlaytime = (minutes: number): string => {
 };
 
 const CATEGORIES = [
-  { tab: 'top', title: 'Богатейший игрок', icon: 'Coins', action: 'top', suffix: ' DC', field: 'balance' },
-  { tab: 'dp', title: 'Лидер по DP', icon: 'Gem', action: 'dp', suffix: ' DP', field: 'balance' },
+  { tab: 'top', title: 'Богатейший игрок', icon: 'Gem', action: 'top', suffix: ' DC', field: 'balance' },
+  { tab: 'dp', title: 'Лидер по DP', icon: 'Coins', action: 'dp', suffix: ' DP', field: 'balance' },
   { tab: 'points', title: 'Лучший по очкам', icon: 'Star', action: 'points', suffix: '', field: 'points' },
   { tab: 'playtime', title: 'Больше всех наиграл', icon: 'Clock', action: 'playtime', suffix: '', field: 'playtime' },
 ];
+
+const LegendCard = ({ l, onClick }: { l: Legend; onClick: () => void }) => (
+  <button onClick={onClick} className="group block w-full">
+    <div className="relative bg-card/60 backdrop-blur-sm rounded-2xl border border-primary/30 p-8 shadow-xl transition-all duration-300 group-hover:border-primary group-hover:shadow-primary/20 group-hover:-translate-y-1 h-full">
+      <div className="flex flex-col items-center text-center">
+        <div className="mb-3 flex items-center gap-2 text-yellow-400">
+          <Icon name="Trophy" className="h-7 w-7" />
+          <span className="text-sm font-semibold uppercase tracking-wider">{l.title}</span>
+        </div>
+
+        <div className="relative mb-4">
+          <div className="absolute -inset-1 rounded-full bg-gradient-to-tr from-yellow-400 to-amber-600 opacity-70 blur-sm" />
+          {l.avatar ? (
+            <img
+              src={l.avatar}
+              alt=""
+              className="relative h-24 w-24 rounded-full border-2 border-yellow-400 object-cover"
+              loading="lazy"
+            />
+          ) : (
+            <div className="relative h-24 w-24 rounded-full border-2 border-yellow-400 bg-primary/10 flex items-center justify-center">
+              <Icon name="User" className="h-10 w-10 text-muted-foreground" />
+            </div>
+          )}
+          <div className="absolute -bottom-1 -right-1 bg-yellow-400 text-background rounded-full h-9 w-9 flex items-center justify-center shadow-lg">
+            <Icon name="Crown" className="h-5 w-5" />
+          </div>
+        </div>
+
+        <h3 className="text-2xl font-bold text-foreground mb-1">{l.username}</h3>
+        <div className="flex items-center gap-2 text-primary">
+          <Icon name={l.icon} className="h-5 w-5" />
+          <span className="text-xl font-bold">{l.value}</span>
+        </div>
+
+        <span className="mt-5 text-xs text-muted-foreground uppercase tracking-wider group-hover:text-primary transition-colors">
+          Открыть статистику →
+        </span>
+      </div>
+    </div>
+  </button>
+);
 
 const ServerLegends = () => {
   const navigate = useNavigate();
@@ -83,7 +125,11 @@ const ServerLegends = () => {
 
   if (legends.length === 0) return null;
 
-  const l = legends[current];
+  const go = (tab: string) => navigate(`/top?tab=${tab}`);
+
+  // Мобильная: одна карточка. ПК: окно из 3 подряд идущих категорий.
+  const mobileCard = legends[current % legends.length];
+  const desktopCards = [0, 1, 2].map((offset) => legends[(current + offset) % legends.length]);
 
   return (
     <section className="py-16 bg-background relative overflow-hidden">
@@ -92,60 +138,30 @@ const ServerLegends = () => {
       </div>
 
       <div className="container relative z-10">
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl mb-2 glow-text">
-            <span className="text-primary">Достояние сервера</span>
+        <div className="text-center mb-8 max-w-2xl mx-auto">
+          <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl mb-3 glow-text">
+            <span className="text-primary">Легенды этого вайпа</span>
           </h2>
-          <p className="text-muted-foreground">Лучшие игроки DevilRust прямо сейчас</p>
+          <p className="text-muted-foreground text-lg">
+            Лучшие игроки в реальном времени, которые борются за право быть лучшим на наших серверах!
+          </p>
+          <p className="text-sm text-muted-foreground/70 mt-3">
+            За попадание в этот топ игрок получает награду — реальный донат на баланс донат-магазина.
+          </p>
         </div>
 
-        <button
-          onClick={() => navigate(`/top?tab=${l.tab}`)}
-          className="group block mx-auto max-w-md w-full"
-        >
-          <div
-            className={`relative bg-card/60 backdrop-blur-sm rounded-2xl border border-primary/30 p-8 shadow-xl transition-all duration-300 group-hover:border-primary group-hover:shadow-primary/20 group-hover:-translate-y-1 ${fade ? 'opacity-100' : 'opacity-0'}`}
-          >
-            <div className="flex flex-col items-center text-center">
-              <div className="mb-3 flex items-center gap-2 text-yellow-400">
-                <Icon name="Trophy" className="h-7 w-7" />
-                <span className="text-sm font-semibold uppercase tracking-wider">{l.title}</span>
-              </div>
+        <div className={`md:hidden transition-opacity duration-300 max-w-md mx-auto ${fade ? 'opacity-100' : 'opacity-0'}`}>
+          <LegendCard l={mobileCard} onClick={() => go(mobileCard.tab)} />
+        </div>
 
-              <div className="relative mb-4">
-                <div className="absolute -inset-1 rounded-full bg-gradient-to-tr from-yellow-400 to-amber-600 opacity-70 blur-sm" />
-                {l.avatar ? (
-                  <img
-                    src={l.avatar}
-                    alt=""
-                    className="relative h-24 w-24 rounded-full border-2 border-yellow-400 object-cover"
-                    loading="lazy"
-                  />
-                ) : (
-                  <div className="relative h-24 w-24 rounded-full border-2 border-yellow-400 bg-primary/10 flex items-center justify-center">
-                    <Icon name="User" className="h-10 w-10 text-muted-foreground" />
-                  </div>
-                )}
-                <div className="absolute -bottom-1 -right-1 bg-yellow-400 text-background rounded-full h-9 w-9 flex items-center justify-center shadow-lg">
-                  <Icon name="Crown" className="h-5 w-5" />
-                </div>
-              </div>
-
-              <h3 className="text-2xl font-bold text-foreground mb-1">{l.username}</h3>
-              <div className="flex items-center gap-2 text-primary">
-                <Icon name={l.icon} className="h-5 w-5" />
-                <span className="text-xl font-bold">{l.value}</span>
-              </div>
-
-              <span className="mt-5 text-xs text-muted-foreground uppercase tracking-wider group-hover:text-primary transition-colors">
-                Открыть статистику →
-              </span>
-            </div>
-          </div>
-        </button>
+        <div className={`hidden md:grid grid-cols-3 gap-6 transition-opacity duration-300 max-w-5xl mx-auto ${fade ? 'opacity-100' : 'opacity-0'}`}>
+          {desktopCards.map((l, i) => (
+            <LegendCard key={`${l.tab}-${i}`} l={l} onClick={() => go(l.tab)} />
+          ))}
+        </div>
 
         {legends.length > 1 && (
-          <div className="flex justify-center gap-2 mt-6">
+          <div className="flex justify-center gap-2 mt-8">
             {legends.map((leg, i) => (
               <button
                 key={leg.tab}

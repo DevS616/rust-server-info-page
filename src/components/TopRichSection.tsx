@@ -19,8 +19,8 @@ interface Player {
 }
 
 const TABS: { key: TabKey; label: string; icon: string; valueHeader: string; group: 'balance' | 'stats' }[] = [
-  { key: 'top', label: 'DC', icon: 'Coins', valueHeader: 'Баланс DC', group: 'balance' },
-  { key: 'dp', label: 'DP', icon: 'Gem', valueHeader: 'Баланс DP', group: 'balance' },
+  { key: 'top', label: 'DC', icon: 'Gem', valueHeader: 'Баланс DC', group: 'balance' },
+  { key: 'dp', label: 'DP', icon: 'Coins', valueHeader: 'Баланс DP', group: 'balance' },
   { key: 'points', label: 'Очки', icon: 'Star', valueHeader: 'Очки', group: 'stats' },
   { key: 'playtime', label: 'Время игры', icon: 'Clock', valueHeader: 'Время', group: 'stats' },
 ];
