@@ -1,0 +1,11 @@
+{
+  "tests": [
+    {
+      "name": "Explore source stats",
+      "method": "GET",
+      "path": "/?action=explore",
+      "expectedStatus": 200,
+      "bodyMatcher": "partial"
+    }
+  ]
+}
