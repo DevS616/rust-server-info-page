@@ -1,5 +1,6 @@
 import os
 import json
+import urllib.request
 from typing import Dict, Any, Optional
 
 import psycopg2
@@ -77,6 +78,33 @@ def _to_int(v) -> int:
         return 0
 
 
+def _steam_profiles(steamids) -> Dict[str, Dict[str, str]]:
+    '''Подтягивает ник и аватар напрямую из Steam API (до 100 id за запрос).'''
+    key = os.environ.get('STEAM_API_KEY')
+    if not key or not steamids:
+        return {}
+    result: Dict[str, Dict[str, str]] = {}
+    ids = list(steamids)
+    for i in range(0, len(ids), 100):
+        chunk = ids[i:i + 100]
+        url = (
+            'https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/'
+            f'?key={key}&steamids={",".join(chunk)}'
+        )
+        try:
+            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=8) as resp:
+                data = json.loads(resp.read().decode('utf-8'))
+            for pl in data.get('response', {}).get('players', []):
+                result[str(pl.get('steamid'))] = {
+                    'username': pl.get('personaname') or '',
+                    'avatar': pl.get('avatarfull') or '',
+                }
+        except Exception:
+            continue
+    return result
+
+
 def enrich_profiles(steamids) -> Dict[str, Dict[str, str]]:
     ids = [s for s in steamids if s]
     if not ids:
@@ -93,13 +121,27 @@ def enrich_profiles(steamids) -> Dict[str, Dict[str, str]]:
             rows = cur.fetchall()
     finally:
         conn.close()
-    return {
+
+    profiles = {
         r['steam_id']: {
             'username': r['steam_username'] or '',
             'avatar': r['steam_avatar'] or '',
         }
         for r in rows
     }
+
+    # Для игроков без ника/аватара в базе — берём из Steam API
+    missing = [sid for sid in ids
+               if not profiles.get(sid) or not profiles[sid].get('avatar')]
+    if missing:
+        steam = _steam_profiles(missing)
+        for sid, data in steam.items():
+            existing = profiles.get(sid) or {}
+            profiles[sid] = {
+                'username': existing.get('username') or data['username'],
+                'avatar': existing.get('avatar') or data['avatar'],
+            }
+    return profiles
 
 
 def get_top(limit: int) -> Dict[str, Any]:
