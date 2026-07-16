@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
 import Header from '@/components/Header';
 import HeroSection from '@/components/HeroSection';
 import ServersSection from '@/components/ServersSection';
+import ServerLegends from '@/components/ServerLegends';
 import NewsSection from '@/components/NewsSection';
 import HowToStartSection from '@/components/HowToStartSection';
 import Footer from '@/components/Footer';
@@ -14,7 +15,6 @@ import EventAlert from '@/components/EventAlert';
 
 const Index = () => {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [openBonusFromMenu, setOpenBonusFromMenu] = useState(false);
   const [openTelegramFromMenu, setOpenTelegramFromMenu] = useState(false);
@@ -75,6 +75,7 @@ const Index = () => {
       />
       <HeroSection />
       <ServersSection />
+      <ServerLegends />
       <NewsSection />
       <HowToStartSection />
       <Footer />

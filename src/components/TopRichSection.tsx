@@ -89,9 +89,21 @@ const MAIN_TABS: { key: MainKey; label: string; icon: string }[] = [
   { key: 'playtime', label: 'Время игры', icon: 'Clock' },
 ];
 
+const readInitialTab = (): { main: MainKey; sub: TabKey } => {
+  try {
+    const t = new URLSearchParams(window.location.search).get('tab');
+    if (t === 'dp') return { main: 'balance', sub: 'dp' };
+    if (t === 'top') return { main: 'balance', sub: 'top' };
+    if (t === 'points') return { main: 'points', sub: 'top' };
+    if (t === 'playtime') return { main: 'playtime', sub: 'top' };
+  } catch { /* ignore */ }
+  return { main: 'balance', sub: 'top' };
+};
+
 const TopRichSection = () => {
-  const [mainTab, setMainTab] = useState<MainKey>('balance');
-  const [balanceSub, setBalanceSub] = useState<TabKey>('top');
+  const initial = readInitialTab();
+  const [mainTab, setMainTab] = useState<MainKey>(initial.main);
+  const [balanceSub, setBalanceSub] = useState<TabKey>(initial.sub);
   const activeTab: TabKey = mainTab === 'balance' ? balanceSub : mainTab;
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
