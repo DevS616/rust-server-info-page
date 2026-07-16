@@ -46,7 +46,7 @@ const PlayerRow = memo(({ p }: { p: RichPlayer }) => (
     </td>
     <td className="px-6 py-4 text-sm text-muted-foreground font-mono">{p.steamid}</td>
     <td className="px-6 py-4 text-right">
-      <span className="text-sm font-bold text-primary">{formatMoney(p.balance)} ₽</span>
+      <span className="text-sm font-bold text-primary">{formatMoney(p.balance)} DC</span>
     </td>
   </tr>
 ));
