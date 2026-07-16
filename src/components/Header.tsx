@@ -61,6 +61,9 @@ const Header = ({ onOpenBonus, onOpenTelegram, bonusAvailable }: HeaderProps = {
           <a href="/banlist" className="text-sm font-medium text-foreground hover:text-primary transition-colors uppercase tracking-wider">
             Банлист
           </a>
+          <a href="/top" className="text-sm font-medium text-foreground hover:text-primary transition-colors uppercase tracking-wider">
+            Топ богачей
+          </a>
           <button onClick={() => setIsRulesOpen(true)} className="text-sm font-medium text-foreground hover:text-primary transition-colors uppercase tracking-wider">
             Правила
           </button>
@@ -112,6 +115,13 @@ const Header = ({ onOpenBonus, onOpenTelegram, bonusAvailable }: HeaderProps = {
                 className="text-base font-medium text-foreground hover:text-primary transition-colors uppercase tracking-wider py-2"
               >
                 Банлист
+              </a>
+              <a 
+                href="/top" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="text-base font-medium text-foreground hover:text-primary transition-colors uppercase tracking-wider py-2"
+              >
+                Топ богачей
               </a>
               <button 
                 onClick={() => {

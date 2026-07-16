@@ -1,0 +1,20 @@
+{
+  "tests": [
+    {
+      "name": "Get top richest players",
+      "method": "GET",
+      "path": "/?action=top&limit=10",
+      "expectedStatus": 200,
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Forbidden set balance without admin token",
+      "method": "POST",
+      "path": "/",
+      "body": {"steamid": "123", "balance": 100},
+      "expectedStatus": 403,
+      "expectedBody": {"error": "string"},
+      "bodyMatcher": "partial"
+    }
+  ]
+}

@@ -12,6 +12,7 @@ import CookieConsent from "./components/CookieConsent";
 import { refreshTokenIfNeeded } from "./utils/authToken";
 import Index from "./pages/Index";
 import BanList from "./pages/BanList";
+import TopRich from "./pages/TopRich";
 import Support from "./pages/Support";
 import TicketDetails from "./pages/TicketDetails";
 import Complaints from "./pages/Complaints";
@@ -137,6 +138,7 @@ const AppContent = () => {
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/banlist" element={<BanList />} />
+        <Route path="/top" element={<TopRich />} />
         <Route path="/support" element={<Support />} />
         <Route path="/support/ticket/:ticketId" element={<TicketDetails />} />
         <Route path="/complaints" element={<Complaints />} />
