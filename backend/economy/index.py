@@ -264,7 +264,7 @@ def get_stats_top(field: str, limit: int) -> Dict[str, Any]:
         f"SELECT UserId, "
         f"MAX(LastName) AS LastName, "
         f"SUM(Points) AS points, "
-        f"SUM(CAST(TotalPlayTime AS DECIMAL(20,4))) AS playtime, "
+        f"SUM(CAST(TotalPlayTime AS DECIMAL(20,4))) / 60 AS playtime, "
         f"CAST(GROUP_CONCAT(DISTINCT srv ORDER BY srv) AS CHAR) AS servers "
         f"FROM ({union}) u "
         f"GROUP BY UserId "
