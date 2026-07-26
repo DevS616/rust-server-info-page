@@ -1,0 +1,1 @@
+UPDATE admins SET password_hash = 'PLACEHOLDER', token = NULL WHERE id = 1;
