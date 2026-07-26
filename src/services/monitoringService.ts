@@ -76,6 +76,9 @@ class MonitoringService {
       if (data.result === 'success' && data.data) {
         this.data = data;
         this.useFallback = false;
+        try {
+          localStorage.setItem('monitoring_cache', JSON.stringify({ ts: Date.now(), data }));
+        } catch {}
         this.notify();
       }
     } catch {
@@ -86,14 +89,27 @@ class MonitoringService {
   }
 
   private startAutoFetch(): void {
-    localStorage.removeItem('monitoring_cache');
+    const CACHE_TTL = 15 * 60 * 1000;
+    let fresh = false;
+    try {
+      const raw = localStorage.getItem('monitoring_cache');
+      if (raw) {
+        const cached = JSON.parse(raw);
+        if (cached && Date.now() - cached.ts < CACHE_TTL && cached.data?.data) {
+          this.data = cached.data;
+          this.useFallback = false;
+          this.notify();
+          fresh = true;
+        }
+      }
+    } catch {}
 
-    this.fetchData();
+    if (!fresh) this.fetchData();
     this.fetchInterval = window.setInterval(() => {
       if (document.visibilityState === 'visible') {
         this.fetchData();
       }
-    }, 5 * 60 * 1000);
+    }, 15 * 60 * 1000);
   }
 
   destroy(): void {

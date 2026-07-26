@@ -36,8 +36,8 @@ class PublicDataService {
   private data: PublicData | null = null;
   private intervalId: number | null = null;
   private lastFetch: number = 0;
-  private readonly CACHE_TIME = 10 * 60 * 1000;
-  private readonly FETCH_INTERVAL = 15 * 60 * 1000;
+  private readonly CACHE_TIME = 30 * 60 * 1000;
+  private readonly FETCH_INTERVAL = 30 * 60 * 1000;
   private readonly CACHE_KEY = 'public_data_cache';
   private readonly API_URL = 'https://functions.poehali.dev/89653c3a-fd42-474b-b49e-2c8be04ed475/';
 
