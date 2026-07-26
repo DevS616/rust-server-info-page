@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
 import { type CalendarEvent, mergeEvents } from '@/utils/autoEvents';
+import { cachedFetch } from '@/lib/cachedFetch';
 
 const DISMISS_KEY = 'event_alert_dismissed';
 
@@ -19,13 +20,11 @@ const EventAlert = () => {
 
   useEffect(() => {
     const load = async () => {
-      try {
-        const res = await fetch('https://functions.poehali.dev/20b8d7e0-8c27-4631-9f36-7be6d0ffb6a1/');
-        const db = res.ok ? (await res.json()).events || [] : [];
-        return mergeEvents(db);
-      } catch {
-        return mergeEvents([]);
-      }
+      const data = await cachedFetch<{ events?: CalendarEvent[] }>(
+        'https://functions.poehali.dev/20b8d7e0-8c27-4631-9f36-7be6d0ffb6a1/',
+        'events_cache',
+      );
+      return mergeEvents(data?.events || []);
     };
 
     load().then(allEvents => {

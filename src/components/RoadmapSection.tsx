@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import Icon from '@/components/ui/icon';
+import { cachedFetch } from '@/lib/cachedFetch';
 
 const ROADMAP_URL = 'https://functions.poehali.dev/bccc018e-abaf-434e-a899-688b45fcb58b';
 const PREVIEW_LENGTH = 130;
@@ -44,9 +45,8 @@ export default function RoadmapSection() {
   const [selected, setSelected] = useState<RoadmapItem | null>(null);
 
   useEffect(() => {
-    fetch(ROADMAP_URL)
-      .then(r => r.json())
-      .then(data => setItems(data.items || []))
+    cachedFetch<{ items?: RoadmapItem[] }>(ROADMAP_URL, 'roadmap_cache')
+      .then(data => setItems(data?.items || []))
       .finally(() => setLoading(false));
   }, []);
 

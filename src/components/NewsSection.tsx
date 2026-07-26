@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import Icon from '@/components/ui/icon';
 import { sanitizeNewsHtml, isHtmlContent, previewText } from '@/utils/newsContent';
+import { cachedFetch } from '@/lib/cachedFetch';
 
 interface NewsItem {
   id: number;
@@ -36,11 +37,11 @@ const NewsSection = () => {
   const [selectedNews, setSelectedNews] = useState<NewsItem | null>(null);
 
   useEffect(() => {
-    localStorage.removeItem('news_cache');
-    fetch('https://functions.poehali.dev/e6be6494-14cb-4278-882b-d4498bef6cf6/')
-      .then(r => r.ok ? r.json() : [])
-      .then(data => setNewsItems(data))
-      .catch(() => {})
+    cachedFetch<NewsItem[]>(
+      'https://functions.poehali.dev/e6be6494-14cb-4278-882b-d4498bef6cf6/',
+      'news_cache',
+    )
+      .then(data => { if (data) setNewsItems(data); })
       .finally(() => setLoading(false));
   }, []);
 
