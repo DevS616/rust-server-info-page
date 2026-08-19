@@ -74,11 +74,18 @@ const PromotionModal = () => {
     
     if (!promotionData.enabled) return;
 
-    const now = new Date().getTime();
     const start = new Date(promotionData.startDate).getTime();
     const end = new Date(promotionData.endDate).getTime();
+    const promoId = `${promotionData.title}|${promotionData.startDate}|${promotionData.endDate}`;
+
+    if (localStorage.getItem('promotion_current_id') !== promoId) {
+      localStorage.setItem('promotion_current_id', promoId);
+      localStorage.removeItem('promotion_hidden_until');
+      localStorage.removeItem(promotionData.behavior.cookieName);
+    }
 
     const checkPromotion = () => {
+      const now = Date.now();
       if (now < start || now > end) return false;
 
       const hiddenUntil = localStorage.getItem('promotion_hidden_until');
@@ -117,7 +124,12 @@ const PromotionModal = () => {
     updateTimer();
 
     if (checkPromotion()) {
-      setTimeout(() => setIsOpen(true), 1000);
+      setTimeout(() => {
+        setIsOpen(true);
+        if (promotionData.behavior.showOnce) {
+          localStorage.setItem(promotionData.behavior.cookieName, '1');
+        }
+      }, 1000);
     }
 
     const timer = setInterval(() => {
