@@ -9,12 +9,13 @@ import PromotionTab from './PromotionTab';
 import PricingTab from './PricingTab';
 import RoadmapTab from './RoadmapTab';
 import PollsTab from './PollsTab';
+import PasswordSection from './PasswordSection';
 
 interface ManagementTabProps {
   token: string;
 }
 
-type SubTab = 'maintenance' | 'servers' | 'holidays' | 'promotion' | 'pricing' | 'roadmap' | 'polls';
+type SubTab = 'maintenance' | 'servers' | 'holidays' | 'promotion' | 'pricing' | 'roadmap' | 'polls' | 'security';
 
 const ManagementTab = ({ token }: ManagementTabProps) => {
   const [activeTab, setActiveTab] = useState<SubTab>('maintenance');
@@ -95,6 +96,13 @@ const ManagementTab = ({ token }: ManagementTabProps) => {
           <Icon name="BarChart3" className="mr-2" />
           Опросы
         </Button>
+        <Button
+          onClick={() => setActiveTab('security')}
+          variant={activeTab === 'security' ? 'default' : 'outline'}
+        >
+          <Icon name="ShieldCheck" className="mr-2" />
+          Безопасность
+        </Button>
       </div>
 
       {activeTab === 'maintenance' && <MaintenanceSection token={token} />}
@@ -117,6 +125,8 @@ const ManagementTab = ({ token }: ManagementTabProps) => {
       {activeTab === 'roadmap' && <RoadmapTab token={token} />}
 
       {activeTab === 'polls' && <PollsTab token={token} />}
+
+      {activeTab === 'security' && <PasswordSection token={token} />}
 
       <ServerDialog
         open={showServerDialog}

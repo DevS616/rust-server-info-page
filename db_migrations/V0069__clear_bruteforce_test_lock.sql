@@ -1,0 +1,1 @@
+UPDATE admin_login_attempts SET locked_until = NULL, attempts = 0 WHERE email = 'bruteforce-test@example.com';

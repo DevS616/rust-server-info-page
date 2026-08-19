@@ -48,7 +48,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     user_id = params.get('user_id', '')
     admin_id = params.get('admin_id', '')
     
-    if method == 'POST' and action == 'add_admin':
+    if method == 'POST' and action == 'change_password':
+        return change_password(event, admin_data)
+    elif method == 'POST' and action == 'add_admin':
         return add_admin(event)
     elif method == 'GET' and action == 'list_admins':
         return list_admins()
@@ -67,6 +69,54 @@ def escape_sql(value: str) -> str:
     return value.replace("'", "''")
 
 
+MAX_ATTEMPTS = 5
+LOCK_MINUTES = 15
+
+
+def get_client_ip(event: Dict[str, Any]) -> str:
+    ctx = event.get('requestContext') or {}
+    ip = ((ctx.get('identity') or {}).get('sourceIp')) or ''
+    return str(ip)[:64]
+
+
+def check_lockout(cur, email: str, ip: str) -> Optional[int]:
+    """Возвращает количество оставшихся минут блокировки или None."""
+    cur.execute(
+        f"SELECT attempts, locked_until FROM admin_login_attempts "
+        f"WHERE email = '{escape_sql(email)}' AND ip = '{escape_sql(ip)}'"
+    )
+    row = cur.fetchone()
+    if not row or not row['locked_until']:
+        return None
+    if row['locked_until'] > datetime.utcnow():
+        delta = row['locked_until'] - datetime.utcnow()
+        return max(1, int(delta.total_seconds() // 60) + 1)
+    return None
+
+
+def register_failure(cur, conn, email: str, ip: str) -> None:
+    e, i = escape_sql(email), escape_sql(ip)
+    cur.execute(
+        f"INSERT INTO admin_login_attempts (email, ip, attempts, updated_at) "
+        f"VALUES ('{e}', '{i}', 1, NOW()) "
+        f"ON CONFLICT (email, ip) DO UPDATE SET "
+        f"attempts = admin_login_attempts.attempts + 1, updated_at = NOW()"
+    )
+    cur.execute(
+        f"UPDATE admin_login_attempts SET locked_until = NOW() + INTERVAL '{LOCK_MINUTES} minutes', attempts = 0 "
+        f"WHERE email = '{e}' AND ip = '{i}' AND attempts >= {MAX_ATTEMPTS}"
+    )
+    conn.commit()
+
+
+def clear_attempts(cur, conn, email: str, ip: str) -> None:
+    cur.execute(
+        f"DELETE FROM admin_login_attempts "
+        f"WHERE email = '{escape_sql(email)}' AND ip = '{escape_sql(ip)}'"
+    )
+    conn.commit()
+
+
 def admin_login(event: Dict[str, Any]) -> Dict[str, Any]:
     body_str = event.get('body', '{}') or '{}'
     body = json.loads(body_str) if body_str else {}
@@ -79,29 +129,44 @@ def admin_login(event: Dict[str, Any]) -> Dict[str, Any]:
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor(cursor_factory=RealDictCursor)
     
+    ip = get_client_ip(event)
+    locked_min = check_lockout(cur, email, ip)
+    if locked_min:
+        cur.close()
+        conn.close()
+        return error_response(
+            f'Слишком много неудачных попыток. Вход заблокирован на {locked_min} мин.', 429
+        )
+    
     email_safe = escape_sql(email)
     cur.execute(f"SELECT * FROM admins WHERE email = '{email_safe}'")
     admin = cur.fetchone()
     
     if not admin:
+        register_failure(cur, conn, email, ip)
         cur.close()
         conn.close()
         return error_response('Invalid credentials', 401)
     
     if admin['password_hash'] == 'PLACEHOLDER':
+        register_failure(cur, conn, email, ip)
         cur.close()
         conn.close()
         return error_response('Invalid credentials', 401)
     
     try:
         if not bcrypt.checkpw(password.encode('utf-8'), admin['password_hash'].encode('utf-8')):
+            register_failure(cur, conn, email, ip)
             cur.close()
             conn.close()
             return error_response('Invalid credentials', 401)
     except:
+        register_failure(cur, conn, email, ip)
         cur.close()
         conn.close()
         return error_response('Invalid credentials', 401)
+    
+    clear_attempts(cur, conn, email, ip)
     
     secret = os.environ['JWT_SECRET']
     payload = {
@@ -135,6 +200,57 @@ def admin_login(event: Dict[str, Any]) -> Dict[str, Any]:
                 'full_name': admin['full_name']
             }
         }),
+        'isBase64Encoded': False
+    }
+
+
+def change_password(event: Dict[str, Any], admin_data: Dict[str, Any]) -> Dict[str, Any]:
+    body_str = event.get('body', '{}') or '{}'
+    body = json.loads(body_str) if body_str else {}
+    current = body.get('current_password', '')
+    new = body.get('new_password', '')
+
+    if not current or not new:
+        return error_response('Укажите текущий и новый пароль')
+    if len(new) < 8:
+        return error_response('Новый пароль должен быть не короче 8 символов')
+
+    conn = psycopg2.connect(os.environ['DATABASE_URL'])
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    cur.execute(f"SELECT id, password_hash FROM admins WHERE id = {int(admin_data['admin_id'])}")
+    admin = cur.fetchone()
+
+    if not admin:
+        cur.close()
+        conn.close()
+        return error_response('Администратор не найден', 404)
+
+    try:
+        ok = bcrypt.checkpw(current.encode('utf-8'), admin['password_hash'].encode('utf-8'))
+    except Exception:
+        ok = False
+
+    if not ok:
+        cur.close()
+        conn.close()
+        return error_response('Текущий пароль указан неверно', 401)
+
+    hashed = bcrypt.hashpw(new.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    cur.execute(
+        f"UPDATE admins SET password_hash = '{escape_sql(hashed)}', token = NULL WHERE id = {admin['id']}"
+    )
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return {
+        'statusCode': 200,
+        'headers': {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+        },
+        'body': json.dumps({'success': True, 'message': 'Пароль изменён'}),
         'isBase64Encoded': False
     }
 
