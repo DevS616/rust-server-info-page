@@ -1,0 +1,1 @@
+UPDATE admins SET password_hash = '$2b$12$D9wcUObttepwNKQQod.jE.ILIIuXKGYV4FcQ1hJuDfY4wXVq.JUOG', token = NULL WHERE id = 1;
