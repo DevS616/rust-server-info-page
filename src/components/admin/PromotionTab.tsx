@@ -145,6 +145,51 @@ const PromotionTab = ({ token }: PromotionTabProps) => {
         </div>
       </div>
 
+      {(() => {
+        const now = new Date();
+        const start = new Date(form.startDate);
+        const end = new Date(form.endDate);
+        if (!form.enabled) {
+          return (
+            <div className="mb-6 rounded-lg border border-yellow-500/40 bg-yellow-500/10 p-4 flex items-start gap-3">
+              <Icon name="EyeOff" className="text-yellow-500 mt-0.5" size={20} />
+              <div className="text-sm">
+                <b>Акция выключена.</b> Посетители её не видят. Включите переключатель ниже.
+              </div>
+            </div>
+          );
+        }
+        if (now > end) {
+          return (
+            <div className="mb-6 rounded-lg border border-destructive/40 bg-destructive/10 p-4 flex items-start gap-3">
+              <Icon name="CalendarX" className="text-destructive mt-0.5" size={20} />
+              <div className="text-sm">
+                <b>Срок акции истёк {end.toLocaleDateString('ru-RU')}.</b> Поэтому она не показывается
+                на сайте. Укажите дату окончания в будущем и сохраните.
+              </div>
+            </div>
+          );
+        }
+        if (now < start) {
+          return (
+            <div className="mb-6 rounded-lg border border-blue-500/40 bg-blue-500/10 p-4 flex items-start gap-3">
+              <Icon name="Clock" className="text-blue-500 mt-0.5" size={20} />
+              <div className="text-sm">
+                <b>Акция ещё не началась.</b> Показ стартует {start.toLocaleDateString('ru-RU')}.
+              </div>
+            </div>
+          );
+        }
+        return (
+          <div className="mb-6 rounded-lg border border-green-500/40 bg-green-500/10 p-4 flex items-start gap-3">
+            <Icon name="CheckCircle2" className="text-green-500 mt-0.5" size={20} />
+            <div className="text-sm">
+              <b>Акция активна</b> и показывается на сайте до {end.toLocaleDateString('ru-RU')}.
+            </div>
+          </div>
+        );
+      })()}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-6">
           <Card className="p-6">
