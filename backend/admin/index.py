@@ -37,8 +37,6 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     
     if method == 'POST' and action == 'login':
         return admin_login(event)
-    elif method == 'POST' and action == 'reset_password':
-        return reset_password(event)
     
     headers = event.get('headers') or {}
     token = headers.get('x-auth-token') or headers.get('X-Auth-Token')
@@ -91,11 +89,9 @@ def admin_login(event: Dict[str, Any]) -> Dict[str, Any]:
         return error_response('Invalid credentials', 401)
     
     if admin['password_hash'] == 'PLACEHOLDER':
-        hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-        hashed_safe = escape_sql(hashed)
-        cur.execute(f"UPDATE admins SET password_hash = '{hashed_safe}' WHERE id = {admin['id']}")
-        conn.commit()
-        admin['password_hash'] = hashed
+        cur.close()
+        conn.close()
+        return error_response('Invalid credentials', 401)
     
     try:
         if not bcrypt.checkpw(password.encode('utf-8'), admin['password_hash'].encode('utf-8')):
@@ -139,43 +135,6 @@ def admin_login(event: Dict[str, Any]) -> Dict[str, Any]:
                 'full_name': admin['full_name']
             }
         }),
-        'isBase64Encoded': False
-    }
-
-
-def reset_password(event: Dict[str, Any]) -> Dict[str, Any]:
-    body_str = event.get('body', '{}') or '{}'
-    body = json.loads(body_str) if body_str else {}
-    email = body.get('email', '').strip().lower()
-    
-    if not email:
-        return error_response('Email is required')
-    
-    conn = psycopg2.connect(os.environ['DATABASE_URL'])
-    cur = conn.cursor(cursor_factory=RealDictCursor)
-    
-    email_safe = escape_sql(email)
-    cur.execute(f"SELECT id FROM admins WHERE email = '{email_safe}'")
-    admin = cur.fetchone()
-    
-    if not admin:
-        cur.close()
-        conn.close()
-        return error_response('Admin not found', 404)
-    
-    cur.execute(f"UPDATE admins SET password_hash = 'PLACEHOLDER' WHERE id = {admin['id']}")
-    conn.commit()
-    
-    cur.close()
-    conn.close()
-    
-    return {
-        'statusCode': 200,
-        'headers': {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*'
-        },
-        'body': json.dumps({'success': True, 'message': 'Password reset successfully'}),
         'isBase64Encoded': False
     }
 
