@@ -73,6 +73,8 @@ def handler(event: dict, context) -> dict:
             return create_event(dsn, event)
         elif action == 'update':
             return update_event(dsn, event, params)
+        elif action == 'hide_auto':
+            return hide_auto_event(dsn, event)
     elif method == 'DELETE':
         return delete_event(dsn, params)
     
@@ -111,7 +113,7 @@ def get_events(dsn: str) -> dict:
         with psycopg2.connect(dsn) as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute(f"""
-                    SELECT id, date, event_time, title, description, color, servers
+                    SELECT id, date, event_time, title, description, color, servers, is_hidden
                     FROM {schema}.calendar_events
                     ORDER BY date, event_time
                 """)
@@ -129,6 +131,49 @@ def get_events(dsn: str) -> dict:
             'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
             'body': json.dumps({'error': str(e)})
         }
+
+def hide_auto_event(dsn: str, event: dict) -> dict:
+    '''Скрытие автоматического события: запись-заглушка с is_hidden = TRUE'''
+    schema = get_schema(dsn)
+    try:
+        data = json.loads(event.get('body', '{}'))
+        date = data.get('date')
+        title = data.get('title')
+
+        if not date or not title:
+            return {
+                'statusCode': 400,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'error': 'Missing date or title'})
+            }
+
+        safe_date = str(date).replace("'", "''")
+        safe_title = str(title).replace("'", "''")
+
+        with psycopg2.connect(dsn) as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute(f"""
+                    INSERT INTO {schema}.calendar_events
+                        (date, event_time, title, description, color, servers, is_hidden)
+                    VALUES ('{safe_date}', '12:00', '{safe_title}', '', '#DC2626', '', TRUE)
+                    RETURNING id
+                """)
+                new_row = cur.fetchone()
+                conn.commit()
+
+                return {
+                    'statusCode': 200,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'success': True, 'id': new_row['id']}, default=str)
+                }
+    except Exception as e:
+        print(f"Hide auto event error: {e}")
+        return {
+            'statusCode': 500,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'body': json.dumps({'error': str(e)})
+        }
+
 
 def create_event(dsn: str, event: dict) -> dict:
     '''Создание нового события'''

@@ -140,6 +140,28 @@ const EventsTab = ({ token }: EventsTabProps) => {
     }
   };
 
+  const handleDeleteAuto = async (event: CalendarEvent) => {
+    if (!confirm(`Удалить событие "${event.title}" за эту дату из календаря?`)) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/?action=hide_auto`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Auth-Token': token! },
+        body: JSON.stringify({ date: event.date, title: event.title }),
+      });
+      if (res.ok) {
+        toast({ title: 'Событие удалено' });
+        await loadEvents();
+      } else {
+        toast({ title: 'Ошибка', description: 'Не удалось удалить', variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: 'Ошибка', description: 'Сетевая ошибка', variant: 'destructive' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const prevMonth = () => {
     if (filterMonth === 0) { setFilterMonth(11); setFilterYear(y => y - 1); }
     else setFilterMonth(m => m - 1);
@@ -330,6 +352,17 @@ const EventsTab = ({ token }: EventsTabProps) => {
                       >
                         <Icon name="Edit" size={16} className="mr-1" />
                         Изменить
+                      </Button>
+                    ) : null}
+                    {isAuto ? (
+                      <Button
+                        size="icon"
+                        variant="destructive"
+                        onClick={() => handleDeleteAuto(event)}
+                        disabled={loading}
+                        title="Удалить это событие из календаря"
+                      >
+                        <Icon name="Trash2" size={16} />
                       </Button>
                     ) : (
                       <>

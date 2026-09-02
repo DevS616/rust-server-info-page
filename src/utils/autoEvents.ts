@@ -7,6 +7,7 @@ export interface CalendarEvent {
   color: string;
   servers?: string;
   isAuto?: boolean;
+  is_hidden?: boolean;
 }
 
 export const toDateStr = (d: Date): string =>
@@ -107,5 +108,8 @@ export const mergeEvents = (dbEvents: CalendarEvent[]): CalendarEvent[] => {
     e => !dbKeys.has(`${e.date}|${e.title}`)
   );
 
-  return [...dbEvents, ...filteredAuto];
+  // Записи с is_hidden — это метки удалённых авто-событий, их не показываем
+  const visibleDb = dbEvents.filter(e => !e.is_hidden);
+
+  return [...visibleDb, ...filteredAuto];
 };

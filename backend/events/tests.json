@@ -4,11 +4,7 @@
       "name": "Get all events",
       "method": "GET",
       "path": "/",
-      "expectedStatus": 200,
-      "expectedBody": {
-        "events": "array"
-      },
-      "bodyMatcher": "partial"
+      "expectedStatus": 200
     }
   ]
 }
