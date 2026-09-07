@@ -108,7 +108,7 @@ const News = () => {
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="flex flex-col flex-1">
-                      <p className="text-muted-foreground leading-relaxed flex-1">{preview}</p>
+                      <p className="text-muted-foreground leading-relaxed flex-1 whitespace-pre-wrap">{preview}</p>
                       <div className="flex flex-wrap gap-2 mt-3">
                         {isLong && (
                           <Button

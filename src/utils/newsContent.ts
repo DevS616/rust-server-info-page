@@ -23,9 +23,17 @@ export const isHtmlContent = (text: string): boolean => {
 export const stripHtml = (text: string): string => {
   if (!text) return '';
   if (!isHtmlContent(text)) return text;
+
+  const withBreaks = sanitizeNewsHtml(text)
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|h[1-6]|li|blockquote)>/gi, '\n')
+    .replace(/<li[^>]*>/gi, '• ');
+
   const tmp = document.createElement('div');
-  tmp.innerHTML = sanitizeNewsHtml(text);
-  return (tmp.textContent || tmp.innerText || '').trim();
+  tmp.innerHTML = withBreaks;
+  const plain = tmp.textContent || tmp.innerText || '';
+
+  return plain.replace(/\n{3,}/g, '\n\n').trim();
 };
 
 export const previewText = (text: string, length: number): { preview: string; isLong: boolean } => {
