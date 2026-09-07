@@ -10,6 +10,7 @@ import TelegramSection from '@/components/support/TelegramSection';
 import TicketForm from '@/components/support/TicketForm';
 import TicketsList from '@/components/support/TicketsList';
 import SupportStats from '@/components/support/SupportStats';
+import MaintenanceNotice from '@/components/support/MaintenanceNotice';
 
 const API_BASE = 'https://functions.poehali.dev';
 
@@ -145,6 +146,7 @@ const Support = () => {
   if (!token) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex flex-col">
+        <MaintenanceNotice />
         <Header />
         <main className="flex-1 container mx-auto px-4 py-16">
           <Card className="max-w-md mx-auto p-8 bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700">
@@ -173,6 +175,7 @@ const Support = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex flex-col">
+      <MaintenanceNotice />
       <Header />
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
