@@ -38,12 +38,16 @@ export const generateAutoEvents = (): CalendarEvent[] => {
   for (const year of years) {
     for (let month = 0; month < 12; month++) {
 
-      // 1. Судная ночь PVE — каждую ПЕРВУЮ СРЕДУ месяца в 18:00
-      const wednesdays = getDaysOfWeekInMonth(year, month, 3); // 3 = Среда
-      if (wednesdays.length > 0) {
+      // 1. Глобальный вайп PVE — каждый ПЕРВЫЙ ЧЕТВЕРГ месяца в 22:30
+      // 2. Судная ночь PVE — всегда за сутки ДО глобального вайпа, в 18:00
+      const thursdays = getDaysOfWeekInMonth(year, month, 4); // 4 = Четверг
+      if (thursdays.length > 0) {
+        const judgementNight = new Date(thursdays[0]);
+        judgementNight.setDate(judgementNight.getDate() - 1);
+
         result.push({
           id: idCounter--,
-          date: toDateStr(wednesdays[0]),
+          date: toDateStr(judgementNight),
           event_time: '18:00',
           title: 'Судная ночь',
           description: 'PVP событие, начало в 18:00 по МСК, завершение после Официального вайпа от разработчиков игры 22:00-22:30 по МСК)',
@@ -53,8 +57,6 @@ export const generateAutoEvents = (): CalendarEvent[] => {
         });
       }
 
-      // 2. Глобальный вайп PVE — каждый ПЕРВЫЙ ЧЕТВЕРГ месяца в 22:30
-      const thursdays = getDaysOfWeekInMonth(year, month, 4); // 4 = Четверг
       if (thursdays.length > 0) {
         result.push({
           id: idCounter--,
