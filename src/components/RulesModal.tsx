@@ -337,7 +337,7 @@ const RulesModal = ({ open, onOpenChange }: RulesModalProps) => {
                 className="text-destructive font-semibold hover:underline"
                 onClick={() => { onOpenChange(false); setTimeout(() => setIsSupportChoiceOpen(true), 200); }}
               >
-                Подайте жалобу
+                Напишите в поддержку
               </button>
             </span>
           </div>
