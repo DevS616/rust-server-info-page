@@ -2,6 +2,7 @@ import { TicketsTabProps } from './tickets/types';
 import TicketDetail from './tickets/TicketDetail';
 import TicketFilters from './tickets/TicketFilters';
 import TicketList from './tickets/TicketList';
+import PurgeButton from './PurgeButton';
 
 const TicketsTab = ({
   tickets,
@@ -58,6 +59,16 @@ const TicketsTab = ({
 
   return (
     <div className="space-y-3 md:space-y-4">
+      <div className="flex justify-end">
+        <PurgeButton
+          url="https://functions.poehali.dev/887805c0-0d3a-4f32-8436-1ba1adda4a4f/?action=purge_open"
+          token={token}
+          label="Удалить все незакрытые"
+          title="Удалить все незакрытые обращения?"
+          description="Будут удалены все обращения, кроме закрытых, вместе с перепиской. Закрытые обращения останутся. Отменить это действие нельзя."
+          onDone={onRefresh}
+        />
+      </div>
       <TicketFilters
         filterStatus={filterStatus}
         setFilterStatus={setFilterStatus}

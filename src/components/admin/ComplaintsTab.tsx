@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
 import { formatMskDateTime } from '@/utils/dateFormat';
+import PurgeButton from './PurgeButton';
 
 const COMPLAINTS_API = 'https://functions.poehali.dev/76a02e7f-8572-4035-9cd5-8533e8fb1c6d';
 const UPLOAD_API = 'https://functions.poehali.dev/b36ed6dc-c690-4e62-b1e9-e3dd1b1d15c5';
@@ -582,6 +583,17 @@ const ComplaintsTab = ({ token }: ComplaintsTabProps) => {
   return (
     <div>
       <ModeratorsPanel token={token} />
+
+      <div className="flex justify-end mb-3">
+        <PurgeButton
+          url={`${COMPLAINTS_API}/?action=purge_all`}
+          token={token}
+          label="Удалить все жалобы"
+          title="Удалить все жалобы?"
+          description="Будут удалены все жалобы и апелляции вместе с перепиской и оценками. Отменить это действие нельзя."
+          onDone={() => { setComplaints([]); setSelected(null); load(); }}
+        />
+      </div>
 
       <div className="flex flex-wrap gap-3 mb-4 items-center">
         <Input placeholder="Поиск по ID, теме, нику, Steam ID..." value={searchQuery}

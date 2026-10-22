@@ -80,6 +80,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         return close_complaint(complaint_id, user_data)
     elif method == 'PUT' and action == 'status' and complaint_id:
         return update_status(complaint_id, event, user_data)
+    elif method == 'DELETE' and action == 'purge_all':
+        return purge_all_complaints(user_data)
     elif method == 'DELETE' and complaint_id:
         return delete_complaint(complaint_id, user_data)
     elif method == 'POST' and action == 'block_user':
@@ -530,6 +532,20 @@ def update_status(complaint_id: str, event: Dict[str, Any], user_data: Dict[str,
     complaint = cur.fetchone()
     conn.commit(); cur.close(); conn.close()
     return ok_response({'complaint': dict(complaint)})
+
+
+def purge_all_complaints(user_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Удаляет все жалобы вместе с перепиской и оценками. Только для админа."""
+    if not user_data.get('is_adminpanel'):
+        return error_response('Forbidden', 403)
+    conn = psycopg2.connect(os.environ['DATABASE_URL'])
+    cur = conn.cursor()
+    cur.execute("DELETE FROM complaint_messages")
+    cur.execute("DELETE FROM complaint_ratings")
+    cur.execute("DELETE FROM complaints")
+    deleted = cur.rowcount
+    conn.commit(); cur.close(); conn.close()
+    return ok_response({'success': True, 'deleted': deleted})
 
 
 def delete_complaint(complaint_id: str, user_data: Dict[str, Any]) -> Dict[str, Any]:

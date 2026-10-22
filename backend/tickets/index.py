@@ -67,10 +67,34 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         return rate_ticket(ticket_id, event, user_data)
     elif method == 'PUT' and action == 'edit_message' and ticket_id:
         return edit_message(ticket_id, event, user_data)
+    elif method == 'DELETE' and action == 'purge_open':
+        return purge_open_tickets(user_data)
     elif method == 'DELETE' and ticket_id:
         return delete_ticket(ticket_id, user_data)
     
     return error_response('Not found', 404)
+
+
+def purge_open_tickets(user_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Удаляет все обращения, кроме закрытых, вместе с перепиской. Только для админа."""
+    if not (user_data.get('admin_id') and user_data.get('is_admin')):
+        return error_response('Admin access required', 403)
+
+    conn = psycopg2.connect(os.environ['DATABASE_URL'])
+    cur = conn.cursor()
+    cur.execute("DELETE FROM ticket_messages WHERE ticket_id IN (SELECT id FROM tickets WHERE status <> 'closed')")
+    cur.execute("DELETE FROM tickets WHERE status <> 'closed'")
+    deleted = cur.rowcount
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return {
+        'statusCode': 200,
+        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+        'body': json.dumps({'success': True, 'deleted': deleted}),
+        'isBase64Encoded': False
+    }
 
 
 def verify_token(token: Optional[str]) -> Optional[Dict[str, Any]]:
