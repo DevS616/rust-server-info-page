@@ -8,7 +8,6 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { monitoringService } from '@/services/monitoringService';
-import serversData from '@/data/servers.json';
 
 interface ServerEntry {
   ip: string;
@@ -27,19 +26,20 @@ const serverWord = (n: number) => {
   return 'серверов';
 };
 
-const gameModeCount = Object.keys(serversData).filter(k => k.endsWith('Servers')).length;
-
-const gameModeWord = (() => {
-  if (gameModeCount === 1) return 'РЕЖИМ ИГРЫ';
-  if (gameModeCount >= 2 && gameModeCount <= 4) return 'РЕЖИМА ИГРЫ';
+const gameModeWord = (n: number) => {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return 'РЕЖИМ ИГРЫ';
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return 'РЕЖИМА ИГРЫ';
   return 'РЕЖИМОВ ИГРЫ';
-})();
+};
 
 const HeroSection = () => {
   const [totalPlayers, setTotalPlayers] = useState<number | null>(null);
   const [displayPlayers, setDisplayPlayers] = useState<number>(0);
   const [onlineServersCount, setOnlineServersCount] = useState<number>(0);
   const [activeServerIps, setActiveServerIps] = useState<string[]>([]);
+  const [gameModeCount, setGameModeCount] = useState<number>(0);
   const [coinRain, setCoinRain] = useState(false);
   const lastVendingSound = useRef(0);
   const displayPlayersRef = useRef(0);
@@ -75,10 +75,11 @@ const HeroSection = () => {
     fetch(`${SERVERS_API}/?active=true`)
       .then(r => r.json())
       .then(data => {
-        const ips = (data.servers || [])
-          .map((s: { server_ip?: string }) => s.server_ip || '')
-          .filter(Boolean);
+        const list: { server_ip?: string; mode?: string }[] = data.servers || [];
+        const ips = list.map(s => s.server_ip || '').filter(Boolean);
         setActiveServerIps(ips);
+        const modes = new Set(list.map(s => (s.mode || '').trim().toUpperCase()).filter(Boolean));
+        setGameModeCount(modes.size);
       })
       .catch(() => {});
   }, []);
@@ -204,7 +205,7 @@ const HeroSection = () => {
             </TooltipProvider>
             <div className="flex flex-col items-center p-4 rounded-lg glow-border bg-card/50 backdrop-blur-sm">
               <div className="text-3xl font-bold text-primary glow-text">{gameModeCount}</div>
-              <div className="text-sm text-muted-foreground uppercase tracking-wider">{gameModeWord}</div>
+              <div className="text-sm text-muted-foreground uppercase tracking-wider">{gameModeWord(gameModeCount)}</div>
             </div>
           </div>
         </div>
