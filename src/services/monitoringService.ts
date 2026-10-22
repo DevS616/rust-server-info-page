@@ -1,5 +1,3 @@
-import fallbackStats from '@/data/fallbackStats.json';
-
 type MonitoringData = {
   result: string;
   data: {
@@ -13,6 +11,8 @@ type MonitoringData = {
   };
 };
 
+const REFRESH_MS = 5 * 60 * 1000;
+
 type Listener = (data: MonitoringData | null) => void;
 
 class MonitoringService {
@@ -21,27 +21,10 @@ class MonitoringService {
   private fetchInterval: number | null = null;
   private isFetching = false;
   private useFallback = false;
+  private lastFetch = 0;
 
   constructor() {
-    this.loadFallbackData();
     this.startAutoFetch();
-  }
-
-  private loadFallbackData(): void {
-    const servers = Object.entries(fallbackStats.servers).map(([, stats]) => ({
-      ip: '',
-      port: 0,
-      players: stats.players,
-      playersMax: stats.maxPlayers
-    }));
-
-    this.data = {
-      result: 'success',
-      data: {
-        total: { players: fallbackStats.totalPlayers },
-        servers
-      }
-    };
   }
 
   subscribe(listener: Listener): () => void {
@@ -64,6 +47,7 @@ class MonitoringService {
     if (this.isFetching) return;
 
     this.isFetching = true;
+    this.lastFetch = Date.now();
     try {
       const response = await fetch(
         'https://functions.poehali.dev/00e6cb95-28f5-49b7-b342-db4f9ae8ffd1?type=monitoring'
@@ -89,7 +73,7 @@ class MonitoringService {
   }
 
   private startAutoFetch(): void {
-    const CACHE_TTL = 15 * 60 * 1000;
+    const CACHE_TTL = REFRESH_MS;
     let fresh = false;
     try {
       const raw = localStorage.getItem('monitoring_cache');
@@ -97,6 +81,7 @@ class MonitoringService {
         const cached = JSON.parse(raw);
         if (cached && Date.now() - cached.ts < CACHE_TTL && cached.data?.data) {
           this.data = cached.data;
+          this.lastFetch = cached.ts;
           this.useFallback = false;
           this.notify();
           fresh = true;
@@ -109,7 +94,12 @@ class MonitoringService {
       if (document.visibilityState === 'visible') {
         this.fetchData();
       }
-    }, 15 * 60 * 1000);
+    }, REFRESH_MS);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && Date.now() - this.lastFetch > REFRESH_MS) {
+        this.fetchData();
+      }
+    });
   }
 
   destroy(): void {
