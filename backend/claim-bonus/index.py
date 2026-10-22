@@ -53,16 +53,22 @@ def handler(event: dict, context) -> dict:
             f'?type=plus&amount={amount}&message={message}'
         )
         
-        print(f'Calling API: {api_url}')
+        print(f'Crediting bonus: steam_id={steam_id}, amount={amount}')
         req = Request(api_url)
         with urlopen(req, timeout=10) as res:
             result_text = res.read().decode('utf-8')
             print(f'API response [{res.status}]: {result_text}')
-            if res.status == 200:
+
+            api_status = None
+            try:
+                api_status = json.loads(result_text).get('status')
+            except (ValueError, AttributeError):
+                pass
+
+            if res.status == 200 and api_status != 'error':
                 save_bonus_history(steam_id, amount)
                 return response(200, {'success': True, 'api_response': result_text})
-            else:
-                return response(res.status, {'error': 'Failed to credit bonus', 'details': result_text})
+            return response(502, {'error': 'Failed to credit bonus', 'details': result_text})
                 
     except (URLError, HTTPError) as e:
         return response(500, {'error': f'API request failed: {str(e)}'})
@@ -77,13 +83,15 @@ def save_bonus_history(steam_id: str, amount: int):
         conn = psycopg2.connect(os.environ['DATABASE_URL'])
         cur = conn.cursor()
         
+        safe_id = str(steam_id).replace("'", "''")
+        safe_amount = int(amount)
+
         cur.execute(
-            f"INSERT INTO bonus_history (steam_id, amount) VALUES ('{steam_id.replace(\"'\", \"''\")}', {amount})"
+            f"INSERT INTO t_p48919527_rust_server_info_pag.bonus_history (steam_id, amount) VALUES ('{safe_id}', {safe_amount})"
         )
-        
-        # Обновляем счетчики в daily_bonus_claims
+
         cur.execute(
-            f"UPDATE daily_bonus_claims SET total_spins = total_spins + 1, total_winnings = total_winnings + {amount} WHERE steam_id = '{steam_id.replace(\"'\", \"''\")}'"
+            f"UPDATE t_p48919527_rust_server_info_pag.daily_bonus_claims SET total_spins = total_spins + 1, total_winnings = total_winnings + {safe_amount} WHERE steam_id = '{safe_id}'"
         )
         
         conn.commit()
