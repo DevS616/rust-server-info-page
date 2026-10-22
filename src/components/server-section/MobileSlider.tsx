@@ -21,7 +21,7 @@ const MobileSlider = ({ servers, serverStats, onConnect, onDetails, onCopyIP, la
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}
       >
         {servers.map(s => (
-          <div key={s.id} style={{ width: '80vw', maxWidth: 300, flexShrink: 0, scrollSnapAlign: 'start' }}>
+          <div key={s.id} style={{ width: '88vw', maxWidth: 420, flexShrink: 0, scrollSnapAlign: 'start' }}>
             <ServerCard
               server={s}
               stats={serverStats[s.id]}
